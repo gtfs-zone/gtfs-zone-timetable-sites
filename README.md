@@ -1,5 +1,7 @@
 # gtfs-zone-timetable-sites
 
+[![CI](https://img.shields.io/github/actions/workflow/status/gtfs-zone/gtfs-zone-timetable-sites/check.yml?branch=main&label=CI)](https://github.com/gtfs-zone/gtfs-zone-timetable-sites/actions/workflows/check.yml?query=branch%3Amain) [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](LICENSE.txt) [![sites.gtfs.zone](https://img.shields.io/website?url=https%3A%2F%2Fsites.gtfs.zone&label=sites.gtfs.zone)](https://sites.gtfs.zone) [![Container image](https://img.shields.io/badge/image-ghcr.io-blue?logo=docker&logoColor=white)](https://github.com/gtfs-zone/gtfs-zone-timetable-sites/pkgs/container/gtfs-zone-timetable-sites)
+
 Static timetable websites generated from GTFS, served at
 [sites.gtfs.zone](https://sites.gtfs.zone). One site per agency, listed in
 `sites.yaml` or taken from the gtfs.zone feed catalog: an index of routes, printed-style timetables per route, direction
