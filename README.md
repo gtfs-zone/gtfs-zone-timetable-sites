@@ -27,8 +27,8 @@ uv run timetable-sites sizes                                 # largest built pag
 
 `build` resolves a site's `feed:` id to its download URL through
 `data.gtfs.zone/feeds.json` at build time, or uses the site's `url:` directly.
-With `--cache`, feeds.json and the slugs assigned to catalog feeds are kept
-there too.
+With `--cache`, feeds.json and the slugs and aliases assigned to catalog feeds
+are kept there too.
 
 ## Configuration
 
@@ -37,9 +37,16 @@ there too.
 
 `catalog` makes a site of every feed in `data.gtfs.zone/feeds.json` whose
 schedule is up and that passes `countries` (ISO codes, empty for all),
+`exclude_countries`, `require_country` (skip feeds without a country code),
 `max_bytes` (zip size) and `exclude` (feed ids). Its slug comes from the feed
-name and is pinned in the bucket's `slugs.json`, so it never changes or goes to
-another feed.
+name, romanized (Hepburn for Japanese, `anyascii` for other scripts), with the
+feed's subtitle, municipality or subdivision added when several feeds share the
+name. It is pinned in the bucket's `slugs.json`, so it never changes or goes to
+another feed unless renamed: a `sites:` entry with the feed and a new `slug`
+renames it, and the old slug is kept in `aliases.json`, never reused, and its
+pages redirect to the new ones. Its `time_format` comes from its country (12h
+in the US, Canada outside Quebec, Australia and a few others, 24h elsewhere),
+and France, Monaco and Quebec get `locale: fr`.
 
 Each listed site needs exactly one of `feed` or `url`, a `slug` when it has a
 `url` (optional for a `feed`), and may override any default. A listed `feed` is
@@ -52,6 +59,7 @@ built whatever the catalog filter says:
 | `time_format` | `12h`, `24h` | `12h` |
 | `timepoints` | `auto`, `all`, `timepoint-flag` | `auto` |
 | `basemap` | `none`, a Stadia style, or `{light: <style>, dark: <style>}` to follow the color scheme (tiles under the svg map) | `none` |
+| `locale` | `en`, `fr`: the language of the site's pages (the root and country pages stay English) | `en` |
 
 Stadia styles: `stadia-alidade-smooth`, `stadia-alidade-smooth-dark`,
 `stadia-alidade-bright`, `stadia-alidade-satellite`, `stadia-outdoors`,

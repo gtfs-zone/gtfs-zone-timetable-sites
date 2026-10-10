@@ -34,12 +34,18 @@ from dagster import (
 )
 
 from gtfs_zone_timetable_sites.build import BASE_URL
-from gtfs_zone_timetable_sites.catalog import SHARDS, resolve_sites, shard_of
+from gtfs_zone_timetable_sites.catalog import (
+    SHARDS,
+    redirects,
+    resolve_sites,
+    shard_of,
+)
 from gtfs_zone_timetable_sites.config import FEEDS_URL, USER_AGENT, load_config
 from gtfs_zone_timetable_sites.pipeline import indexnow
 from gtfs_zone_timetable_sites.pipeline.bucket import Bucket, BucketSettings
 from gtfs_zone_timetable_sites.pipeline.heartbeat import push_heartbeat
 from gtfs_zone_timetable_sites.pipeline.publish import (
+    ALIASES,
     BAD,
     SLUGS,
     content_key,
@@ -77,9 +83,12 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
     ) as http:
         feeds_doc = http.get(FEEDS_URL).raise_for_status().json()
         pinned = read_json(bucket, SLUGS) or {}
-        sites, slugs = resolve_sites(CONFIG, feeds_doc, pinned)
+        old_aliases = read_json(bucket, ALIASES) or {}
+        sites, slugs, aliases = resolve_sites(CONFIG, feeds_doc, pinned, old_aliases)
         if slugs != pinned:
             put_json(bucket, SLUGS, slugs)
+        if aliases != old_aliases:
+            put_json(bucket, ALIASES, aliases)
         mine = [site for site in sites if shard_of(site.slug) == shard]
         context.log.info("shard %02d: %d of %d sites", shard, len(mine), len(sites))
 
@@ -103,6 +112,7 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
             indexnow.KEY,
             contents,
             sites,
+            redirects(slugs, aliases, live),
         )
         indexnow.ping(
             http,

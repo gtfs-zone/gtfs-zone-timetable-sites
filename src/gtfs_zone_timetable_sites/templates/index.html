@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}{{ site_title }} schedules and timetables{% endblock %}
-{% block description %}{{ modes }} schedules for {{ site_title }}: timetables for {{ routes | length }} route{{ "s" if routes | length != 1 }}, with times at each stop.{% endblock %}
+{% block title %}{{ t("index.title", site=site_title) }}{% endblock %}
+{% block description %}{{ t("index.description", modes=modes, modes_lower=modes_lower, site=site_title, n=routes | length) }}{% endblock %}
 {% block main %}
 <h1 class="text-3xl font-bold">{{ site_title }}</h1>
 {% for group in groups %}
@@ -18,13 +18,13 @@
 </ul>
 {% endfor %}
 {% if expired %}
-<h2 class="text-xl font-semibold" id="expired">Expired</h2>
+<h2 class="text-xl font-semibold" id="expired">{{ t("index.expired") }}</h2>
 <ul class="list rounded-box bg-base-100 shadow-sm">
 {% for route in expired %}
 <li><a class="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 rounded-box px-4 py-3 opacity-70 hover:bg-base-200 focus-visible:bg-base-200" href="{{ route.slug }}/">
 {{ badge(route) }}
 {% if route.name %}<span class="min-w-0 flex-1 font-semibold">{{ route.name }}</span>{% endif %}
-<span class="badge badge-sm badge-error shrink-0">Expired</span>
+<span class="badge badge-sm badge-error shrink-0">{{ t("index.expired_badge") }}</span>
 <span class="basis-full text-sm text-base-content/70">{{ route.state_label }}</span>
 </a></li>
 {% endfor %}
@@ -33,7 +33,7 @@
 {% if maps %}
 <section class="card bg-base-100 shadow-sm">
 <div class="card-body p-4">
-<h2 class="card-title">{{ "Maps" if maps | length > 1 else "Map" }}</h2>
+<h2 class="card-title">{{ t("index.maps", n=maps | length) }}</h2>
 {% for heading, svg in maps %}
 {% if heading %}<h3 class="font-semibold">{{ heading }}</h3>{% endif %}
 {{ svg }}
@@ -44,21 +44,21 @@
 {% endif %}
 <section class="card bg-base-100 shadow-sm">
 <div class="card-body space-y-1 p-4">
-<h2 class="card-title">About</h2>
+<h2 class="card-title">{{ t("index.about") }}</h2>
 {% for agency in agencies %}
 <p><span class="font-semibold">{{ agency.name }}</span>
-{% if agency.url %}<br><a class="link" href="{{ agency.url }}" target="_blank" rel="noopener">Website</a>{% endif %}
+{% if agency.url %}<br><a class="link" href="{{ agency.url }}" target="_blank" rel="noopener">{{ t("index.website") }}</a>{% endif %}
 {% if agency.phone %}<br><a class="link" href="tel:{{ agency.phone | replace(' ', '') }}">{{ agency.phone }}</a>{% endif %}
 </p>
 {% endfor %}
 {% if valid %}
-<p>Timetables valid {{ valid }}.</p>
+<p>{{ t("index.valid", range=valid) }}</p>
 {% endif %}
 {% for note in feed_notes %}
 <p>{{ note }}</p>
 {% endfor %}
 {% if feed_url %}
-<p><a class="link" href="{{ feed_url }}" target="_blank" rel="noopener">About this feed on list.gtfs.zone</a></p>
+<p><a class="link" href="{{ feed_url }}" target="_blank" rel="noopener">{{ t("index.feed_link") }}</a></p>
 {% endif %}
 </div>
 </section>

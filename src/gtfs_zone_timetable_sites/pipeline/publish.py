@@ -8,7 +8,8 @@ build date and the date that digest last changed, for the sitemap.
 Sites are built in shards. Each shard keeps `_shards/<nn>.json`, per site its
 summary, build date and page dates, so the root is rewritten from the shard
 files rather than from every site's manifest. `slugs.json` pins each catalog
-feed's slug.
+feed's slug and `aliases.json` maps a renamed site's old slugs to its feed id;
+the root redirects an old slug's pages to the current ones.
 
 Each shard also keeps `_content/<nn>.json`, per site the outcome of its last
 download (ok or why the feed is unusable) and, when ok, what the zip contains.
@@ -33,6 +34,7 @@ from gtfs_zone_timetable_sites.build import (
     build_root,
     build_site,
     page_digest,
+    redirect_pages,
     unbuilt_summary,
 )
 from gtfs_zone_timetable_sites.config import Site
@@ -47,11 +49,12 @@ log = logging.getLogger(__name__)
 
 MANIFEST = "manifest.json"
 SLUGS = "slugs.json"
+ALIASES = "aliases.json"
 SHARD_PREFIX = "_shards/"
 CONTENT_PREFIX = "_content/"
 CONTENT_INDEX = f"{CONTENT_PREFIX}index.json"
 # Keys at the root that are state, not pages, and never pruned.
-STATE = (SLUGS, SHARD_PREFIX, CONTENT_PREFIX)
+STATE = (SLUGS, ALIASES, SHARD_PREFIX, CONTENT_PREFIX)
 # Outcomes that are the feed's fault; such a feed is skipped until it changes.
 BAD = UNUSABLE
 RETRY_DAYS = 7
@@ -412,10 +415,12 @@ def publish_root(
     indexnow_key: str | None = None,
     contents: dict[str, dict] | None = None,
     sites: list[Site] | None = None,
+    redirects: dict[str, str] | None = None,
 ) -> list[str]:
     """Rewrite the root pages from the shard entries of the `live` sites, plus
     a row for each of `sites` that is live but has no entry, with each site's
-    status from its content report entry, and delete everything else, unless
+    status from its content report entry, and the pages of each old slug in
+    `redirects` ({old slug: current slug}), and delete everything else, unless
     `live` shrank below PRUNE_RATIO of the sites listed so far. Returns the
     live slugs not built today."""
     listed = {slug: entry for slug, entry in entries.items() if slug in live}
@@ -434,6 +439,9 @@ def publish_root(
             for slug, c in (contents or {}).items()
             if c and "outcome" in c
         },
+    )
+    files |= redirect_pages(
+        redirects or {}, {slug: entry["pages"] for slug, entry in listed.items()}
     )
     for path, body in files.items():
         store.put(path, body)

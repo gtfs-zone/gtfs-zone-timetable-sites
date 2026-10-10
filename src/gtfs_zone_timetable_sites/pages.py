@@ -19,6 +19,13 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     missing_label,
     trip_note,
 )
+from gtfs_zone_timetable_sites.i18n import (
+    Locale,
+    capitalize,
+    join_and,
+    long_date,
+    t,
+)
 from gtfs_zone_timetable_sites.strip import (
     RailRow,
     endpoint_threshold,
@@ -127,17 +134,20 @@ def mode_name(route_type: int) -> str:
     return "transit"
 
 
-def join_and(items: Sequence[str]) -> str:
-    """'A', 'A and B', 'A, B and C'."""
-    if len(items) < 2:
-        return "".join(items)
-    return f"{', '.join(items[:-1])} and {items[-1]}"
+def mode_label(mode: str, locale: Locale = "en") -> str:
+    """A mode name from MODE_ORDER in the page's language."""
+    return t(locale, f"mode.{mode}")
 
 
-def modes_label(modes: list[str]) -> str:
+def modes_text(modes: list[str], locale: Locale = "en") -> str:
+    """'bus', 'bus and train', 'bus, ferry and train' from mode names."""
+    names = [mode_label(mode, locale) for mode in sorted(set(modes)) or ["transit"]]
+    return join_and(names, locale)
+
+
+def modes_label(modes: list[str], locale: Locale = "en") -> str:
     """'Bus', 'Bus and train', 'Bus, ferry and train' from mode names."""
-    text = join_and(sorted(set(modes)) or ["transit"])
-    return text[:1].upper() + text[1:]
+    return capitalize(modes_text(modes, locale))
 
 
 def breadcrumbs(items: list[tuple[str, str]]) -> dict:
@@ -283,14 +293,21 @@ class RouteView:
     # "expired" (ended on state_date), "upcoming" (starts on it) or empty.
     state: str = ""
     state_date: date | None = None
+    locale: Locale = "en"
 
     @property
     def state_label(self) -> str:
         """'Ended Dec 18, 2020', 'Starts Jan 5, 2027' or empty."""
         if self.state_date is None:
             return ""
-        verb = {"expired": "Ended", "upcoming": "Starts"}.get(self.state, "")
-        return f"{verb} {long_date(self.state_date)}" if verb else ""
+        key = {"expired": "index.ended", "upcoming": "index.starts"}.get(self.state)
+        if key is None:
+            return ""
+        return t(self.locale, key, date=long_date(self.state_date, self.locale))
+
+    @property
+    def mode_label(self) -> str:
+        return mode_label(self.mode, self.locale)
 
     @property
     def line_color(self) -> str | None:
@@ -302,7 +319,7 @@ class RouteView:
 
     @property
     def days_label(self) -> str:
-        return join_and(self.days)
+        return join_and(self.days, self.locale)
 
 
 @dataclass(frozen=True, slots=True)
@@ -311,23 +328,26 @@ class ModeGroup:
 
     mode: str
     routes: tuple[RouteView, ...]
+    locale: Locale = "en"
 
     @property
     def heading(self) -> str:
-        return self.mode[:1].upper() + self.mode[1:]
+        return capitalize(mode_label(self.mode, self.locale))
 
     @property
     def anchor(self) -> str:
         return slugify(self.mode)
 
 
-def mode_groups(routes: Sequence[RouteView]) -> list[ModeGroup]:
+def mode_groups(routes: Sequence[RouteView], locale: Locale = "en") -> list[ModeGroup]:
     """Routes by mode in MODE_ORDER, each keeping its order within the mode."""
     by_mode: dict[str, list[RouteView]] = {}
     for route in routes:
         by_mode.setdefault(route.mode, []).append(route)
     return [
-        ModeGroup(mode, tuple(by_mode[mode])) for mode in MODE_ORDER if mode in by_mode
+        ModeGroup(mode, tuple(by_mode[mode]), locale)
+        for mode in MODE_ORDER
+        if mode in by_mode
     ]
 
 
@@ -353,12 +373,14 @@ def cell_view(cell: Cell | None, time_format: TimeFormat) -> CellView:
     return CellView(clock(cell.time, time_format), False, mark, arrival)
 
 
-def column_head(column: Column, time_format: TimeFormat, shaded: bool) -> ColumnHead:
+def column_head(
+    column: Column, time_format: TimeFormat, shaded: bool, locale: Locale = "en"
+) -> ColumnHead:
     every = ""
     if column.headway is not None:
         minutes = column.headway.headway_secs // 60
         until = clock_label(column.headway.end, time_format)
-        every = f"then every {minutes} min until {until}"
+        every = t(locale, "table.every", minutes=minutes, until=until)
     return ColumnHead(
         number=tidy(column.short_name),
         headsign=tidy(column.headsign),
@@ -403,12 +425,12 @@ def headsign_spans(heads: tuple[ColumnHead, ...]) -> tuple[HeadsignSpan, ...]:
     return tuple(spans)
 
 
-def table_title(headsigns: list[str]) -> str:
+def table_title(headsigns: list[str], locale: Locale = "en") -> str:
     """'To A / B', without 'To' when a headsign is not a destination."""
     text = " / ".join(headsigns)
     if any(NOT_A_PLACE.search(h) or not h[:1].isalnum() for h in headsigns):
         return text
-    return f"To {text}"
+    return t(locale, "table.to", places=text)
 
 
 def google_link(lat: float | None, lon: float | None) -> str:
@@ -440,31 +462,13 @@ def rail_class(row: RailRow) -> str:
     return " ".join(half for half, on in (("u", row.merges), ("d", row.branches)) if on)
 
 
-# name -> (icon, legend text, feed note when all are 1, feed note when all are 2).
-AMENITIES = {
-    "bikes": (
-        "bike",
-        "Bikes allowed",
-        "Bikes allowed on all trips.",
-        "No bikes on any trip.",
-    ),
-    "trips": (
-        "wheelchair",
-        "Wheelchair accessible trip",
-        "All trips are wheelchair accessible.",
-        "No trips are wheelchair accessible.",
-    ),
-    "stops": (
-        "wheelchair",
-        "Wheelchair accessible stop",
-        "All stops are wheelchair accessible.",
-        "No stops are wheelchair accessible.",
-    ),
-}
+# name -> icon; its legend text is `amenity.<name>`, its feed notes when all
+# are 1 or all 2 `amenity.<name>_all` and `amenity.<name>_none`.
+AMENITIES = {"bikes": "bike", "trips": "wheelchair", "stops": "wheelchair"}
 
 
 def feed_amenities(
-    tables: list[Timetable],
+    tables: list[Timetable], locale: Locale = "en"
 ) -> tuple[tuple[str, ...], frozenset[str]]:
     """(feed notes, amenities to mark with icons) over every table: a note
     when all trips or stops are 1 or all 2, icons when they differ."""
@@ -476,11 +480,10 @@ def feed_amenities(
     notes = []
     marked = set()
     for name, found in values.items():
-        _, _, yes, no = AMENITIES[name]
         if found == {1}:
-            notes.append(yes)
+            notes.append(t(locale, f"amenity.{name}_all"))
         elif found == {2}:
-            notes.append(no)
+            notes.append(t(locale, f"amenity.{name}_none"))
         elif 1 in found:
             marked.add(name)
     return tuple(notes), frozenset(marked)
@@ -492,8 +495,11 @@ def table_view(
     time_format: TimeFormat,
     anchor: str = "",
     marked: frozenset[str] = frozenset(),
+    locale: Locale = "en",
 ) -> TableView:
-    notes = [trip_note(table.day_type, column.trip_id) for column in table.columns]
+    notes = [
+        trip_note(table.day_type, column.trip_id, locale) for column in table.columns
+    ]
     letters = {
         note: chr(ord("A") + i)
         for i, note in enumerate(dict.fromkeys(note for note in notes if note))
@@ -501,7 +507,7 @@ def table_view(
     shown = [i for i, row in enumerate(table.rows) if row.timepoint]
     heads = tuple(
         replace(
-            column_head(column, time_format, shaded),
+            column_head(column, time_format, shaded, locale),
             note=letters.get(note, ""),
             bikes="bikes" in marked and column.bikes == 1,
             wheelchair="trips" in marked and column.wheelchair == 1,
@@ -536,64 +542,71 @@ def table_view(
         for k, i in enumerate(shown)
     )
     cells = [cell for row in rows for cell in row.cells]
-    legend = [f"{letter}: {note}." for note, letter in letters.items()]
+    legend = [
+        t(locale, "legend.note", letter=letter, note=note)
+        for note, letter in letters.items()
+    ]
+    keys = []
     if time_format == "12h" and any(c.time and c.time.pm for c in cells):
-        legend.append("PM times are in bold.")
-    shown_times = [t for c in cells for t in (c.time, c.arrival) if t]
-    days = {t.days for t in shown_times if t.days}
+        keys.append("pm")
+    shown_times = [time for c in cells for time in (c.time, c.arrival) if time]
+    days = {time.days for time in shown_times if time.days}
     if days == {1}:
-        legend.append("+1: after midnight, the next day.")
+        keys.append("next_day")
     elif any(d > 0 for d in days):
-        legend.append("+n: after midnight, n days later.")
+        keys.append("later_days")
     if any(d < 0 for d in days):
-        legend.append("-1: the evening before.")
+        keys.append("evening_before")
     if any(c.untimed for c in cells):
-        legend.append("|: stops here, no scheduled time.")
+        keys.append("untimed")
     if any("d" in c.mark for c in cells):
-        legend.append("d: drop off only.")
+        keys.append("drop_off")
     if any("p" in c.mark for c in cells):
-        legend.append("p: pick up only.")
+        keys.append("pick_up")
     if any("f" in c.mark for c in cells):
-        legend.append("f: flag stop, stops only on request.")
+        keys.append("flag")
     if any(c.arrival for c in cells):
-        legend.append("Two times: arrives, then departs.")
+        keys.append("dwell")
+    legend += [t(locale, f"legend.{key}") for key in keys]
     shown_icons = {
         "bikes": any(head.bikes for head in heads),
         "trips": any(head.wheelchair for head in heads),
         "stops": any(row.wheelchair for row in rows),
     }
-    keys = [
-        Key(icon, text)
-        for name, (icon, text, _, _) in AMENITIES.items()
+    icons = [
+        Key(icon, t(locale, f"amenity.{name}"))
+        for name, icon in AMENITIES.items()
         if shown_icons[name]
     ]
     headsigns = [tidy(h) for h in table.headsigns]
     # Trip numbers repeated on every trip (often the route name) add nothing.
     return TableView(
-        title=table_title(headsigns),
+        title=table_title(headsigns, locale),
         heads=heads,
         headsigns=headsign_spans(heads),
         show_numbers=len({head.number for head in heads}) > 1,
         show_headsigns=len({head.headsign for head in heads}) > 1,
         show_notes=bool(letters),
         rows=rows,
-        legend=(*keys, *(Key("", text) for text in legend)),
+        legend=(*icons, *(Key("", text) for text in legend)),
         anchor=anchor,
         trips=len(table.columns),
         gutter=gutter_width(graph.lane_count),
     )
 
 
-def day_notes(day: DayType) -> tuple[str, ...]:
+def day_notes(day: DayType, locale: Locale = "en") -> tuple[str, ...]:
     if not day.regular:
-        listed = dates_label(day.dates)
+        listed = dates_label(day.dates, locale)
         # A name like 'Weekday, Oct 12 to Oct 16' already says it all.
-        return (f"Runs only on {listed}.",) if day.name == listed else ()
+        if day.name != capitalize(listed):
+            return ()
+        return (t(locale, "day.runs_only", dates=listed),)
     notes = []
     if day.missing:
-        notes.append(f"No service {missing_label(day)}.")
+        notes.append(t(locale, "day.no_service", dates=missing_label(day, locale)))
     if day.extra:
-        notes.append(f"Also runs {dates_label(day.extra)}.")
+        notes.append(t(locale, "day.also_runs", dates=dates_label(day.extra, locale)))
     return tuple(notes)
 
 
@@ -633,6 +646,7 @@ def day_views(
     tables: list[Timetable],
     time_format: TimeFormat,
     marked: frozenset[str] = frozenset(),
+    locale: Locale = "en",
 ) -> list[DayView]:
     """Tables grouped by day type, busiest first by runs over the horizon;
     within a day, busiest table first."""
@@ -653,10 +667,12 @@ def day_views(
             DayView(
                 anchor=anchor,
                 name=day.name,
-                notes=day_notes(day),
+                notes=day_notes(day, locale),
                 tables=tuple(
-                    table_view(feed, t, time_format, f"{anchor}-{i + 1}", marked)
-                    for i, t in enumerate(group)
+                    table_view(
+                        feed, table, time_format, f"{anchor}-{i + 1}", marked, locale
+                    )
+                    for i, table in enumerate(group)
                 ),
                 runs=day_runs[day],
                 first=clock_label(span[0], time_format) if span else "",
@@ -687,13 +703,14 @@ def route_view(
     label: str = "",
     state: str = "",
     state_date: date | None = None,
+    locale: Locale = "en",
 ) -> RouteView:
     short, long = tidy(route.short_name), tidy(route.long_name)
     name = long if short else ""
     if label:
         name = f"{name} ({label})" if name else label
     days: list[str] = []
-    for day in sorted({t.day_type for t in tables}, key=day_order):
+    for day in sorted({table.day_type for table in tables}, key=day_order):
         if day.regular and day.name not in days:
             days.append(day.name)
     return RouteView(
@@ -709,6 +726,7 @@ def route_view(
         endpoints=endpoints(tables),
         state=state,
         state_date=state_date,
+        locale=locale,
     )
 
 
@@ -738,16 +756,18 @@ def service_range(feed: Feed) -> tuple[date | None, date | None]:
     return start, end
 
 
-def long_date(day: date) -> str:
-    """'Jan 2, 2026'."""
-    return f"{day:%b} {day.day}, {day.year}"
-
-
-def date_range(start: date | None, end: date | None) -> str:
+def date_range(
+    start: date | None, end: date | None, locale: Locale = "en", both: str = "both"
+) -> str:
     """'Jan 2, 2026 to Dec 31, 2029', 'from Jan 2, 2026', 'to Dec 31, 2029'
-    or empty."""
+    or empty; `both` picks the `range.<both>` text used with both dates."""
     if start and end:
-        return f"{long_date(start)} to {long_date(end)}"
+        return t(
+            locale,
+            f"range.{both}",
+            start=long_date(start, locale),
+            end=long_date(end, locale),
+        )
     if start:
-        return f"from {long_date(start)}"
-    return f"to {long_date(end)}" if end else ""
+        return t(locale, "range.from", start=long_date(start, locale))
+    return t(locale, "range.to", end=long_date(end, locale)) if end else ""

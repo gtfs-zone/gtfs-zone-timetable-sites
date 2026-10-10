@@ -538,6 +538,22 @@ def test_source_label(url, label):
     assert source_label(url) == label
 
 
+def test_french_site():
+    files = build("calendar-dates-only", locale="fr", time_format="24h")
+    home, page = files["index.html"], files["2/index.html"]
+    assert '<html lang="fr">' in home and '<html lang="fr">' in page
+    assert "<title>Horaires de Test Transit</title>" in home
+    assert "Horaires valides du 10 oct. 2026 au 17 oct. 2026." in home
+    assert '<h2 class="text-lg font-semibold">Samedi ' in page
+    assert "Aucun service : sam. 24 oct., sam. 31 oct.</p>" in page
+    assert "Toutes les lignes" in page
+    assert "Généré le" in page and "5 oct. 2026" in page
+
+
+def test_english_site_is_marked_english():
+    assert '<html lang="en">' in build("branching")["index.html"]
+
+
 def test_date_range_always_has_the_year():
     assert date_range(date(2026, 1, 2), date(2029, 12, 31)) == (
         "Jan 2, 2026 to Dec 31, 2029"

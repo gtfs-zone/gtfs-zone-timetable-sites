@@ -5,6 +5,8 @@ from typing import Annotated, Any, Literal, Self
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from gtfs_zone_timetable_sites.i18n import Locale
+
 MapKind = Literal["svg", "none"]
 TileStyle = Literal[
     "stadia-alidade-smooth",
@@ -52,6 +54,7 @@ class Options(Strict):
     time_format: TimeFormat = "12h"
     timepoints: Timepoints = "auto"
     basemap: Basemap = "none"
+    locale: Locale = "en"
 
 
 class RouteFilter(Strict):
@@ -88,6 +91,9 @@ class CatalogFeed(BaseModel):
     country: str | None = None
     country_code: str | None = None
     subdivision: str | None = None
+    municipality: str | None = None
+    # What sets the feed apart from others of the same name, like its network.
+    subtitle: str | None = None
     static_bytes: int | None = Field(None, alias="staticBytes")
     last_modified: str | None = Field(None, alias="lastModified")
     # The members' license URLs and Transitland / Mobility Database pages.
@@ -159,6 +165,9 @@ class CatalogFilter(Strict):
     feeds whose schedule is up are taken."""
 
     countries: tuple[str, ...] = ()
+    exclude_countries: tuple[str, ...] = ()
+    # Skip feeds without a country code.
+    require_country: bool = False
     max_bytes: int | None = Field(None, gt=0)
     exclude: tuple[str, ...] = ()
 

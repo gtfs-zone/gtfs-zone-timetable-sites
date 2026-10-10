@@ -13,7 +13,7 @@
 {%- endmacro %}
 {% macro icon(name, label="") %}<svg class="icon"{% if label %} role="img" aria-label="{{ label }}"{% else %} aria-hidden="true"{% endif %}><use href="#i-{{ name }}"/></svg>{% endmacro %}
 <!doctype html>
-<html lang="en">
+<html lang="{{ locale }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,14 +48,22 @@
 </main>
 <footer class="mx-auto max-w-4xl space-y-1 px-4 pb-8 text-sm text-base-content/70">
 {% block footer %}
-<p>Generated <time class="generated" datetime="{{ generated.isoformat() }}">{{ generated.strftime("%b") }} {{ generated.day }}, {{ generated.year }}</time> from the agency's GTFS feed. Check with the agency before you travel.</p>
+{% set generated_time %}<time class="generated" datetime="{{ generated.isoformat() }}">{{ generated | long_date }}</time>{% endset %}
+<p>{{ t("footer.generated", date=generated_time) }}</p>
 {% if source %}
-<p>Schedule data from {% if source.publisher_url %}<a class="link" href="{{ source.publisher_url }}" target="_blank" rel="noopener">{{ source.publisher }}</a>{% else %}{{ source.publisher }}{% endif %}{% if source.download_url %} (<a class="link" href="{{ source.download_url }}" target="_blank" rel="nofollow noopener">GTFS feed</a>){% endif %}{% if source.licenses %}, licensed under {% for url in source.licenses %}<a class="link" href="{{ url }}" target="_blank" rel="noopener">{% if loop.length > 1 %}license {{ loop.index }}{% else %}the publisher's license{% endif %}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}, on the publisher's terms{% endif %}.</p>
-{% if source.catalog_links %}<p>Listed in {% for url in source.catalog_links %}<a class="link" href="{{ url }}" target="_blank" rel="noopener">{{ "Transitland" if "transit.land" in url else "the Mobility Database" }}</a>{% if not loop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+{% set publisher %}{% if source.publisher_url %}<a class="link" href="{{ source.publisher_url }}" target="_blank" rel="noopener">{{ source.publisher }}</a>{% else %}{{ source.publisher }}{% endif %}{% endset %}
+{% set feed %}{% if source.download_url %} (<a class="link" href="{{ source.download_url }}" target="_blank" rel="nofollow noopener">{{ t("footer.feed") }}</a>){% endif %}{% endset %}
+{% set licenses %}{% for url in source.licenses %}<a class="link" href="{{ url }}" target="_blank" rel="noopener">{% if loop.length > 1 %}{{ t("footer.license_n", n=loop.index) }}{% else %}{{ t("footer.publisher_license") }}{% endif %}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
+<p>{{ t("footer.source", publisher=publisher, feed=feed, terms=t("footer.licensed", licenses=licenses) if source.licenses else t("footer.publisher_terms")) }}</p>
+{% if source.catalog_links %}
+{% set catalogs %}{% for url in source.catalog_links %}<a class="link" href="{{ url }}" target="_blank" rel="noopener">{{ "Transitland" if "transit.land" in url else t("footer.mobility_database") }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
+<p>{{ t("footer.listed", catalogs=catalogs) }}</p>
+{% endif %}
 {% endif %}
 <p><a class="link" href="{{ root }}../">sites.gtfs.zone</a></p>
 {% endblock %}
-<p>More GTFS tools at <a class="link" href="https://gtfs.zone" target="_blank" rel="noopener">gtfs.zone</a></p>
+{% set gtfs_zone %}<a class="link" href="https://gtfs.zone" target="_blank" rel="noopener">gtfs.zone</a>{% endset %}
+<p>{{ t("footer.more", link=gtfs_zone) }}</p>
 </footer>
 </body>
 </html>

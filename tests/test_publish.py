@@ -144,6 +144,29 @@ def test_publish_root_lists_live_sites_and_drops_the_rest():
     assert {"a/index.html", "slugs.json", "_shards/00.json"} <= store.objects.keys()
 
 
+def test_publish_root_redirects_an_old_slug():
+    store = FakeStore(
+        {
+            "metro/index.html": b"old",
+            "metro/route-1/index.html": b"old",
+            "metro/manifest.json": b"{}",
+            "aliases.json": b"{}",
+        }
+    )
+    entries = {"metro-lyon": entry("metro-lyon", "2026-10-05")}
+    entries["metro-lyon"]["pages"]["route-1/index.html"] = "2026-10-05"
+    publish_root(
+        store, entries, {"metro-lyon"}, TODAY, redirects={"metro": "metro-lyon"}
+    )
+    page = store.objects["metro/route-1/index.html"].decode()
+    url = "https://sites.gtfs.zone/metro-lyon/route-1/"
+    assert f'<link rel="canonical" href="{url}">' in page
+    assert f'content="0; url={url}"' in page
+    assert b"/metro-lyon/" in store.objects["metro/index.html"]
+    assert "metro/manifest.json" not in store.objects
+    assert "aliases.json" in store.objects
+
+
 def test_publish_root_keeps_sites_when_the_catalog_shrinks():
     store = FakeStore({f"{s}/index.html": b"x" for s in "abcdef"})
     entries = {s: entry(s, "2026-10-05") for s in "abcdef"}

@@ -1,8 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ route.title }} {{ route.mode }} schedule - {{ site_title }}{% endblock %}
-{% block description %}{{ route.title }} {{ route.mode }} schedule
-{%- if route.endpoints %} between {{ route.endpoints[0] }} and {{ route.endpoints[1] }}{% endif %}
-{%- if route.days %}: {{ route.days_label }}{% endif %}. Times at each stop and first and last trips, from {{ site_title }}.{% endblock %}
+{% block title %}{{ t("route.title", route=route.title, mode=route.mode_label, site=site_title) }}{% endblock %}
+{% block description %}{{ t("route.description",
+  route=route.title,
+  mode=route.mode_label,
+  between=t("route.between", first=route.endpoints[0], last=route.endpoints[1]) if route.endpoints else "",
+  days=t("route.days", days=route.days_label) if route.days else "",
+  site=site_title) }}{% endblock %}
 {% block canonical %}{{ base_url }}{{ route.slug }}/{% endblock %}
 {% macro stop_name(row, gutter) %}<span class="rail{% if row.rail %} {{ row.rail }}{% endif %}" aria-hidden="true">
 {%- if row.paths %}<svg viewBox="0 0 {{ gutter }} 100" preserveAspectRatio="none">
@@ -16,15 +19,17 @@
 <div class="space-y-2">
 <h1 class="flex flex-wrap items-center gap-3 text-2xl font-bold sm:text-3xl">{{ badge(route) }}{% if route.name %}<span class="min-w-0">{{ route.name }}</span>{% endif %}</h1>
 {% if route.state == "expired" %}
-<div role="alert" class="alert alert-error alert-soft">This route's service ended on {{ route.state_date | long_date }}. The timetable shown is its last schedule.</div>
+<div role="alert" class="alert alert-error alert-soft">{{ t("route.expired", date=route.state_date | long_date) }}</div>
 {% elif route.state == "upcoming" %}
-<div role="alert" class="alert alert-info alert-soft">This route's service starts on {{ route.state_date | long_date }}. The timetable shown is its first schedule.</div>
+<div role="alert" class="alert alert-info alert-soft">{{ t("route.upcoming", date=route.state_date | long_date) }}</div>
 {% endif %}
 {% if route.endpoints or route.days %}
-<p class="text-base-content/80">The {{ route.title }} {{ route.mode }} route
-{%- if route.endpoints %} runs between {{ route.endpoints[0] }} and {{ route.endpoints[1] }}{% endif %}
-{%- if route.endpoints and route.days %}, with{% elif route.days %} has{% endif %}
-{%- if route.days %} {{ route.days_label }} timetables{% endif %}.</p>
+<p class="text-base-content/80">{{ t("route.intro_both" if route.endpoints and route.days else "route.intro_ends" if route.endpoints else "route.intro_days",
+  route=route.title,
+  mode=route.mode_label,
+  first=route.endpoints[0] if route.endpoints else "",
+  last=route.endpoints[1] if route.endpoints else "",
+  days=route.days_label) }}</p>
 {% endif %}
 {% if route.desc %}<p class="text-base-content/80">{{ route.desc }}</p>{% endif %}
 {% for note in feed_notes %}
@@ -41,9 +46,9 @@
 {% for day in days %}
 <section class="card bg-base-100 shadow-sm" id="{{ day.anchor }}">
 <div class="card-body min-w-0 gap-3 p-4">
-<h2 class="text-lg font-semibold">{{ day.name }} <span class="text-sm font-normal text-base-content/70">{{ day.trips }} trip{{ "s" if day.trips != 1 }}</span></h2>
+<h2 class="text-lg font-semibold">{{ day.name }} <span class="text-sm font-normal text-base-content/70">{{ t("route.trips", n=day.trips) }}</span></h2>
 {% if day.first %}
-<p class="text-base-content/80">{% if day.first == day.last %}Trips start at {{ day.first }}.{% else %}First trip starts at {{ day.first }}, last at {{ day.last }}.{% endif %}</p>
+<p class="text-base-content/80">{% if day.first == day.last %}{{ t("route.trips_start", time=day.first) }}{% else %}{{ t("route.first_last", first=day.first, last=day.last) }}{% endif %}</p>
 {% endif %}
 {% for note in day.notes %}
 <p class="text-base-content/80">{{ note }}</p>
@@ -67,16 +72,16 @@
 {% endif %}
 {% if table.show_amenities %}
 <tr class="amenities"><td></td>{% for head in table.heads %}<th scope="col">
-{%- if head.bikes %}{{ icon("bike", "Bikes allowed") }}{% endif %}
-{%- if head.wheelchair %}{{ icon("wheelchair", "Wheelchair accessible") }}{% endif %}</th>{% endfor %}</tr>
+{%- if head.bikes %}{{ icon("bike", t("amenity.bikes")) }}{% endif %}
+{%- if head.wheelchair %}{{ icon("wheelchair", t("amenity.wheelchair")) }}{% endif %}</th>{% endfor %}</tr>
 {% endif %}
 </thead>
 {% endif %}
 <tbody>
 {% for row in table.rows %}
 <tr><th scope="row">{{ stop_name(row, table.gutter) }}
-{%- if row.wheelchair %} {{ icon("wheelchair", "Wheelchair accessible") }}{% endif %}
-{%- if row.zone %} <small>{{ row.zone }} time</small>{% endif %}
+{%- if row.wheelchair %} {{ icon("wheelchair", t("amenity.wheelchair")) }}{% endif %}
+{%- if row.zone %} <small>{{ t("route.zone_time", zone=row.zone) }}</small>{% endif %}
 </th>
 {% for cell in row.cells %}
 {{ time_cell(table.heads[loop.index0], cell) }}
@@ -94,7 +99,7 @@
 {% if table.legend %}
 <ul class="text-sm text-base-content/70">
 {% for key in table.legend %}
-<li>{% if key.icon %}{{ icon(key.icon) }}: {% endif %}{{ key.text }}</li>
+<li>{% if key.icon %}{{ t("legend.icon", icon=icon(key.icon), text=key.text) }}{% else %}{{ key.text }}{% endif %}</li>
 {% endfor %}
 </ul>
 {% endif %}
@@ -104,7 +109,7 @@
 </section>
 {% endfor %}
 <div class="flex flex-wrap gap-2">
-<a class="btn btn-sm h-11" href="{{ root }}">All routes</a>
-{% if route.url %}<a class="btn btn-ghost btn-sm h-11" href="{{ route.url }}" target="_blank" rel="noopener">Route page on the agency's site</a>{% endif %}
+<a class="btn btn-sm h-11" href="{{ root }}">{{ t("route.all_routes") }}</a>
+{% if route.url %}<a class="btn btn-ghost btn-sm h-11" href="{{ route.url }}" target="_blank" rel="noopener">{{ t("route.agency_page") }}</a>{% endif %}
 </div>
 {% endblock %}

@@ -20,15 +20,17 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     horizon_start,
     last_service_date,
 )
+from gtfs_zone_timetable_sites.i18n import join_and, t
 from gtfs_zone_timetable_sites.maps.svg import route_map, system_maps
 from gtfs_zone_timetable_sites.pages import (
     breadcrumbs,
     date_range,
     day_views,
     feed_amenities,
-    join_and,
     mode_groups,
+    mode_label,
     modes_label,
+    modes_text,
     route_labels,
     route_slugs,
     route_view,
@@ -99,7 +101,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
     result = []
     for route in sorted(feed.routes.values(), key=route_order):
         trip_ids = trips_by_route.get(route.route_id, [])
-        types = day_types(feed, trip_ids, start, days)
+        types = day_types(feed, trip_ids, start, days, site.locale)
         tables = route_timetables(feed, route.route_id, types, site.timepoints)
         if tables:
             result.append(RouteTables(route, tables))
@@ -116,7 +118,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
             state, state_date, window = "upcoming", first, first
         else:
             continue
-        types = day_types(feed, trip_ids, window, days)
+        types = day_types(feed, trip_ids, window, days, site.locale)
         tables = route_timetables(feed, route.route_id, types, site.timepoints)
         if tables:
             result.append(RouteTables(route, tables, state, state_date))
@@ -139,9 +141,9 @@ def site_title(feed: Feed, site: Site) -> str:
     names = [name for a in agencies if (name := tidy(a.name))]
     if len(names) > TITLE_AGENCIES:
         rest = len(names) - TITLE_AGENCIES
-        names = [*names[:TITLE_AGENCIES], f"{rest} other{'s' if rest != 1 else ''}"]
+        names = [*names[:TITLE_AGENCIES], t(site.locale, "others", n=rest)]
     if names:
-        return join_and(names)
+        return join_and(names, site.locale)
     return (site.catalog and tidy(site.catalog.name)) or site.slug
 
 
@@ -174,10 +176,12 @@ def build_site(
     slugs = route_slugs([rt.route for rt in timetables], labels)
     agencies = agencies_by_routes(feed)
     base_url = f"{BASE_URL}/{site.slug}/"
+    locale = site.locale
     feed_notes, marked = feed_amenities(
-        [table for rt in timetables for table in rt.tables]
+        [table for rt in timetables for table in rt.tables], locale
     )
     common = {
+        "locale": locale,
         "site_title": site_title(feed, site),
         "base_url": base_url,
         "generated": today,
@@ -193,6 +197,7 @@ def build_site(
             labels.get(rt.route.route_id, ""),
             rt.state,
             rt.state_date,
+            locale,
         )
         for rt in timetables
     ]
@@ -202,7 +207,7 @@ def build_site(
         view.slug: (view.title, view.badge, view.line_color, rt.tables, f"{view.slug}/")
         for view, rt in zip(routes, timetables, strict=True)
     }
-    groups = mode_groups([view for view in routes if view.state != "expired"])
+    groups = mode_groups([view for view in routes if view.state != "expired"], locale)
     expired = [view for view in routes if view.state == "expired"]
     # System maps per mode, split into local and long-route maps; the first
     # of a mode is headed by the mode, the rest by their badges too.
@@ -216,9 +221,15 @@ def build_site(
         for n, (ix, svg) in enumerate(
             system_maps(
                 feed,
-                f"{common['site_title']} {group.mode}",
+                t(
+                    locale,
+                    "map.system",
+                    site=common["site_title"],
+                    mode=mode_label(group.mode, locale),
+                ),
                 [system_routes[view.slug] for view in group.routes],
                 site.basemap,
+                locale,
             )
         )
         if svg
@@ -235,9 +246,10 @@ def build_site(
             routes=routes,
             groups=groups,
             expired=expired,
-            modes=modes_label([view.mode for view in routes]),
+            modes=modes_label([view.mode for view in routes], locale),
+            modes_lower=modes_text([view.mode for view in routes], locale),
             maps=home_maps,
-            valid=("from " if start and end else "") + date_range(start, end),
+            valid=date_range(start, end, locale, "valid"),
             feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
             jsonld=breadcrumbs(trail),
             root="",
@@ -245,7 +257,9 @@ def build_site(
     }
     for view, rt in zip(routes, timetables, strict=True):
         route_svg = (
-            route_map(feed, view.title, view.line_color, rt.tables, site.basemap)
+            route_map(
+                feed, view.title, view.line_color, rt.tables, site.basemap, locale
+            )
             if maps
             else ""
         )
@@ -254,7 +268,7 @@ def build_site(
             **common,
             route=view,
             map=route_svg,
-            days=day_views(feed, rt.tables, site.time_format, marked),
+            days=day_views(feed, rt.tables, site.time_format, marked, locale),
             jsonld=breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
             root="../",
         )
@@ -457,6 +471,7 @@ def build_root(
     )
     countries = country_groups(sites)
     common = {
+        "locale": "en",
         "site_title": ROOT_TITLE,
         "base_url": f"{BASE_URL}/",
         "generated": today,
@@ -515,4 +530,18 @@ def build_root(
     ).encode()
     if indexnow_key:
         files[f"{indexnow_key}.txt"] = indexnow_key.encode()
+    return files
+
+
+def redirect_pages(
+    redirects: dict[str, str], pages: dict[str, dict[str, str]]
+) -> dict[str, bytes]:
+    """A page at each of an old slug's paths that sends the browser to the same
+    path under the current slug, from {old slug: current slug} and each
+    current site's page paths. No I/O."""
+    files = {}
+    for old, new in redirects.items():
+        for path in pages.get(new) or {"index.html": ""}:
+            url = f"{BASE_URL}/{new}/{path.removesuffix('index.html')}"
+            files[f"{old}/{path}"] = render("redirect.html", url=url)
     return files

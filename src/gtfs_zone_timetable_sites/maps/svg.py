@@ -9,6 +9,7 @@ from itertools import pairwise
 
 from markupsafe import Markup, escape
 
+from gtfs_zone_timetable_sites import i18n
 from gtfs_zone_timetable_sites.config import Basemap, TileStyle
 from gtfs_zone_timetable_sites.gtfs.reader import Feed
 from gtfs_zone_timetable_sites.maps.split import split_routes
@@ -575,10 +576,16 @@ def route_map(
     color: str | None,
     tables: Sequence[Timetable],
     basemap: Basemap = "none",
+    locale: i18n.Locale = "en",
 ) -> Markup:
     """One route with its ends labeled and its other timepoints captioned."""
     line = route_line(feed, title, color, trip_ids(tables))
-    return render_map(f"Map of {title}", [line], route_marks(feed, tables), basemap)
+    return render_map(
+        i18n.t(locale, "map.title", title=title),
+        [line],
+        route_marks(feed, tables),
+        basemap,
+    )
 
 
 SystemRoute = tuple[str, str, str | None, list[Timetable], str | None]
@@ -622,6 +629,7 @@ def system_maps(
     title: str,
     routes: Sequence[SystemRoute],
     basemap: Basemap = "none",
+    locale: i18n.Locale = "en",
 ) -> list[tuple[list[int], Markup]]:
     """The routes split into local and long-route maps, each with its route
     indexes and its map of every route with ends labeled and timepoints
@@ -635,7 +643,7 @@ def system_maps(
         ix = [drawn[i] for i in ix]
         badges = ", ".join(routes[i][1] for i in ix)
         svg = render_map(
-            f"Map of {title}{f': {badges}' if n else ''}",
+            i18n.t(locale, "map.title", title=f"{title}{f': {badges}' if n else ''}"),
             [lines[i] for i in ix],
             system_marks(feed, [routes[i] for i in ix]),
             basemap,

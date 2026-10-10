@@ -7,17 +7,15 @@ from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from gtfs_zone_timetable_sites.gtfs.reader import Feed
-
-DAY_NAMES = (
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
+from gtfs_zone_timetable_sites.i18n import (
+    WEEKDAYS,
+    Locale,
+    capitalize,
+    join_and,
+    short_date,
+    t,
+    weekday_date,
 )
-
 
 DAY_SECONDS = 24 * 3600
 
@@ -133,32 +131,30 @@ def horizon_start(feed: Feed, today: date) -> date:
     return max(today, first) if first is not None else today
 
 
-def weekday_name(weekdays: Iterable[int], plural: bool = False) -> str:
+def weekday_name(
+    weekdays: Iterable[int], plural: bool = False, locale: Locale = "en"
+) -> str:
     """'Weekday', 'Monday to Thursday', 'Tuesday and Friday'; with `plural`,
     'Weekdays', 'Tuesdays and Fridays'."""
     days = sorted(set(weekdays))
-    s = "s" if plural else ""
+    suffix = "_other" if plural else ""
     special = {
-        (0, 1, 2, 3, 4): f"Weekday{s}",
-        (5, 6): f"Weekend{s}",
-        (0, 1, 2, 3, 4, 5, 6): "Daily",
+        (0, 1, 2, 3, 4): f"days.weekday{suffix}",
+        (5, 6): f"days.weekend{suffix}",
+        (0, 1, 2, 3, 4, 5, 6): "days.daily",
     }
     if tuple(days) in special:
-        return special[tuple(days)]
+        return t(locale, special[tuple(days)])
+    names = [WEEKDAYS[locale][day] for day in days]
     if len(days) >= 3 and days == list(range(days[0], days[-1] + 1)):
-        return f"{DAY_NAMES[days[0]]} to {DAY_NAMES[days[-1]]}"
-    names = [DAY_NAMES[day] + s for day in days]
-    if len(names) == 1:
-        return names[0]
-    return f"{', '.join(names[:-1])} and {names[-1]}"
+        return capitalize(t(locale, "days.range", first=names[0], last=names[-1]))
+    if plural:
+        names = [t(locale, "days.plural", day=name) for name in names]
+    return capitalize(join_and(names, locale))
 
 
-def date_label(day: date) -> str:
-    return f"{day:%a} {day:%b} {day.day}"
-
-
-def dates_label(dates: Iterable[date]) -> str:
-    return ", ".join(date_label(day) for day in dates)
+def dates_label(dates: Iterable[date], locale: Locale = "en") -> str:
+    return ", ".join(weekday_date(day, locale) for day in dates)
 
 
 def date_runs(dates: Iterable[date], within: Sequence[date]) -> list[list[date]]:
@@ -177,37 +173,46 @@ def date_runs(dates: Iterable[date], within: Sequence[date]) -> list[list[date]]
     return runs
 
 
-def span_label(dates: Iterable[date], within: Sequence[date]) -> str:
+def span_label(
+    dates: Iterable[date], within: Sequence[date], locale: Locale = "en"
+) -> str:
     """Dates as ranges over `within`, e.g. 'Oct 12 to Oct 23, Sat Oct 31';
     runs of two are listed."""
     return ", ".join(
-        dates_label(run)
+        dates_label(run, locale)
         if len(run) <= 2
-        else f"{run[0]:%b} {run[0].day} to {run[-1]:%b} {run[-1].day}"
+        else t(
+            locale,
+            "range.both",
+            start=short_date(run[0], locale),
+            end=short_date(run[-1], locale),
+        )
         for run in date_runs(dates, within)
     )
 
 
-def exception_name(dates: Sequence[date], horizon: Sequence[date]) -> str:
+def exception_name(
+    dates: Sequence[date], horizon: Sequence[date], locale: Locale = "en"
+) -> str:
     """'Weekday, Oct 12 to Oct 16', 'Sundays, Oct 4 to Oct 18', or a list of
     dates when no run of them is longer than two."""
     weekdays = {day.weekday() for day in dates}
     within = [day for day in horizon if day.weekday() in weekdays]
     if all(len(run) <= 2 for run in date_runs(dates, within)):
-        return dates_label(dates)
-    name = weekday_name(weekdays, plural=len(weekdays) == 1)
-    return f"{name}, {span_label(dates, within)}"
+        return capitalize(dates_label(dates, locale))
+    name = weekday_name(weekdays, plural=len(weekdays) == 1, locale=locale)
+    return f"{name}, {span_label(dates, within, locale)}"
 
 
-def missing_label(day: DayType) -> str:
+def missing_label(day: DayType, locale: Locale = "en") -> str:
     """The regular weekdays a day type skips, as ranges where they run on."""
     within = sorted(
         {d for d in day.dates if d.weekday() in day.weekdays} | set(day.missing)
     )
-    return span_label(day.missing, within)
+    return span_label(day.missing, within, locale)
 
 
-def trip_note(day: DayType, trip_id: str) -> str:
+def trip_note(day: DayType, trip_id: str, locale: Locale = "en") -> str:
     """How a trip's dates differ from its day type's, e.g. 'Fridays only',
     'From Oct 8', 'Not Oct 12 to Oct 16'; empty when it runs on all of them."""
     runs = set(day.trip_dates(trip_id))
@@ -215,16 +220,17 @@ def trip_note(day: DayType, trip_id: str) -> str:
         return ""
     weekdays = {d.weekday() for d in runs}
     if runs == {d for d in day.dates if d.weekday() in weekdays}:
-        return f"{weekday_name(weekdays, plural=True)} only"
+        days = weekday_name(weekdays, plural=True, locale=locale)
+        return t(locale, "note.only_days", days=days)
     spans = date_runs(runs, day.dates)
     if len(spans) == 1 and spans[0][0] == day.start:
-        return f"Until {spans[0][-1]:%b} {spans[0][-1].day}"
+        return t(locale, "note.until", date=short_date(spans[0][-1], locale))
     if len(spans) == 1 and spans[0][-1] == day.end:
-        return f"From {spans[0][0]:%b} {spans[0][0].day}"
+        return t(locale, "note.from", date=short_date(spans[0][0], locale))
     skipped = [d for d in day.dates if d not in runs]
     if len(skipped) <= len(runs):
-        return f"Not {span_label(skipped, day.dates)}"
-    return f"Only {span_label(runs, day.dates)}"
+        return t(locale, "note.not", dates=span_label(skipped, day.dates, locale))
+    return t(locale, "note.only", dates=span_label(runs, day.dates, locale))
 
 
 type TripKey = tuple[object, ...]
@@ -269,7 +275,11 @@ def similarity(a: frozenset[TripKey], b: frozenset[TripKey]) -> float:
 
 
 def day_types(
-    feed: Feed, trip_ids: Iterable[str], start: date, days: int
+    feed: Feed,
+    trip_ids: Iterable[str],
+    start: date,
+    days: int,
+    locale: Locale = "en",
 ) -> tuple[DayType, ...]:
     """Group the horizon's dates by the set of trips running on each.
 
@@ -359,7 +369,7 @@ def day_types(
             member = set(dates)
             result.append(
                 DayType(
-                    name=weekday_name(weekdays),
+                    name=weekday_name(weekdays, locale=locale),
                     regular=True,
                     weekdays=frozenset(weekdays),
                     extra=tuple(day for day in dates if day.weekday() not in weekdays),
@@ -374,7 +384,7 @@ def day_types(
         else:
             result.append(
                 DayType(
-                    name=exception_name(dates, horizon),
+                    name=exception_name(dates, horizon, locale),
                     regular=False,
                     weekdays=frozenset(day.weekday() for day in dates),
                     **common,

@@ -37,9 +37,11 @@ def fetch(url: str) -> bytes:
         return response.read()
 
 
-# feeds.json and the {feed id: slug} map, kept in the feed cache.
+# feeds.json, the {feed id: slug} map and the {old slug: feed id} aliases, kept
+# in the feed cache.
 CATALOG = "_catalog.json"
 SLUG_MAP = "_slugs.json"
+ALIAS_MAP = "_aliases.json"
 
 
 def load_sites(
@@ -63,13 +65,25 @@ def load_sites(
             if cached:
                 cached.parent.mkdir(parents=True, exist_ok=True)
                 cached.write_bytes(body)
-    slug_map = cache / SLUG_MAP if cache else None
-    pinned = json.loads(slug_map.read_text()) if slug_map and slug_map.exists() else {}
-    sites, slugs = resolve_sites(config, feeds_doc, pinned)
-    if slug_map and slugs != pinned:
-        slug_map.parent.mkdir(parents=True, exist_ok=True)
-        slug_map.write_text(json.dumps(slugs, indent=2, sort_keys=True))
+    pinned = read_map(cache, SLUG_MAP)
+    old_aliases = read_map(cache, ALIAS_MAP)
+    sites, slugs, aliases = resolve_sites(config, feeds_doc, pinned, old_aliases)
+    write_map(cache, SLUG_MAP, slugs, pinned)
+    write_map(cache, ALIAS_MAP, aliases, old_aliases)
     return sites
+
+
+def read_map(cache: Path | None, name: str) -> dict[str, str]:
+    path = cache / name if cache else None
+    return json.loads(path.read_text()) if path and path.exists() else {}
+
+
+def write_map(
+    cache: Path | None, name: str, value: dict[str, str], old: dict[str, str]
+) -> None:
+    if cache and value != old:
+        cache.mkdir(parents=True, exist_ok=True)
+        (cache / name).write_text(json.dumps(value, indent=2, sort_keys=True))
 
 
 def find_site(sites: list[Site], slug: str) -> Site:

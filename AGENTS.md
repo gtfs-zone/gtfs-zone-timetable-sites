@@ -20,7 +20,7 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 | Module | What it does |
 |---|---|
 | `config.py` | Pydantic models for `sites.yaml` and a feeds.json entry (`CatalogFeed`); defaults merged into each site |
-| `catalog.py` | feeds.json plus `sites.yaml` to resolved sites: catalog filter, pinned slugs, shard per slug |
+| `catalog.py` | feeds.json plus `sites.yaml` to resolved sites: catalog filter, romanized slugs pinned with aliases for renames, shard per slug |
 | `pool.py` | Runs a function per item in memory-capped worker processes, one process per item |
 | `gtfs/reader.py` | GTFS zip to typed rows, streaming, only needed columns |
 | `gtfs/service.py` | Calendars to day types (Weekday / Saturday / Sunday / exceptions) |
@@ -31,7 +31,8 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 | `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts) for the content report |
 | `maps/svg.py` | Route and system maps as inline SVG: Web Mercator, Douglas-Peucker, label placement (none on bus-only system maps), basemap tiles |
 | `maps/split.py` | A mode's routes to system maps by grid density: local clusters, then long routes grouped by overlap with the rest sharing one map; one map when that fragments the mode |
-| `render.py` | Jinja environment over `templates/` |
+| `i18n.py` | `en` and `fr` string catalogs, `t()` with `_one` / `_other` plurals, weekday and month names for dates |
+| `render.py` | Jinja environment over `templates/`, with `t()` as a global in the page's `locale` |
 | `templates/` | Page templates and CSS (Tailwind + daisyUI, `style.css` built by `pnpm run build:css` and committed) |
 | `tests/fixtures/<name>/` | Synthetic GTFS feeds as text files, zipped by `fixture_zip` |
 | `cli.py` | `timetable-sites build`, `dump`, `sizes`, `serve` and `dev`; downloads and writes files locally, with the root pages built as in the bucket |
@@ -39,6 +40,9 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 
 - The core is pure: nothing outside `cli.py` and `pipeline/` does network or
   disk I/O, so `build_site` can later run in Pyodide or on the fly.
+- Page text comes from the catalogs in `i18n.py`: templates call `t(key, ...)`,
+  Python takes a `locale` argument. A new string goes in both `EN` and `FR`.
+  GTFS field names and values stay literal.
 - `timetable.py`, `strip.py` and `colors.py` port gtfs-zone-web-common logic.
   Keep them in step with the TypeScript (`colors.py` is hex-exact).
 
