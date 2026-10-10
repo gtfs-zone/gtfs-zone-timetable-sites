@@ -1,3 +1,10 @@
+## v0.13.0 (2026-10-10)
+
+### Feat
+
+- **catalog**: take feeds from every country, with romanized slugs and aliases
+- add a per-site locale option with French page text
+
 ## v0.12.1 (2026-10-02)
 
 ## v0.12.0 (2026-10-01)
