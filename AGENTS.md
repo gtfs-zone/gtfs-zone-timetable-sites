@@ -20,7 +20,7 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 | Module | What it does |
 |---|---|
 | `config.py` | Pydantic models for `sites.yaml` and a feeds.json entry (`CatalogFeed`); defaults merged into each site |
-| `catalog.py` | feeds.json plus `sites.yaml` to resolved sites: catalog filter, pinned slugs, shard per slug |
+| `catalog.py` | feeds.json plus `sites.yaml` to resolved sites: catalog filter, romanized slugs pinned with aliases for renames, shard per slug |
 | `pool.py` | Runs a function per item in memory-capped worker processes, one process per item |
 | `gtfs/reader.py` | GTFS zip to typed rows, streaming, only needed columns |
 | `gtfs/service.py` | Calendars to day types (Weekday / Saturday / Sunday / exceptions) |

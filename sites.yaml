@@ -7,10 +7,13 @@ defaults:
   locale: en               # en | fr: the language of the site's pages
 
 # Feeds from data.gtfs.zone/feeds.json that become sites on their own, with a
-# slug from the feed name pinned in the bucket's slugs.json. Only feeds whose
-# schedule is up are taken.
+# slug from the romanized feed name (plus its subtitle or place when several
+# feeds share the name) pinned in the bucket's slugs.json. Only feeds whose
+# schedule is up are taken. time_format and locale come from the feed's country.
 catalog:
-  countries: [US, CA]      # ISO codes, empty for all
+  countries: []            # ISO codes, empty for all
+  exclude_countries: []    # ISO codes
+  require_country: true    # skip feeds without a country code
   max_bytes: 50000000      # skip larger zips; they need more than a worker's memory
   exclude: []              # feed ids
 

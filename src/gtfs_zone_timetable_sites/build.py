@@ -531,3 +531,17 @@ def build_root(
     if indexnow_key:
         files[f"{indexnow_key}.txt"] = indexnow_key.encode()
     return files
+
+
+def redirect_pages(
+    redirects: dict[str, str], pages: dict[str, dict[str, str]]
+) -> dict[str, bytes]:
+    """A page at each of an old slug's paths that sends the browser to the same
+    path under the current slug, from {old slug: current slug} and each
+    current site's page paths. No I/O."""
+    files = {}
+    for old, new in redirects.items():
+        for path in pages.get(new) or {"index.html": ""}:
+            url = f"{BASE_URL}/{new}/{path.removesuffix('index.html')}"
+            files[f"{old}/{path}"] = render("redirect.html", url=url)
+    return files
