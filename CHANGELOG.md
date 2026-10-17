@@ -1,3 +1,9 @@
+## v0.14.0 (2026-10-17)
+
+### Feat
+
+- **reader**: treat a route_color shared by every route as no color
+
 ## v0.13.0 (2026-10-10)
 
 ### Feat
