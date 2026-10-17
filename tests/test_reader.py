@@ -88,3 +88,35 @@ def test_amenity_columns_default_to_unknown():
     trip = feed.trips["north1"]
     assert (trip.bikes_allowed, trip.wheelchair_accessible) == (0, 0)
     assert feed.stops["A"].wheelchair_boarding == 0
+
+
+def routes_feed(routes: str) -> bytes:
+    return make_zip(
+        {
+            "agency.txt": "agency_id,agency_name,agency_url,agency_timezone\na,A,https://a,UTC\n",
+            "routes.txt": routes,
+            "trips.txt": "route_id,service_id,trip_id\n",
+            "stop_times.txt": "trip_id,stop_id,stop_sequence\n",
+            "stops.txt": "stop_id,stop_name\n",
+            "calendar_dates.txt": "service_id,date,exception_type\n",
+        }
+    )
+
+
+def test_color_shared_by_every_route_is_dropped():
+    feed = read_feed(
+        routes_feed(
+            "route_id,route_type,route_color,route_text_color\n"
+            "R1,3,ff0000,FFFFFF\nR2,3,FF0000,FFFFFF\nR3,3,,\n"
+        )
+    )
+    assert all(r.color is None and r.text_color is None for r in feed.routes.values())
+
+
+def test_distinct_and_single_route_colors_are_kept():
+    feed = read_feed(
+        routes_feed("route_id,route_type,route_color\nR1,3,FF0000\nR2,3,0000FF\n")
+    )
+    assert (feed.routes["R1"].color, feed.routes["R2"].color) == ("FF0000", "0000FF")
+    feed = read_feed(routes_feed("route_id,route_type,route_color\nR1,3,FF0000\n"))
+    assert feed.routes["R1"].color == "FF0000"

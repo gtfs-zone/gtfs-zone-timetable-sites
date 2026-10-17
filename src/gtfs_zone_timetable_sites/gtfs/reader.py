@@ -2,13 +2,16 @@
 
 import csv
 import io
+import logging
 import zipfile
 from collections import defaultdict
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 REQUIRED_FILES = ("agency", "routes", "trips", "stop_times", "stops")
+log = logging.getLogger(__name__)
+
 HEX_DIGITS = frozenset("0123456789ABCDEF")
 
 
@@ -249,7 +252,7 @@ def read_routes(archive: Archive) -> dict[str, Route]:
         "route_sort_order",
         "route_url",
     )
-    return {
+    routes = {
         row["route_id"]: Route(
             route_id=row["route_id"],
             agency_id=row["agency_id"],
@@ -264,6 +267,17 @@ def read_routes(archive: Archive) -> dict[str, Route]:
         )
         for row in archive.rows("routes", columns)
     }
+    # A color shared by every route tells none apart, so it counts as no color.
+    colors = {route.color for route in routes.values() if route.color is not None}
+    if len(routes) >= 2 and len(colors) == 1:
+        log.info(
+            "All %d routes share #%s; using hashed colors", len(routes), colors.pop()
+        )
+        routes = {
+            route_id: replace(route, color=None, text_color=None)
+            for route_id, route in routes.items()
+        }
+    return routes
 
 
 def read_stops(archive: Archive) -> dict[str, Stop]:
