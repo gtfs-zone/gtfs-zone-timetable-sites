@@ -110,7 +110,9 @@ outcome began. For an `ok` feed it also holds the zip's size and hash,
 feed_info, service range, agencies, counts and route types. feed-catalog merges
 it into feeds.json. A feed that was `not_zip`, `missing_files` or
 `parse_error` is not downloaded again until its catalog size or Last-Modified,
-its URL or the timetable-sites version changes, or a week passes.
+its URL or the timetable-sites version changes, or a week passes. A site
+whose last zip hash and route filter match a site with a shorter slug is built
+with `index: false`, so search engines see one copy of a feed.
 
 ```bash
 uv sync --extra pipeline

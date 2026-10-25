@@ -49,6 +49,7 @@ from gtfs_zone_timetable_sites.pipeline.publish import (
     BAD,
     SLUGS,
     content_key,
+    duplicates,
     publish_root,
     put_json,
     read_contents,
@@ -89,6 +90,12 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
             put_json(bucket, SLUGS, slugs)
         if aliases != old_aliases:
             put_json(bucket, ALIASES, aliases)
+        # A copy of another site's feed is built but not indexed.
+        dupes = duplicates(sites, read_contents(bucket))
+        sites = [
+            site.model_copy(update={"index": False}) if site.slug in dupes else site
+            for site in sites
+        ]
         mine = [site for site in sites if shard_of(site.slug) == shard]
         context.log.info("shard %02d: %d of %d sites", shard, len(mine), len(sites))
 

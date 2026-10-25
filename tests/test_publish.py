@@ -11,6 +11,7 @@ from gtfs_zone_timetable_sites.pipeline.publish import (
     build_and_publish,
     classify,
     download,
+    duplicates,
     publish_root,
     publish_site,
     read_contents,
@@ -381,6 +382,28 @@ def test_build_and_publish_raises_feed_problems(body, outcome):
 
     with pytest.raises(FeedProblem, match=outcome):
         build_and_publish(FakeStore(), client(handler), site, TODAY, "1")
+
+
+def test_duplicates_keep_the_shortest_slug():
+    sites = [
+        Site(slug=slug, url="https://example.org/g.zip")
+        for slug in ("bus-2", "bus", "bus-france", "tram", "new")
+    ] + [
+        Site(
+            slug="bus-rail",
+            url="https://example.org/g.zip",
+            routes={"route_types": [2]},
+        )
+    ]
+    contents = {
+        "bus": {"sha256": "aa"},
+        "bus-2": {"sha256": "aa"},
+        "bus-france": {"sha256": "aa"},
+        "tram": {"sha256": "bb"},
+        "new": None,
+        "bus-rail": {"sha256": "aa"},
+    }
+    assert duplicates(sites, contents) == {"bus-2", "bus-france"}
 
 
 def test_publish_root_lists_content_reports():
