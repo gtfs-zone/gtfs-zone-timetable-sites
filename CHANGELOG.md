@@ -1,3 +1,12 @@
+## v0.15.0 (2026-10-25)
+
+### Feat
+
+- **build**: merge routes that share agency, type, names and colors
+- **seo**: build a site with the same zip as another as not indexed
+- **seo**: add an index site option, set from catalog.index_countries
+- **seo**: noindex expired routes and fully expired sites, and leave them out of the sitemap
+
 ## v0.14.0 (2026-10-17)
 
 ### Feat
