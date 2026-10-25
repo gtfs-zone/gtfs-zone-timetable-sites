@@ -5,6 +5,7 @@ import io
 import json
 import re
 import zipfile
+from dataclasses import replace
 from datetime import date, timedelta
 from importlib.metadata import version
 from typing import NamedTuple
@@ -70,6 +71,36 @@ def route_order(route: Route) -> tuple[int, int, str, str]:
         int(route.short_name) if number else 1 << 30,
         route.name,
         route.route_id,
+    )
+
+
+def merge_routes(feed: Feed) -> Feed:
+    """The feed with routes that share agency, type, names and colors merged
+    into the first by `route_order`, their trips moved onto it; e.g. a feed
+    with a route per train per date."""
+    keep: dict[tuple, str] = {}
+    into: dict[str, str] = {}
+    for route in sorted(feed.routes.values(), key=route_order):
+        key = (
+            route.agency_id,
+            route.route_type,
+            route.short_name,
+            route.long_name,
+            route.color,
+            route.text_color,
+        )
+        into[route.route_id] = keep.setdefault(key, route.route_id)
+    if len(keep) == len(feed.routes):
+        return feed
+    return replace(
+        feed,
+        routes={rid: r for rid, r in feed.routes.items() if into[rid] == rid},
+        trips={
+            tid: trip
+            if into[trip.route_id] == trip.route_id
+            else replace(trip, route_id=into[trip.route_id])
+            for tid, trip in feed.trips.items()
+        },
     )
 
 
@@ -168,7 +199,8 @@ def build_site(
     if bad is not None:
         raise ValueError(f"corrupt member in GTFS zip: {bad}")
     today = today or date.today()
-    feed = site_feed(zip_bytes, site)
+    read = site_feed(zip_bytes, site)
+    feed = merge_routes(read)
     timetables = site_timetables(feed, site, today)
     if not timetables:
         raise EmptyFeed("no route has scheduled trips")
@@ -300,7 +332,7 @@ def build_site(
         noindex=sorted(noindex),
     )
     files["content.json"] = summary_json(
-        **feed_facts(zip_bytes, feed, site.routes != RouteFilter())
+        **feed_facts(zip_bytes, read, site.routes != RouteFilter())
     )
     files["style.css"] = asset("style.css")
     files["logo.svg"] = asset("logo.svg")

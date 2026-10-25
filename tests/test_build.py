@@ -8,6 +8,7 @@ from conftest import fixture_files, fixture_zip, make_zip
 from gtfs_zone_timetable_sites.build import (
     build_root,
     build_site,
+    merge_routes,
     page_digest,
     site_status,
     site_timetables,
@@ -631,6 +632,27 @@ def test_site_with_every_route_expired_is_noindex():
     assert summary["noindex"] == ["4/index.html", "index.html"]
     assert NOINDEX in out["index.html"].decode()
     assert NOINDEX in out["4/index.html"].decode()
+
+
+def split_route_files() -> dict[str, str]:
+    """branching with its second north trip on a route of its own, named the
+    same, and a route named apart."""
+    files = fixture_files("branching")
+    files["routes.txt"] += "R2,4,Forks,3\nR3,5,Forks,3\n"
+    files["trips.txt"] = files["trips.txt"].replace(
+        "R,DAILY,north2,", "R2,DAILY,north2,"
+    )
+    return files
+
+
+def test_merge_routes_joins_routes_named_the_same():
+    feed = merge_routes(read_feed(make_zip(split_route_files())))
+    assert set(feed.routes) == {"R", "R3"}
+    assert feed.trips["north2"].route_id == "R"
+    site = Site(slug="test", url="https://example.org/g.zip")
+    out = build_site(make_zip(split_route_files()), site, today=MONDAY)
+    assert "4/index.html" in out and "4-2/index.html" not in out
+    assert json.loads(out["content.json"])["counts"]["routes"] == 3
 
 
 def test_upcoming_routes_get_their_first_timetable():
