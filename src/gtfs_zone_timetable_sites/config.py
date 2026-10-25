@@ -55,6 +55,8 @@ class Options(Strict):
     timepoints: Timepoints = "auto"
     basemap: Basemap = "none"
     locale: Locale = "en"
+    # Whether search engines may index the site's pages.
+    index: bool = True
 
 
 class RouteFilter(Strict):
@@ -170,6 +172,8 @@ class CatalogFilter(Strict):
     require_country: bool = False
     max_bytes: int | None = Field(None, gt=0)
     exclude: tuple[str, ...] = ()
+    # Countries whose feeds are indexed by search engines; empty for all.
+    index_countries: tuple[str, ...] = ()
 
 
 class Config(Strict):

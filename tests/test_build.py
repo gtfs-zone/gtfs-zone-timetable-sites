@@ -617,6 +617,12 @@ def test_expired_routes_keep_their_last_timetable():
     assert NOINDEX in page and NOINDEX not in home
 
 
+def test_site_not_indexed_is_noindex():
+    files = build("branching", index=False)
+    assert json.loads(files["site.json"])["noindex"] == ["4/index.html", "index.html"]
+    assert NOINDEX in files["index.html"] and NOINDEX in files["4/index.html"]
+
+
 def test_site_with_every_route_expired_is_noindex():
     site = Site(slug="test", url="https://example.org/g.zip")
     out = build_site(fixture_zip("branching"), site, today=date(2030, 1, 7))

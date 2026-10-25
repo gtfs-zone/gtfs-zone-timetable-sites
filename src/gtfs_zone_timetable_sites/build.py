@@ -238,9 +238,9 @@ def build_site(
     if len(home_maps) == 1:
         home_maps = [("", home_maps[0][1])]
     trail = [(ROOT_TITLE, f"{BASE_URL}/"), (common["site_title"], base_url)]
-    # Search engines skip expired routes, and the whole site once every route
-    # has expired.
-    indexed = any(view.state != "expired" for view in routes)
+    # Search engines skip expired routes, and the whole site when it is not
+    # indexed or every route has expired.
+    indexed = site.index and any(view.state != "expired" for view in routes)
     noindex = {
         f"{view.slug}/index.html"
         for view in routes
