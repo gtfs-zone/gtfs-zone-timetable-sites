@@ -238,6 +238,16 @@ def build_site(
     if len(home_maps) == 1:
         home_maps = [("", home_maps[0][1])]
     trail = [(ROOT_TITLE, f"{BASE_URL}/"), (common["site_title"], base_url)]
+    # Search engines skip expired routes, and the whole site once every route
+    # has expired.
+    indexed = any(view.state != "expired" for view in routes)
+    noindex = {
+        f"{view.slug}/index.html"
+        for view in routes
+        if not indexed or view.state == "expired"
+    }
+    if not indexed:
+        noindex.add("index.html")
     files = {
         "index.html": render(
             "index.html",
@@ -253,6 +263,7 @@ def build_site(
             feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
             jsonld=breadcrumbs(trail),
             root="",
+            noindex="index.html" in noindex,
         )
     }
     for view, rt in zip(routes, timetables, strict=True):
@@ -271,6 +282,7 @@ def build_site(
             days=day_views(feed, rt.tables, site.time_format, marked, locale),
             jsonld=breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
             root="../",
+            noindex=f"{view.slug}/index.html" in noindex,
         )
     download_url = common["source"]["download_url"]
     files["site.json"] = summary_json(
@@ -285,6 +297,7 @@ def build_site(
         country_code=site.catalog and site.catalog.country_code,
         country=site.catalog and site.catalog.country,
         subdivision=site.catalog and site.catalog.subdivision,
+        noindex=sorted(noindex),
     )
     files["content.json"] = summary_json(
         **feed_facts(zip_bytes, feed, site.routes != RouteFilter())
@@ -336,14 +349,21 @@ def unbuilt_summary(site: Site) -> dict:
     }
 
 
-def sitemap_urls(pages: dict[str, dict[str, str]]) -> list[tuple[str, str]]:
-    """(url, lastmod) for each site's pages, from {slug: {path: YYYY-MM-DD}}."""
+def sitemap_urls(
+    pages: dict[str, dict[str, str]], noindex: dict[str, set[str]] | None = None
+) -> list[tuple[str, str]]:
+    """(url, lastmod) for each site's pages, from {slug: {path: YYYY-MM-DD}},
+    leaving out the paths in each site's `noindex`."""
+    noindex = noindex or {}
     urls = []
     for slug in sorted(pages):
+        skip = noindex.get(slug, set())
         # The site's index first, then its routes.
         for path, modified in sorted(
             pages[slug].items(), key=lambda item: (item[0] != "index.html", item[0])
         ):
+            if path in skip:
+                continue
             if path == "index.html" or path.endswith("/index.html"):
                 urls.append(
                     (f"{BASE_URL}/{slug}/{path[: -len('index.html')]}", modified)
@@ -463,7 +483,8 @@ def build_root(
     page. `summaries` are the sites' site.json contents (a site never built has
     only its slug, title, source and place), `pages` each site's page paths
     with the date they last changed and `outcomes` each site's last download
-    and build outcome and detail. No I/O."""
+    and build outcome and detail. A summary's `noindex` paths stay out of the
+    sitemap. No I/O."""
     outcomes = outcomes or {}
     sites = sorted(
         (site_row(s, outcomes.get(s["slug"], {}), today) for s in summaries),
@@ -511,11 +532,12 @@ def build_root(
         (f"{BASE_URL}/countries/{country['key']}/", None) for country in countries
     ]
     maps = {"sitemaps/root.xml": root_urls}
+    noindex = {s["slug"]: set(s.get("noindex", ())) for s in summaries}
     shards: dict[int, dict[str, dict[str, str]]] = {}
     for slug, site_pages in (pages or {}).items():
         shards.setdefault(shard_of(slug), {})[slug] = site_pages
     for shard, shard_pages in sorted(shards.items()):
-        maps[f"sitemaps/{shard:02d}.xml"] = sitemap_urls(shard_pages)
+        maps[f"sitemaps/{shard:02d}.xml"] = sitemap_urls(shard_pages, noindex)
     for path, urls in maps.items():
         files[path] = render("sitemap.xml", urls=urls)
     files["sitemap.xml"] = render(
