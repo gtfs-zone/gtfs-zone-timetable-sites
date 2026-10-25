@@ -29,6 +29,9 @@
 {% if jsonld is defined %}
 <script type="application/ld+json">{{ jsonld | tojson }}</script>
 {% endif %}
+{% if noindex | default(false) %}
+<meta name="robots" content="noindex">
+{% endif %}
 {% block head %}{% endblock %}
 <meta name="color-scheme" content="light dark">
 <link rel="icon" type="image/svg+xml" href="{{ root }}logo.svg">

@@ -149,8 +149,9 @@ def resolve_sites(
     """Every configured site plus every catalog feed the filter takes, the
     updated {feed id: slug} map and the updated {old slug: feed id} aliases. A
     catalog feed's options are the defaults with its country's options over
-    them; a `sites:` entry for it sets its options instead and, when given, its
-    slug, which renames a pinned feed and keeps its old slug as an alias."""
+    them, and not indexed outside `index_countries`; a `sites:` entry for it
+    sets its options instead and, when given, its slug, which renames a pinned
+    feed and keeps its old slug as an alias."""
     feeds = parse_feeds(feeds_doc)
     aliases = dict(aliases or {})
     entries = {entry.feed: entry for entry in config.sites if entry.feed}
@@ -180,9 +181,12 @@ def resolve_sites(
         slug = entry.slug or slugs[entry.feed]
         sites.append(entry.resolve(slug, feeds.get(entry.feed)))
     defaults = config.defaults.model_dump()
+    index_countries = config.catalog.index_countries if config.catalog else ()
     for feed in auto:
         slug = slugs[feed.feed_id]
         options = defaults | country_options(feed)
+        if index_countries and feed.country_code not in index_countries:
+            options["index"] = False
         sites.append(Site(**options, slug=slug, feed=feed.feed_id, catalog=feed))
 
     counts: dict[str, int] = dict.fromkeys(aliases, 1)

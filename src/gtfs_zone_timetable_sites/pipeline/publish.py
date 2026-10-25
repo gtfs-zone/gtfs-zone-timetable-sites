@@ -310,6 +310,19 @@ def content_entry(
     return entry | (facts or {})
 
 
+def duplicates(sites: list[Site], contents: dict[str, dict]) -> set[str]:
+    """Slugs whose zip, at its last download, and route filter were the same
+    as a site with a shorter (then alphabetically earlier) slug's."""
+    first: dict[tuple[str, str], str] = {}
+    dupes = set()
+    for site in sorted(sites, key=lambda s: (len(s.slug), s.slug)):
+        sha = (contents.get(site.slug) or {}).get("sha256")
+        key = (sha, site.routes.model_dump_json())
+        if sha and first.setdefault(key, site.slug) != site.slug:
+            dupes.add(site.slug)
+    return dupes
+
+
 def known_bad(site: Site, previous: dict | None, today: date, version: str) -> bool:
     """Whether the feed was unusable at its last download and nothing that
     could change that has changed since."""

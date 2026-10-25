@@ -38,7 +38,9 @@ are kept there too.
 `catalog` makes a site of every feed in `data.gtfs.zone/feeds.json` whose
 schedule is up and that passes `countries` (ISO codes, empty for all),
 `exclude_countries`, `require_country` (skip feeds without a country code),
-`max_bytes` (zip size) and `exclude` (feed ids). Its slug comes from the feed
+`max_bytes` (zip size) and `exclude` (feed ids). `index_countries` (ISO codes,
+empty for all) sets `index: false` on the feeds of every other country, so
+search engines are given the catalog a few countries at a time. Its slug comes from the feed
 name, romanized (Hepburn for Japanese, `anyascii` for other scripts), with the
 feed's subtitle, municipality or subdivision added when several feeds share the
 name. It is pinned in the bucket's `slugs.json`, so it never changes or goes to
@@ -60,6 +62,7 @@ built whatever the catalog filter says:
 | `timepoints` | `auto`, `all`, `timepoint-flag` | `auto` |
 | `basemap` | `none`, a Stadia style, or `{light: <style>, dark: <style>}` to follow the color scheme (tiles under the svg map) | `none` |
 | `locale` | `en`, `fr`: the language of the site's pages (the root and country pages stay English) | `en` |
+| `index` | `true`, `false`: whether search engines may index the site's pages; `false` adds a robots `noindex` to every page and leaves them out of the sitemap, as for expired routes | `true` |
 
 Stadia styles: `stadia-alidade-smooth`, `stadia-alidade-smooth-dark`,
 `stadia-alidade-bright`, `stadia-alidade-satellite`, `stadia-outdoors`,
@@ -107,7 +110,9 @@ outcome began. For an `ok` feed it also holds the zip's size and hash,
 feed_info, service range, agencies, counts and route types. feed-catalog merges
 it into feeds.json. A feed that was `not_zip`, `missing_files` or
 `parse_error` is not downloaded again until its catalog size or Last-Modified,
-its URL or the timetable-sites version changes, or a week passes.
+its URL or the timetable-sites version changes, or a week passes. A site
+whose last zip hash and route filter match a site with a shorter slug is built
+with `index: false`, so search engines see one copy of a feed.
 
 ```bash
 uv sync --extra pipeline

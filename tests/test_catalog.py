@@ -216,6 +216,26 @@ sites: [{feed: f-0000000003, time_format: 12h, locale: en}]
     }
 
 
+def test_resolve_sites_indexes_only_index_countries():
+    config = load_config(
+        "catalog: {index_countries: [US]}\nsites: [{feed: f-0000000003}]"
+    )
+    doc = {
+        "feeds": [
+            feed("f-0000000001", "Here", country_code="US"),
+            feed("f-0000000002", "Paris", country_code="FR"),
+            feed("f-0000000003", "Lyon", country_code="FR"),
+        ]
+    }
+    sites, _, _ = resolve_sites(config, doc, {})
+    # A listed feed keeps its own option.
+    assert {site.slug: site.index for site in sites} == {
+        "lyon": True,
+        "here": True,
+        "paris": False,
+    }
+
+
 @pytest.mark.parametrize(
     ("country", "subdivision", "expected"),
     [
