@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% block title %}{{ t("index.title", site=site_title) }}{% endblock %}
-{% block description %}{{ t("index.description", modes=modes, modes_lower=modes_lower, site=site_title, n=routes | length) }}{% endblock %}
+{% block title %}{{ t("index.title_place", site=site_title, place=place) if place else t("index.title", site=site_title) }}{% endblock %}
+{% block description %}{{ t("index.description", modes=modes, modes_lower=modes_lower, site=site_place, n=routes | length) }}{% endblock %}
 {% block main %}
 <h1 class="text-3xl font-bold">{{ site_title }}</h1>
+{% if local %}<p class="text-base-content/80">{{ t("index.serves", modes=modes, modes_lower=modes_lower, place=place) }}</p>{% endif %}
 {% for group in groups %}
 {% if groups | length > 1 %}
 <h2 class="text-xl font-semibold" id="{{ group.anchor }}">{{ group.heading }}</h2>

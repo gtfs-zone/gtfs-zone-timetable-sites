@@ -81,6 +81,8 @@ EN: dict[str, str] = {
     "map.system": "{site} {mode}",
     # Site index
     "index.title": "{site} schedules and timetables",
+    "index.title_place": "{site} schedules and timetables - {place}",
+    "index.serves": "{modes} timetables in {place}.",
     "index.description_one": "{modes} schedules for {site}: timetables for {n}"
     " route, with times at each stop.",
     "index.description_other": "{modes} schedules for {site}: timetables for {n}"
@@ -193,6 +195,8 @@ FR: dict[str, str] = {
     "map.title": "Carte : {title}",
     "map.system": "{site}, {mode}",
     "index.title": "Horaires de {site}",
+    "index.title_place": "Horaires de {site} - {place}",
+    "index.serves": "Horaires ({modes_lower}) à {place}.",
     "index.description_one": "Horaires de {site} ({modes_lower}) : horaires de"
     " {n} ligne, avec les heures à chaque arrêt.",
     "index.description_other": "Horaires de {site} ({modes_lower}) : horaires de"

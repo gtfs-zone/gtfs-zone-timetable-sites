@@ -32,12 +32,14 @@ from gtfs_zone_timetable_sites.pages import (
     mode_label,
     modes_label,
     modes_text,
+    place_jsonld,
     route_labels,
     route_slugs,
     route_view,
     service_range,
     tidy,
 )
+from gtfs_zone_timetable_sites.places import feed_place, place_label
 from gtfs_zone_timetable_sites.render import asset, render
 from gtfs_zone_timetable_sites.timetable import Timetable, route_timetables
 
@@ -212,9 +214,16 @@ def build_site(
     feed_notes, marked = feed_amenities(
         [table for rt in timetables for table in rt.tables], locale
     )
+    title = site_title(feed, site)
+    place = feed_place(feed)
+    label = place_label(place, title)
     common = {
         "locale": locale,
-        "site_title": site_title(feed, site),
+        "site_title": title,
+        # The title with where the feed runs, for page titles and descriptions.
+        "site_place": f"{title}, {label}" if label else title,
+        "place": label,
+        "local": bool(label) and place is not None and bool(place.region),
         "base_url": base_url,
         "generated": today,
         "feed_notes": feed_notes,
@@ -293,7 +302,7 @@ def build_site(
             maps=home_maps,
             valid=date_range(start, end, locale, "valid"),
             feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
-            jsonld=breadcrumbs(trail),
+            jsonld=[breadcrumbs(trail), *place_jsonld(place, label, base_url)],
             root="",
             noindex="index.html" in noindex,
         )
@@ -312,7 +321,10 @@ def build_site(
             route=view,
             map=route_svg,
             days=day_views(feed, rt.tables, site.time_format, marked, locale),
-            jsonld=breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
+            jsonld=[
+                breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
+                *place_jsonld(place, label, f"{base_url}{view.slug}/"),
+            ],
             root="../",
             noindex=f"{view.slug}/index.html" in noindex,
         )

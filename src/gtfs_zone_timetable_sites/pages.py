@@ -26,6 +26,7 @@ from gtfs_zone_timetable_sites.i18n import (
     long_date,
     t,
 )
+from gtfs_zone_timetable_sites.places import Place
 from gtfs_zone_timetable_sites.strip import (
     RailRow,
     endpoint_threshold,
@@ -160,6 +161,33 @@ def breadcrumbs(items: list[tuple[str, str]]) -> dict:
             for i, (name, url) in enumerate(items, 1)
         ],
     }
+
+
+def place_jsonld(place: Place | None, label: str, url: str) -> list[dict]:
+    """A schema.org WebPage whose spatialCoverage is the feed's place, or
+    nothing without one."""
+    if place is None or not label:
+        return []
+    address = {"@type": "PostalAddress", "addressCountry": place.country_code}
+    if place.region:
+        address["addressRegion"] = place.region
+    return [
+        {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "url": url,
+            "spatialCoverage": {
+                "@type": "Place",
+                "name": label,
+                "address": address,
+                "geo": {
+                    "@type": "GeoCoordinates",
+                    "latitude": place.lat,
+                    "longitude": place.lon,
+                },
+            },
+        }
+    ]
 
 
 @dataclass(frozen=True, slots=True)
