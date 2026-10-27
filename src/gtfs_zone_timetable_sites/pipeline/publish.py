@@ -453,8 +453,18 @@ def publish_root(
             if c and "outcome" in c
         },
     )
+    old_pages = {
+        old: {
+            key.removeprefix(f"{old}/")
+            for key in store.list_keys(f"{old}/")
+            if key.endswith("index.html")
+        }
+        for old in redirects or {}
+    }
     files |= redirect_pages(
-        redirects or {}, {slug: entry["pages"] for slug, entry in listed.items()}
+        redirects or {},
+        {slug: entry["pages"] for slug, entry in listed.items()},
+        old_pages,
     )
     for path, body in files.items():
         store.put(path, body)

@@ -46,7 +46,9 @@ feed's subtitle, municipality or subdivision added when several feeds share the
 name. It is pinned in the bucket's `slugs.json`, so it never changes or goes to
 another feed unless renamed: a `sites:` entry with the feed and a new `slug`
 renames it, and the old slug is kept in `aliases.json`, never reused, and its
-pages redirect to the new ones. Its `time_format` comes from its country (12h
+pages redirect to the new ones. A feed that feeds.json lists under `moved`
+(its members joined another feed) keeps its slug the same way, redirecting to
+the feed it joined; a page that feed lacks goes to its index. Its `time_format` comes from its country (12h
 in the US, Canada outside Quebec, Australia and a few others, 24h elsewhere),
 and France, Monaco and Quebec get `locale: fr`.
 

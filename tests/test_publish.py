@@ -150,6 +150,7 @@ def test_publish_root_redirects_an_old_slug():
         {
             "metro/index.html": b"old",
             "metro/route-1/index.html": b"old",
+            "metro/route-9/index.html": b"old",
             "metro/manifest.json": b"{}",
             "aliases.json": b"{}",
         }
@@ -164,6 +165,11 @@ def test_publish_root_redirects_an_old_slug():
     assert f'<link rel="canonical" href="{url}">' in page
     assert f'content="0; url={url}"' in page
     assert b"/metro-lyon/" in store.objects["metro/index.html"]
+    # A route the current site lacks goes to its index.
+    assert (
+        b'url=https://sites.gtfs.zone/metro-lyon/"'
+        in store.objects["metro/route-9/index.html"]
+    )
     assert "metro/manifest.json" not in store.objects
     assert "aliases.json" in store.objects
 
