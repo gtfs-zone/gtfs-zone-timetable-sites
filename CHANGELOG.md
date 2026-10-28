@@ -1,3 +1,14 @@
+## v0.16.0 (2026-10-28)
+
+### Feat
+
+- **seo**: name the state, province or country a feed runs in in titles, descriptions and JSON-LD
+
+### Fix
+
+- **catalog**: redirect a moved feed's slug to the feed it joined
+- **deps**: upgrade packages with published security advisories
+
 ## v0.15.0 (2026-10-25)
 
 ### Feat
