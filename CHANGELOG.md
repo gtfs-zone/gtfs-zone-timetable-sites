@@ -1,3 +1,9 @@
+## v0.17.0 (2026-10-28)
+
+### Feat
+
+- link the GitHub repo from the header
+
 ## v0.16.0 (2026-10-28)
 
 ### Feat
