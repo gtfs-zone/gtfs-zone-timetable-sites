@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ t("route.title", route=route.title, mode=route.mode_label, site=site_title) }}{% endblock %}
+{% block title %}{{ t("route.title", route=route.title, mode=route.mode_label, site=site_place) }}{% endblock %}
 {% block description %}{{ t("route.description",
   route=route.title,
   mode=route.mode_label,
   between=t("route.between", first=route.endpoints[0], last=route.endpoints[1]) if route.endpoints else "",
   days=t("route.days", days=route.days_label) if route.days else "",
-  site=site_title) }}{% endblock %}
+  site=site_place) }}{% endblock %}
 {% block canonical %}{{ base_url }}{{ route.slug }}/{% endblock %}
 {% macro stop_name(row, gutter) %}<span class="rail{% if row.rail %} {{ row.rail }}{% endif %}" aria-hidden="true">
 {%- if row.paths %}<svg viewBox="0 0 {{ gutter }} 100" preserveAspectRatio="none">

@@ -435,7 +435,7 @@ def test_build_root():
     assert summaries[1]["valid_through"] == "2026-12-01"
 
 
-def json_ld(page: str) -> dict:
+def json_ld(page: str) -> list | dict:
     match = re.search(r'<script type="application/ld\+json">(.*?)</script>', page)
     assert match
     return json.loads(match.group(1))
@@ -444,11 +444,12 @@ def json_ld(page: str) -> dict:
 def test_route_page_seo():
     files = build("overnight", title="Test & Co")
     page = files["1/index.html"]
-    assert "<title>1 Night Owl bus schedule - Test &amp; Co</title>" in page
+    title = "1 Night Owl bus schedule - Test &amp; Co, United States"
+    assert f"<title>{title}</title>" in page
     assert (
         '<meta name="description" content="1 Night Owl bus schedule between Alpha'
         " and Charlie: Daily. Times at each stop and first and last trips, from"
-        ' Test &amp; Co.">'
+        ' Test &amp; Co, United States.">'
     ) in page
     assert '<meta property="og:title" content="1 Night Owl bus schedule' in page
     assert '<meta property="og:url" content="https://sites.gtfs.zone/test/1/">' in page
@@ -457,17 +458,24 @@ def test_route_page_seo():
         " timetables.</p>"
     ) in page
     assert "First trip starts at 6:00 AM, last at 11:40 PM.</p>" in page
-    crumbs = json_ld(page)["itemListElement"]
+    crumbs, webpage = json_ld(page)
+    crumbs = crumbs["itemListElement"]
     assert [c["item"] for c in crumbs] == [
         "https://sites.gtfs.zone/",
         "https://sites.gtfs.zone/test/",
         "https://sites.gtfs.zone/test/1/",
     ]
     assert crumbs[1]["name"] == "Test & Co"
+    assert webpage["spatialCoverage"]["name"] == "United States"
     home = files["index.html"]
-    assert "<title>Test &amp; Co schedules and timetables</title>" in home
-    assert 'content="Bus schedules for Test &amp; Co: timetables for 1 route,' in home
-    assert len(json_ld(home)["itemListElement"]) == 2
+    title = "Test &amp; Co schedules and timetables - United States"
+    assert f"<title>{title}</title>" in home
+    assert (
+        "Bus schedules for Test &amp; Co, United States: timetables for 1 route,"
+        in home
+    )
+    assert "Bus timetables in" not in home
+    assert len(json_ld(home)[0]["itemListElement"]) == 2
 
 
 def test_page_digest_ignores_build_date():
@@ -553,7 +561,7 @@ def test_french_site():
     files = build("calendar-dates-only", locale="fr", time_format="24h")
     home, page = files["index.html"], files["2/index.html"]
     assert '<html lang="fr">' in home and '<html lang="fr">' in page
-    assert "<title>Horaires de Test Transit</title>" in home
+    assert "<title>Horaires de Test Transit - United States</title>" in home
     assert "Horaires valides du 10 oct. 2026 au 17 oct. 2026." in home
     assert '<h2 class="text-lg font-semibold">Samedi ' in page
     assert "Aucun service : sam. 24 oct., sam. 31 oct.</p>" in page

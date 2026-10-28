@@ -28,6 +28,7 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 | `strip.py` | Stop-column rail lanes, endpoints and minority stops, ported from gtfs-zone-web-common's `route-graph.ts` / `route-strip.ts` |
 | `colors.py` | Hashed color for a route without `route_color`, a hex-exact port of gtfs-zone-web-common's `route-colors.ts` |
 | `build.py` | `build_site(zip_bytes, site) -> {path: bytes}`, the only entry point |
+| `places.py` | A feed's state, province or country from its stop times, reverse-geocoded offline with `reverse_geocode`, for page titles and JSON-LD |
 | `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts) for the content report |
 | `maps/svg.py` | Route and system maps as inline SVG: Web Mercator, Douglas-Peucker, label placement (none on bus-only system maps), basemap tiles |
 | `maps/split.py` | A mode's routes to system maps by grid density: local clusters, then long routes grouped by overlap with the rest sharing one map; one map when that fragments the mode |
