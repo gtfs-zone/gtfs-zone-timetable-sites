@@ -130,6 +130,7 @@ EN: dict[str, str] = {
     "footer.listed": "Listed in {catalogs}.",
     "footer.mobility_database": "the Mobility Database",
     "footer.more": "More GTFS tools at {link}",
+    "nav.github": "Source code on GitHub",
 }
 
 FR: dict[str, str] = {
@@ -242,6 +243,7 @@ FR: dict[str, str] = {
     "footer.listed": "Répertorié dans {catalogs}.",
     "footer.mobility_database": "la Mobility Database",
     "footer.more": "Plus d'outils GTFS sur {link}",
+    "nav.github": "Code source sur GitHub",
 }
 
 CATALOGS: dict[Locale, dict[str, str]] = {"en": EN, "fr": FR}
