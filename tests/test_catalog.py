@@ -273,6 +273,23 @@ def test_resolve_sites_renames_a_pinned_feed_with_an_alias():
     assert aliases == {"metro-lyon": "f-0000000001"}
 
 
+def test_resolve_sites_aliases_a_moved_feed_to_the_feed_it_joined():
+    pinned = {"f-0000000001": "metro", "f-0000000002": "metro-transit"}
+    doc = {"feeds": [feed("f-0000000002", "Metro Transit")]}
+    moved = doc | {"moved": {"f-0000000001": "f-0000000002", "f-0000000009": "x"}}
+    sites, slugs, aliases = resolve_sites(load_config("catalog: {}"), moved, pinned)
+    assert slugs == pinned
+    assert aliases == {"metro": "f-0000000002"}
+    live = {site.slug for site in sites}
+    assert redirects(slugs, aliases, live) == {"metro": "metro-transit"}
+
+    # Not in moved: no alias. Back in feeds.json: the alias goes.
+    assert resolve_sites(load_config("catalog: {}"), doc, pinned)[2] == {}
+    back = {"feeds": [*doc["feeds"], feed("f-0000000001", "Metro")]}
+    _, _, aliases = resolve_sites(load_config("catalog: {}"), back, slugs, aliases)
+    assert aliases == {}
+
+
 def test_resolve_sites_rejects_a_slug_taken_by_an_alias():
     config = load_config("sites: [{slug: metro, url: u}]")
     with pytest.raises(ValueError, match="metro"):

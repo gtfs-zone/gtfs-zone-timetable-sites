@@ -151,9 +151,17 @@ def resolve_sites(
     catalog feed's options are the defaults with its country's options over
     them, and not indexed outside `index_countries`; a `sites:` entry for it
     sets its options instead and, when given, its slug, which renames a pinned
-    feed and keeps its old slug as an alias."""
+    feed and keeps its old slug as an alias. A pinned feed feeds.json lists as
+    `moved` into a listed feed keeps its slug as an alias of that feed."""
     feeds = parse_feeds(feeds_doc)
     aliases = dict(aliases or {})
+    moved = feeds_doc.get("moved") or {}
+    for feed_id, slug in pinned.items():
+        if feed_id not in feeds and moved.get(feed_id) in feeds:
+            aliases[slug] = moved[feed_id]
+        # A moved feed that comes back takes its slug again.
+        elif feed_id in feeds and aliases.get(slug, feed_id) != feed_id:
+            del aliases[slug]
     entries = {entry.feed: entry for entry in config.sites if entry.feed}
     renamed = dict(pinned)
     for feed_id, entry in entries.items():
