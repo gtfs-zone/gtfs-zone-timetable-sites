@@ -1,3 +1,9 @@
+## v0.18.1 (2026-11-03)
+
+### Fix
+
+- **maps**: fetch rt.gtfs.zone vehicles without the CORS proxy
+
 ## v0.18.0 (2026-11-03)
 
 ### Feat
