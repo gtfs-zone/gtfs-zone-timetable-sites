@@ -9,7 +9,7 @@
 {% block canonical %}{{ base_url }}{{ route.slug }}/{% endblock %}
 {% macro stop_name(row, gutter) %}<span class="rail{% if row.rail %} {{ row.rail }}{% endif %}" aria-hidden="true">
 {%- if row.paths %}<svg viewBox="0 0 {{ gutter }} 100" preserveAspectRatio="none">
-{%- for d in row.paths %}<path class="case" d="{{ d }}"/><path d="{{ d }}"/>{% endfor %}</svg>{% endif %}<span class="dot{% if row.solid %} solid{% endif %}" style="left:{{ row.dot_x }}px"></span></span>
+{%- for d in row.paths %}<path class="case" d="{{ d }}"/><path d="{{ d }}"/>{% endfor %}</svg>{% endif %}<span class="dot{% if row.solid %} solid{% endif %}" style="left:{{ row.dot_x }}px">{% if row.num %}{{ row.num }}{% endif %}</span></span>
 {%- if row.google %}<a class="link link-hover" href="{{ row.google }}" target="_blank" rel="noopener">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}
 {%- endmacro %}
 {% block main %}
@@ -36,6 +36,7 @@
 <p class="text-base-content/80">{{ note }}</p>
 {% endfor %}
 </div>
+<div class="space-y-6" data-route-body>
 {% if map %}
 <section class="card bg-base-100 shadow-sm">
 <div class="card-body p-4">
@@ -57,7 +58,7 @@
 <div id="{{ table.anchor }}" class="scroll-mt-4 space-y-2">
 <h3 class="font-semibold">{{ table.title }}</h3>
 <div class="max-w-full overflow-x-auto rounded-box border border-base-300" tabindex="0" role="region" aria-label="{{ table.title }}, {{ day.name }}">
-<table class="timetable" style="--gutter:{{ table.gutter }}px{% if route.line_color %};--line:#{{ route.line_color }}{% endif %}">
+<table class="timetable" style="--gutter:{{ table.gutter }}px{% if route.colors %};--line:#{{ route.colors[0] }};--line-text:#{{ route.colors[1] }}{% endif %};--dot-text:#{{ route.dot_text }}">
 <colgroup><col>{% for head in table.heads %}<col{% if head.shaded %} class="alt"{% endif %}>{% endfor %}</colgroup>
 {% if table.show_numbers or table.show_headsigns or table.show_notes or table.show_amenities %}
 <thead>
@@ -79,10 +80,9 @@
 {% endif %}
 <tbody>
 {% for row in table.rows %}
-<tr><th scope="row">{{ stop_name(row, table.gutter) }}
+<tr><th scope="row"{% if row.num %} data-num="{{ row.num }}"{% endif %}><span class="stop">{{ stop_name(row, table.gutter) }}
 {%- if row.wheelchair %} {{ icon("wheelchair", t("amenity.wheelchair")) }}{% endif %}
-{%- if row.zone %} <small>{{ t("route.zone_time", zone=row.zone) }}</small>{% endif %}
-</th>
+{%- if row.zone %} <small>{{ t("route.zone_time", zone=row.zone) }}</small>{% endif %}</span></th>
 {% for cell in row.cells %}
 {{ time_cell(table.heads[loop.index0], cell) }}
 {% endfor %}
@@ -108,6 +108,7 @@
 </div>
 </section>
 {% endfor %}
+</div>
 <div class="flex flex-wrap gap-2">
 <a class="btn btn-sm h-11" href="{{ root }}">{{ t("route.all_routes") }}</a>
 {% if route.url %}<a class="btn btn-ghost btn-sm h-11" href="{{ route.url }}" target="_blank" rel="noopener">{{ t("route.agency_page") }}</a>{% endif %}

@@ -11,6 +11,8 @@ from importlib.metadata import version
 from typing import NamedTuple
 from urllib.parse import urlsplit
 
+from markupsafe import Markup
+
 from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import RouteFilter, Site
 from gtfs_zone_timetable_sites.facts import feed_facts
@@ -21,8 +23,8 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     horizon_start,
     last_service_date,
 )
-from gtfs_zone_timetable_sites.i18n import join_and, t
-from gtfs_zone_timetable_sites.maps.svg import route_map, system_maps
+from gtfs_zone_timetable_sites.i18n import CATALOGS, Locale, capitalize, join_and, t
+from gtfs_zone_timetable_sites.maps.geo import SystemRoute, route_data, system_data
 from gtfs_zone_timetable_sites.pages import (
     breadcrumbs,
     date_range,
@@ -37,6 +39,7 @@ from gtfs_zone_timetable_sites.pages import (
     route_slugs,
     route_view,
     service_range,
+    stop_numbers,
     tidy,
 )
 from gtfs_zone_timetable_sites.places import feed_place, place_label
@@ -242,42 +245,16 @@ def build_site(
         )
         for rt in timetables
     ]
+    common["map_text"] = map_text(locale, [view.mode for view in routes])
     start, end = service_range(feed)
-    maps = site.map == "svg"
-    system_routes = {
-        view.slug: (view.title, view.badge, view.line_color, rt.tables, f"{view.slug}/")
-        for view, rt in zip(routes, timetables, strict=True)
-    }
+    maps = site.map == "maplibre"
     groups = mode_groups([view for view in routes if view.state != "expired"], locale)
     expired = [view for view in routes if view.state == "expired"]
-    # System maps per mode, split into local and long-route maps; the first
-    # of a mode is headed by the mode, the rest by their badges too.
-    home_maps = [
-        (
-            group.heading
-            + (f": {', '.join(group.routes[i].badge for i in ix)}" if n else ""),
-            svg,
-        )
-        for group in (groups if maps else [])
-        for n, (ix, svg) in enumerate(
-            system_maps(
-                feed,
-                t(
-                    locale,
-                    "map.system",
-                    site=common["site_title"],
-                    mode=mode_label(group.mode, locale),
-                ),
-                [system_routes[view.slug] for view in group.routes],
-                site.basemap,
-                locale,
-            )
-        )
-        if svg
-    ]
-    # Headings only when there is more than one map.
-    if len(home_maps) == 1:
-        home_maps = [("", home_maps[0][1])]
+    vehicles = site.vehicles_url()
+    shown = [view.slug for group in groups for view in group.routes]
+    by_slug = {
+        view.slug: (view, rt) for view, rt in zip(routes, timetables, strict=True)
+    }
     trail = [(ROOT_TITLE, f"{BASE_URL}/"), (common["site_title"], base_url)]
     # Search engines skip expired routes, and the whole site when it is not
     # indexed or every route has expired.
@@ -299,7 +276,7 @@ def build_site(
             expired=expired,
             modes=modes_label([view.mode for view in routes], locale),
             modes_lower=modes_text([view.mode for view in routes], locale),
-            maps=home_maps,
+            system_map=maps and bool(shown),
             valid=date_range(start, end, locale, "valid"),
             feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
             jsonld=[breadcrumbs(trail), *place_jsonld(place, label, base_url)],
@@ -308,18 +285,24 @@ def build_site(
         )
     }
     for view, rt in zip(routes, timetables, strict=True):
-        route_svg = (
-            route_map(
-                feed, view.title, view.line_color, rt.tables, site.basemap, locale
+        numbers = stop_numbers(rt.tables)
+        data = (
+            route_data(
+                feed,
+                rt.tables,
+                numbers,
+                view.colors,
+                {"url": vehicles, **route_ids(read, rt.tables)} if vehicles else None,
             )
             if maps
-            else ""
+            else None
         )
+        route_map = script_json(data) if data and data["lines"] else ""
         files[f"{view.slug}/index.html"] = render(
             "route.html",
             **common,
             route=view,
-            map=route_svg,
+            map=route_map,
             days=day_views(feed, rt.tables, site.time_format, marked, locale),
             jsonld=[
                 breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
@@ -328,6 +311,27 @@ def build_site(
             root="../",
             noindex=f"{view.slug}/index.html" in noindex,
         )
+    if maps and shown:
+        files["map.json"] = json.dumps(
+            system_data(
+                feed,
+                [
+                    SystemRoute(
+                        slug=view.slug,
+                        badge=view.badge,
+                        title=view.title,
+                        colors=view.colors,
+                        mode=view.mode,
+                        tables=rt.tables,
+                        route_ids=route_ids(read, rt.tables)["routes"],
+                    )
+                    for view, rt in (by_slug[slug] for slug in shown)
+                ],
+                vehicles,
+            ),
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode()
     download_url = common["source"]["download_url"]
     files["site.json"] = summary_json(
         slug=site.slug,
@@ -347,8 +351,52 @@ def build_site(
         **feed_facts(zip_bytes, read, site.routes != RouteFilter())
     )
     files["style.css"] = asset("style.css")
+    files["map.js"] = asset("map.js")
     files["logo.svg"] = asset("logo.svg")
     return files
+
+
+def script_json(value: object) -> Markup:
+    """JSON safe to put inside a <script> element."""
+    text = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+    return Markup(text.replace("<", "\\u003c"))
+
+
+# Text map.js shows, by i18n key.
+MAP_TEXT = (
+    "map.in_timetable",
+    "map.vehicle",
+    "map.live_one",
+    "map.live_other",
+    "index.load_error",
+)
+
+
+def map_text(locale: Locale, modes: list[str]) -> Markup:
+    """map.js's strings and mode names, as JSON for a <script> element."""
+    catalog = CATALOGS[locale]
+    return script_json(
+        {
+            **{key: catalog[key] for key in MAP_TEXT},
+            "modes": {
+                m: capitalize(mode_label(m, locale)) for m in dict.fromkeys(modes)
+            },
+        }
+    )
+
+
+# Trip ids listed for realtime matching up to this many per route.
+MAX_RT_TRIPS = 400
+
+
+def route_ids(feed: Feed, tables: list[Timetable]) -> dict[str, list[str]]:
+    """The feed's route ids behind a (maybe merged) route, and its trip ids
+    when few enough, for matching vehicles to it."""
+    trips = list(dict.fromkeys(c.trip_id for t in tables for c in t.columns))
+    return {
+        "routes": sorted({feed.trips[t].route_id for t in trips if t in feed.trips}),
+        "trips": trips if len(trips) <= MAX_RT_TRIPS else [],
+    }
 
 
 def data_source(feed: Feed, site: Site) -> dict[str, object]:

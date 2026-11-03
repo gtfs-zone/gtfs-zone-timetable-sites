@@ -7,23 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from gtfs_zone_timetable_sites.i18n import Locale
 
-MapKind = Literal["svg", "none"]
-TileStyle = Literal[
-    "stadia-alidade-smooth",
-    "stadia-alidade-smooth-dark",
-    "stadia-alidade-bright",
-    "stadia-alidade-satellite",
-    "stadia-outdoors",
-    "stadia-osm-bright",
-    "stadia-toner",
-    "stadia-toner-lite",
-    "stadia-toner-dark",
-    "stadia-toner-blacklite",
-    "stadia-toner-background",
-    "stadia-terrain",
-    "stadia-terrain-background",
-    "stadia-watercolor",
-]
+MapKind = Literal["maplibre", "none"]
 TimeFormat = Literal["12h", "24h"]
 Timepoints = Literal["auto", "all", "timepoint-flag"]
 
@@ -38,22 +22,11 @@ class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class BasemapPair(Strict):
-    """Tile styles for the light and dark color schemes."""
-
-    light: TileStyle
-    dark: TileStyle
-
-
-Basemap = Literal["none"] | TileStyle | BasemapPair
-
-
 class Options(Strict):
-    map: MapKind = "svg"
+    map: MapKind = "maplibre"
     horizon_days: int = Field(28, gt=0, le=366)
     time_format: TimeFormat = "12h"
     timepoints: Timepoints = "auto"
-    basemap: Basemap = "none"
     locale: Locale = "en"
     # Whether search engines may index the site's pages.
     index: bool = True
@@ -126,6 +99,13 @@ class Site(Options):
         if self.license_url:
             return (self.license_url,)
         return self.catalog.licenses if self.catalog else ()
+
+    def vehicles_url(self) -> str | None:
+        """The catalog's best vehicle positions URL, when its check is up."""
+        if self.catalog is None or self.catalog.role_state.get("vehicles") != "up":
+            return None
+        urls = self.catalog.urls.get("vehicles")
+        return urls[0] if urls else None
 
     def download_url(self) -> str:
         """The direct URL, else the catalog's best scheduled URL."""

@@ -1,0 +1,4 @@
+route_id,service_id,trip_id,trip_short_name,direction_id
+R,DAILY,out,Golf,0
+R,DAILY,loop,Loop,0
+R,DAILY,back,Alpha,1

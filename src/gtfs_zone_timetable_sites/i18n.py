@@ -54,6 +54,7 @@ EN: dict[str, str] = {
     "mode.transit": "transit",
     # Timetables
     "table.to": "To {places}",
+    "table.from_to": "{first} to {last}",
     "table.every": "then every {minutes} min until {until}",
     "legend.note": "{letter}: {note}.",
     "legend.icon": "{icon}: {text}",
@@ -78,7 +79,12 @@ EN: dict[str, str] = {
     "amenity.wheelchair": "Wheelchair accessible",
     # Maps
     "map.title": "Map of {title}",
-    "map.system": "{site} {mode}",
+    "map.system": "Map of every {site} route",
+    "map.modes": "Modes shown on the map",
+    "map.in_timetable": "Show in the timetable",
+    "map.vehicle": "Vehicle {label}",
+    "map.live_one": "Live: {n} vehicle on the map",
+    "map.live_other": "Live: {n} vehicles on the map",
     # Site index
     "index.title": "{site} schedules and timetables",
     "index.title_place": "{site} schedules and timetables - {place}",
@@ -91,8 +97,12 @@ EN: dict[str, str] = {
     "index.expired_badge": "Expired",
     "index.ended": "Ended {date}",
     "index.starts": "Starts {date}",
-    "index.maps_one": "Map",
-    "index.maps_other": "Maps",
+    "index.map": "Map",
+    "index.route_page": "Open the route page",
+    "index.route_page_label": "Open the route page: {route}",
+    "index.loading": "Loading the timetable",
+    "index.load_error": "The timetable could not be loaded here. Open its page"
+    " instead.",
     "index.about": "About",
     "index.website": "Website",
     "index.valid": "Timetables valid {range}.",
@@ -131,6 +141,7 @@ EN: dict[str, str] = {
     "footer.mobility_database": "the Mobility Database",
     "footer.more": "More GTFS tools at {link}",
     "nav.github": "Source code on GitHub",
+    "nav.theme": "Light or dark theme",
 }
 
 FR: dict[str, str] = {
@@ -171,6 +182,7 @@ FR: dict[str, str] = {
     "mode.monorail": "monorail",
     "mode.transit": "transport en commun",
     "table.to": "Vers {places}",
+    "table.from_to": "De {first} à {last}",
     "table.every": "puis toutes les {minutes} min jusqu'à {until}",
     "legend.note": "{letter} : {note}.",
     "legend.icon": "{icon} : {text}",
@@ -194,7 +206,12 @@ FR: dict[str, str] = {
     "amenity.stops_none": "Aucun arrêt n'est accessible en fauteuil roulant.",
     "amenity.wheelchair": "Accessible en fauteuil roulant",
     "map.title": "Carte : {title}",
-    "map.system": "{site}, {mode}",
+    "map.system": "Carte de toutes les lignes : {site}",
+    "map.modes": "Modes affichés sur la carte",
+    "map.in_timetable": "Voir dans l'horaire",
+    "map.vehicle": "Véhicule {label}",
+    "map.live_one": "En direct : {n} véhicule sur la carte",
+    "map.live_other": "En direct : {n} véhicules sur la carte",
     "index.title": "Horaires de {site}",
     "index.title_place": "Horaires de {site} - {place}",
     "index.serves": "Horaires ({modes_lower}) à {place}.",
@@ -206,8 +223,11 @@ FR: dict[str, str] = {
     "index.expired_badge": "Expirée",
     "index.ended": "Terminée le {date}",
     "index.starts": "Débute le {date}",
-    "index.maps_one": "Carte",
-    "index.maps_other": "Cartes",
+    "index.map": "Carte",
+    "index.route_page": "Ouvrir la page de la ligne",
+    "index.route_page_label": "Ouvrir la page de la ligne : {route}",
+    "index.loading": "Chargement de l'horaire",
+    "index.load_error": "L'horaire n'a pas pu être chargé ici. Ouvrez plutôt sa page.",
     "index.about": "À propos",
     "index.website": "Site web",
     "index.valid": "Horaires valides {range}.",
@@ -244,6 +264,7 @@ FR: dict[str, str] = {
     "footer.mobility_database": "la Mobility Database",
     "footer.more": "Plus d'outils GTFS sur {link}",
     "nav.github": "Code source sur GitHub",
+    "nav.theme": "Thème clair ou sombre",
 }
 
 CATALOGS: dict[Locale, dict[str, str]] = {"en": EN, "fr": FR}

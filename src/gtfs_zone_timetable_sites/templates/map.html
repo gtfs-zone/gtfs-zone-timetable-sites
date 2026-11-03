@@ -1,4 +1,8 @@
 {% if map %}
-{{ map }}
-{% include "map-script.html" %}
+<div class="route-maps">
+<div class="route-map" role="region" aria-label="{{ t("map.title", title=route.title) }}"></div>
+<div class="route-insets"></div>
+<p class="map-live" hidden></p>
+</div>
+<script type="application/json" class="route-data">{{ map }}</script>
 {% endif %}

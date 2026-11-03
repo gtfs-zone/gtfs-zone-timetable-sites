@@ -1,31 +1,28 @@
-import math
+import json
 import re
 from datetime import date
-from itertools import pairwise
-from typing import get_args
 
 from conftest import fixture_files, make_zip
 
-from gtfs_zone_timetable_sites.build import build_site
-from gtfs_zone_timetable_sites.config import BasemapPair, Site, TileStyle
-from gtfs_zone_timetable_sites.maps.split import split_routes
-from gtfs_zone_timetable_sites.maps.svg import (
-    TILE_SOURCES,
-    WIDTH,
-    Line,
-    Mark,
-    Projection,
-    line_cells,
-    line_class,
-    overlaps,
-    path_data,
-    place_labels,
-    render_map,
-    simplify,
-    tiles,
-)
+from gtfs_zone_timetable_sites.build import build_site, script_json
+from gtfs_zone_timetable_sites.config import CatalogFeed, Site
+from gtfs_zone_timetable_sites.maps.geo import lines_of, simplify, tolerance
 
 MONDAY = date(2026, 10, 5)
+
+
+def build(files: dict[str, str], **options) -> dict[str, str]:
+    site = Site(slug="test", url="https://example.org/g.zip", **options)
+    built = build_site(make_zip(files), site, today=MONDAY)
+    return {path: body.decode() for path, body in built.items()}
+
+
+def route_data(page: str) -> dict:
+    found = re.search(
+        r'<script type="application/json" class="route-data">(.*?)</script>', page
+    )
+    assert found
+    return json.loads(found.group(1))
 
 
 def test_simplify_drops_collinear_points():
@@ -37,112 +34,47 @@ def test_simplify_keeps_short_paths():
     assert simplify([(0.0, 0.0), (1.0, 1.0)], 1.0) == [(0.0, 0.0), (1.0, 1.0)]
 
 
-def test_path_data_relative_and_compact():
-    assert path_data([(10, 20), (13, 16), (13, 16), (8, 16)]) == "M10 20l3-4-5 0"
+def test_lines_round_to_lon_lat_and_drop_repeats():
+    # A 2 m wiggle on a 1 km line goes at a 6 m tolerance.
+    path = [(42.0, -73.0), (42.00002, -72.994), (42.0, -72.988), (42.0, -72.988)]
+    assert lines_of([path], 6.0) == [((-73.0, 42.0), (-72.988, 42.0))]
 
 
-def test_path_data_single_point_draws_a_dot():
-    assert path_data([(5, 5)]) == "M5 5l0 0"
+def test_lines_drop_what_an_earlier_line_retraces():
+    out = [(42.0, -73.0), (42.0, -72.9), (42.05, -72.9)]
+    back = [(42.00003, -72.95), (42.00003, -73.0)]
+    spur = [(42.0, -72.95), (42.0, -72.95), (41.95, -72.95)]
+    lines = lines_of([out, back[::-1], back, spur], 6.0)
+    # The return trip is gone; the spur keeps only its new part.
+    assert lines[0] == ((-73.0, 42.0), (-72.9, 42.0), (-72.9, 42.05))
+    assert len(lines) == 2 and lines[1][-1] == (-72.95, 41.95)
 
 
-def test_projection_fits_width_and_keeps_north_up():
-    project = Projection([(42.0, -73.0), (42.1, -73.2)])
-    north = project(42.1, -73.1)
-    south = project(42.0, -73.1)
-    assert north[1] < south[1]
-    xs = [project(42.0, -73.0)[0], project(42.1, -73.2)[0]]
-    assert min(xs) >= 0 and max(xs) <= WIDTH
+def test_tolerance_grows_with_the_map():
+    city = [[(42.0, -73.0), (42.1, -73.1)]]
+    country = [[(25.0, -125.0), (49.0, -67.0)]]
+    assert tolerance(city, 6.0, 1 / 20_000) == 6.0
+    assert 200 < tolerance(country, 6.0, 1 / 20_000) < 300
 
 
-def test_projection_of_one_point_has_a_frame():
-    project = Projection([(42.0, -73.0)])
-    assert project.height > 0
-    x, y = project(42.0, -73.0)
-    assert 0 <= x <= WIDTH and 0 <= y <= project.height
+def test_route_map_from_stop_sequences_numbers_stops_like_the_timetable():
+    page = build(fixture_files("branching"))["4/index.html"]
+    data = route_data(page)
+    assert data["lines"] and data["rt"] is None
+    names = {num: name for _, _, num, name, _ in data["stops"]}
+    assert [num for _, _, num, _, _ in data["stops"]] == sorted(names)
+    rows = re.findall(r'<th scope="row" data-num="(\d+)">.*?>([A-Z][a-z]+)<', page)
+    assert rows and all(names[int(num)] == name for num, name in rows)
 
 
-def test_line_class_swaps_colors_that_vanish():
-    assert line_class(None) == "ink"
-    assert line_class("FFFFFF") == "pale"
-    assert line_class("000000") == "deep"
-    assert line_class("0B57B0") == ""
-
-
-def test_labels_avoid_lines():
-    # Lines fill everything right of x=280, so only the left side is clear.
-    cells = line_cells([[(280, y), (600, y)] for y in range(0, 200, 3)])
-    placed = place_labels([(300.0, 100.0, Mark(0, 0, "Alpha"))], 200, cells)
-    assert [side for _, side, _ in placed] == ["left"]
-
-
-def test_labels_avoid_each_other():
-    dots = [(300.0, 100.0, Mark(0, 0, "Alpha")), (300.0, 110.0, Mark(0, 0, "Bravo"))]
-    boxes = [box for box, _, _ in place_labels(dots, 200, set())]
-    assert len(boxes) == 2
-    assert not overlaps(boxes[0], boxes[1])
-
-
-def test_labels_off_the_map_are_dropped():
-    dots = [(5.0, 5.0, Mark(0, 0, "A very long stop name indeed"))]
-    placed = place_labels(dots, 10, set())
-    assert placed == []
-
-
-def test_render_map_empty_without_geometry():
-    assert render_map("Nothing", [Line("R", None, ())], []) == ""
-
-
-def test_render_map_escapes_labels():
-    line = Line("R & S", "0B57B0", (((42.0, -73.0), (42.1, -73.1)),))
-    svg = render_map("Map of R & S", [line], [Mark(42.0, -73.0, "<Main>", True)])
-    assert 'aria-label="Map of R &amp; S"' in svg
-    assert "&lt;Main&gt;" in svg
-    assert 'stroke="#0B57B0"' in svg
-
-
-def build(files: dict[str, str], **options) -> dict[str, str]:
-    site = Site(slug="test", url="https://example.org/g.zip", **options)
-    built = build_site(make_zip(files), site, today=MONDAY)
-    return {path: body.decode() for path, body in built.items()}
-
-
-def test_maps_from_stop_sequences_without_shapes():
-    files = build(fixture_files("branching"))
-    assert '<div class="map" style="aspect-ratio:600/' in files["index.html"]
-    route = files["4/index.html"]
-    assert '<svg class="over"' in route and '<p class="cap" hidden>' in route
-    assert ">Alpha</text>" in route
-
-
-def labels(html: str) -> set[str]:
-    return set(re.findall(r'<text x="[^"]*" y="[^"]*"[^>]*>([^<]+)</text>', html))
-
-
-def captions(html: str) -> set[str]:
-    return set(re.findall(r'data-cap="([^"]+)"', html))
-
-
-def test_maps_label_trip_ends_and_caption_every_stop():
-    files = build(fixture_files("branching"))
+def test_route_map_marks_trip_ends():
+    data = route_data(build(fixture_files("branching"))["4/index.html"])
     # Charlie is where back_short ends; Bravo, Echo and Foxtrot are passed through.
-    assert labels(files["4/index.html"]) == {"Alpha", "Charlie", "Delta", "Golf"}
-    assert labels(files["index.html"]) == {"Alpha", "Charlie", "Delta", "Golf"}
-    route_caps = {"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf"}
-    assert captions(files["4/index.html"]) == route_caps
-    assert captions(files["index.html"]) == {f"{c} - 4" for c in route_caps} | {
-        "4 Forks"
-    }
+    ends = {name for *_, name, end in data["stops"] if end}
+    assert ends == {"Alpha", "Charlie", "Delta", "Golf"}
 
 
-def test_system_map_stops_link_their_routes():
-    files = build(fixture_files("branching"))
-    assert (
-        '<g class="pin" data-cap="Bravo - 4" data-routes="4/">' in files["index.html"]
-    )
-    assert "data-routes" not in files["4/index.html"]
-
-
-def test_rare_short_turns_get_no_label():
+def test_rare_short_turns_are_not_ends():
     files = fixture_files("branching")
     # 20 more full northbound trips put back_short's one end under the 5% share.
     times = [
@@ -153,11 +85,11 @@ def test_rare_short_turns_get_no_label():
     trips = [f"R,DAILY,n{i},North,0" for i in range(20)]
     files["stop_times.txt"] = "\n".join([files["stop_times.txt"].rstrip(), *times])
     files["trips.txt"] = "\n".join([files["trips.txt"].rstrip(), *trips])
-    assert "Charlie" not in labels(build(files)["4/index.html"])
+    data = route_data(build(files)["4/index.html"])
+    assert "Charlie" not in {name for *_, name, end in data["stops"] if end}
 
 
-def test_maps_use_shapes_when_present():
-    files = fixture_files("branching")
+def with_shape(files: dict[str, str]) -> dict[str, str]:
     trips = files["trips.txt"].splitlines()
     files["trips.txt"] = "\n".join(
         [trips[0] + ",shape_id", *(row + ",S" for row in trips[1:])]
@@ -166,110 +98,63 @@ def test_maps_use_shapes_when_present():
         "shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence\n"
         "S,42.0,-73.0,1\nS,42.0,-73.6,2\nS,42.6,-73.6,3\n"
     )
-    route = build(files)["4/index.html"]
-    paths = re.findall(r'class="line[^"]*"[^>]* d="([^"]+)"', route)
-    # One shape shared by every trip: one subpath, three points.
-    assert len(paths) == 1
-    assert paths[0].count("M") == 1
-    assert len(re.findall(r"-?\d+", paths[0])) == 6
+    return files
 
 
-def test_map_none_leaves_maps_out():
+def test_route_map_uses_shapes_when_present():
+    data = route_data(build(with_shape(fixture_files("branching")))["4/index.html"])
+    assert data["lines"] == [[[-73.0, 42.0], [-73.6, 42.0], [-73.6, 42.6]]]
+
+
+def test_system_map_shares_lines_and_lists_transfers():
+    files = with_shape(fixture_files("branching"))
+    # A second route running the same trips over the same shape and stops.
+    files["routes.txt"] += "S,5,Spur,3\n"
+    head, *rows = files["trips.txt"].splitlines()
+    copies = [
+        ",".join(["S", cols[1], f"s-{cols[2]}", *cols[3:]])
+        for cols in (row.split(",") for row in rows)
+    ]
+    files["trips.txt"] = "\n".join([head, *rows, *copies]) + "\n"
+    times = files["stop_times.txt"].splitlines()[1:]
+    files["stop_times.txt"] += "".join(f"s-{line}\n" for line in times)
+    system = json.loads(build(files)["map.json"])
+    assert [r["badge"] for r in system["routes"]] == ["4", "5"]
+    assert system["lines"] == [
+        {"r": [0, 1], "c": [[-73.0, 42.0], [-73.6, 42.0], [-73.6, 42.6]]}
+    ]
+    assert {name for *_, name, _ in system["stops"]} >= {"Alpha", "Delta"}
+    assert all(owners == [0, 1] for *_, owners in system["stops"])
+
+
+def test_map_none_leaves_map_data_out():
     files = build(fixture_files("branching"), map="none")
-    assert '<svg class="over"' not in files["index.html"]
-    assert '<svg class="over"' not in files["4/index.html"]
+    assert "map.json" not in files
+    assert 'class="route-data"' not in files["4/index.html"]
+    assert 'class="card system' not in files["index.html"]
+    # The accordion still needs the script.
+    assert '<script type="module" src="map.js"></script>' in files["index.html"]
 
 
-def test_tiles_cover_the_map_box():
-    project = Projection([(42.0, -73.0), (42.3, -73.4)])
-    found = tiles(project)
-    assert len({t.z for t in found}) == 1
-    assert min(t.left for t in found) <= 0
-    assert min(t.top for t in found) <= 0
-    assert max(t.left + t.width for t in found) >= 100
-    assert max(t.top + t.height for t in found) >= 100
-    # Neighboring tiles abut exactly.
-    row = sorted((t for t in found if t.y == found[0].y), key=lambda t: t.x)
-    for a, b in pairwise(row):
-        assert abs(a.left + a.width - b.left) < 1e-9
+def test_vehicles_from_the_catalog_when_up():
+    feed = CatalogFeed(
+        feedId="f-0123456789",
+        name="Test",
+        urls={
+            "scheduled": ("https://example.org/g.zip",),
+            "vehicles": ("https://example.org/vp.pb",),
+        },
+        roleState={"vehicles": "up"},
+    )
+    site = Site(slug="test", feed=feed.feed_id, catalog=feed)
+    built = build_site(make_zip(fixture_files("branching")), site, today=MONDAY)
+    data = route_data(built["4/index.html"].decode())
+    assert data["rt"]["url"] == "https://example.org/vp.pb"
+    assert data["rt"]["routes"] == ["R"]
+    assert json.loads(built["map.json"])["rt"] == "https://example.org/vp.pb"
+    down = feed.model_copy(update={"role_state": {"vehicles": "down"}})
+    assert Site(slug="test", feed=feed.feed_id, catalog=down).vehicles_url() is None
 
 
-def test_tile_of_a_known_point():
-    project = Projection([(42.2529, -73.7910)])
-    z = tiles(project)[0].z
-    n = 1 << z
-    x = int((-73.7910 + 180) / 360 * n)
-    lat = math.radians(42.2529)
-    y = int((1 - math.log(math.tan(lat) + 1 / math.cos(lat)) / math.pi) / 2 * n)
-    assert any((t.x, t.y) == (x, y) for t in tiles(project))
-
-
-def test_basemap_wraps_svg_with_tiles_and_attribution():
-    line = Line("R", "FF0000", (((42.0, -73.0), (42.1, -73.1)),))
-    html = str(render_map("Map", [line], [], "stadia-toner-lite"))
-    assert html.startswith('<div class="map basemap" style="aspect-ratio:600/')
-    assert 'loading="lazy"' in html
-    assert "/stamen_toner_lite/" in html and "@2x.png" in html
-    assert "<picture>" not in html
-    assert '<svg class="over"' in html
-    assert "Stamen Design" in html and "OpenStreetMap" in html
-    assert "<picture>" not in str(render_map("Map", [line], []))
-
-
-def test_basemap_pair_switches_on_color_scheme():
-    line = Line("R", "FF0000", (((42.0, -73.0), (42.1, -73.1)),))
-    pair = BasemapPair(light="stadia-alidade-smooth", dark="stadia-toner-dark")
-    html = str(render_map("Map", [line], [], pair))
-    assert "<picture>" in html
-    assert "/alidade_smooth/" in html and "/stamen_toner_dark/" in html
-    assert html.count("Stadia Maps") == 1 and "Stamen Design" in html
-
-
-def test_every_tile_style_has_a_source():
-    assert set(TILE_SOURCES) == set(get_args(TileStyle))
-
-
-def test_watercolor_tiles_are_plain_jpg_capped_at_zoom_16():
-    line = Line("R", None, (((42.0, -73.0), (42.0001, -73.0001)),))
-    html = str(render_map("Map", [line], [], "stadia-watercolor"))
-    assert "/stamen_watercolor/16/" in html and ".jpg" in html and "@2x" not in html
-    assert "CNES" in str(render_map("Map", [line], [], "stadia-alidade-satellite"))
-
-
-def test_line_with_href_is_a_link():
-    path = (((42.0, -73.0), (42.1, -73.1)),)
-    html = str(render_map("Map", [Line("R", None, path, "r/")], []))
-    assert '<a href="r/" aria-label="R" data-cap="R">' in html
-    assert html.count("</a>") == 1
-    assert "<a " not in str(render_map("Map", [Line("R", None, path)], []))
-
-
-def km(*points: tuple[float, float]) -> tuple[tuple[tuple[float, float], ...]]:
-    """One path through (x, y) km points, as (lat, lon) near the equator."""
-    return (tuple((y / 110.57, x / 111.32) for x, y in points),)
-
-
-def test_split_routes_puts_long_routes_on_their_own_maps():
-    grid = [km((0, k), (4, k)) for k in range(5)] + [
-        km((k, 0), (k, 4)) for k in range(5)
-    ]
-    crossing = [
-        km((10, 30), (30, 30), (34, 30), (60, 50)),
-        km((30, 60), (30, 30), (34, 30), (50, 0)),
-    ]
-    alone = [km((-40, -40), (-80, -40))]
-    assert split_routes(grid + crossing + alone) == [
-        ("local", list(range(10))),
-        ("long", [10, 11]),
-        ("long", [12]),
-    ]
-
-
-def test_split_routes_keeps_scattered_routes_on_one_map():
-    routes = [km((100 * k, 0), (100 * k + 10, 0)) for k in range(5)]
-    assert split_routes(routes) == [("all", list(range(5)))]
-
-
-def test_split_routes_keeps_two_routes_on_one_map():
-    routes = [km((0, 0), (1, 0)), km((0, 0), (90, 0))]
-    assert split_routes(routes) == [("all", [0, 1])]
+def test_script_json_cannot_close_the_script():
+    assert script_json({"name": "</script>"}) == '{"name":"\\u003c/script>"}'

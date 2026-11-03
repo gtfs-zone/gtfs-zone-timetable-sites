@@ -14,6 +14,7 @@ CACHE_CONTROL = "public, max-age=600"
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
     ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
     ".json": "application/json",
     ".xml": "application/xml",
     ".svg": "image/svg+xml",

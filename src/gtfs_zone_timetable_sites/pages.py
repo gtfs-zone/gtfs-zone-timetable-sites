@@ -1,7 +1,8 @@
 """Timetables and routes to plain data the templates render."""
 
 import re
-from collections.abc import Sequence
+from collections import Counter
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time
 from itertools import groupby
@@ -42,6 +43,10 @@ from gtfs_zone_timetable_sites.timetable import Cell, Column, Timetable
 DAY_SECONDS = 24 * 3600
 # Minimum WCAG contrast for badge text on the route color.
 MIN_CONTRAST = 4.5
+# Stop numbers sit in white dots; a line color fainter than this against
+# white gives way to DOT_INK
+DOT_CONTRAST = 3
+DOT_INK = "1F2937"
 # Arrival and departure are both shown when they differ by more than this.
 DWELL_SECONDS = 60
 
@@ -76,6 +81,12 @@ def text_color(background: str, text: str | None = None) -> str:
     if text is None or contrast(background, text) < MIN_CONTRAST:
         text = max(("000000", "FFFFFF"), key=lambda t: contrast(background, t))
     return text
+
+
+def dot_text(line: str) -> str:
+    """Stop number color in a white dot: the line color, or DOT_INK when the
+    line is too faint against white."""
+    return line if contrast(line, "FFFFFF") >= DOT_CONTRAST else DOT_INK
 
 
 def badge_colors(route: Route) -> tuple[str, str]:
@@ -258,6 +269,7 @@ class RowView:
     dot_x: int = 0
     solid: bool = False
     wheelchair: bool = False
+    num: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -338,8 +350,8 @@ class RouteView:
         return mode_label(self.mode, self.locale)
 
     @property
-    def line_color(self) -> str | None:
-        return self.colors[0] if self.colors else None
+    def dot_text(self) -> str:
+        return dot_text(self.colors[0]) if self.colors else DOT_INK
 
     @property
     def title(self) -> str:
@@ -524,6 +536,7 @@ def table_view(
     anchor: str = "",
     marked: frozenset[str] = frozenset(),
     locale: Locale = "en",
+    numbers: Mapping[str, int] | None = None,
 ) -> TableView:
     notes = [
         trip_note(table.day_type, column.trip_id, locale) for column in table.columns
@@ -566,6 +579,7 @@ def table_view(
             dot_x=lane_x(graph.rows[k].lane),
             solid=is_endpoint(stats[k], threshold),
             wheelchair="stops" in marked and table.rows[i].wheelchair == 1,
+            num=(numbers or {}).get(table.rows[i].stop_id, 0),
         )
         for k, i in enumerate(shown)
     )
@@ -669,6 +683,53 @@ def endpoints(tables: list[Timetable]) -> tuple[str, str] | None:
     return names[0], names[-1]
 
 
+def ordered_days(tables: list[Timetable]) -> list[tuple[DayType, list[Timetable]]]:
+    """Tables grouped by day type, busiest first by runs over the horizon;
+    within a day, busiest table first."""
+    by_day: dict[DayType, list[Timetable]] = {}
+    for table in tables:
+        by_day.setdefault(table.day_type, []).append(table)
+    day_runs = {day: sum(runs(t) for t in group) for day, group in by_day.items()}
+    return [
+        (day, sorted(by_day[day], key=lambda t: (-runs(t), t.direction_id or 0)))
+        for day in sorted(by_day, key=lambda d: (-day_runs[d], day_order(d)))
+    ]
+
+
+def stop_numbers(tables: list[Timetable]) -> dict[str, int]:
+    """stop_id -> 1..N in order of first appearance among the shown rows of
+    the tables, in page order, so a route's map and tables share numbers."""
+    numbers: dict[str, int] = {}
+    for _, group in ordered_days(tables):
+        for table in group:
+            for row in table.rows:
+                if row.timepoint and row.stop_id not in numbers:
+                    numbers[row.stop_id] = len(numbers) + 1
+    return numbers
+
+
+def distinct_titles(
+    views: list[TableView], locale: Locale = "en"
+) -> tuple[TableView, ...]:
+    """Tables sharing a title within a day are titled by their first and last
+    stops instead."""
+    counts = Counter(view.title for view in views)
+    return tuple(
+        replace(
+            view,
+            title=t(
+                locale,
+                "table.from_to",
+                first=view.rows[0].name,
+                last=view.rows[-1].name,
+            ),
+        )
+        if counts[view.title] > 1 and view.rows
+        else view
+        for view in views
+    )
+
+
 def day_views(
     feed: Feed,
     tables: list[Timetable],
@@ -676,33 +737,38 @@ def day_views(
     marked: frozenset[str] = frozenset(),
     locale: Locale = "en",
 ) -> list[DayView]:
-    """Tables grouped by day type, busiest first by runs over the horizon;
-    within a day, busiest table first."""
-    by_day: dict[DayType, list[Timetable]] = {}
-    for table in tables:
-        by_day.setdefault(table.day_type, []).append(table)
-    day_runs = {day: sum(runs(t) for t in group) for day, group in by_day.items()}
+    """A view per day type in page order (see `ordered_days`), stops numbered
+    by `stop_numbers`."""
+    numbers = stop_numbers(tables)
     views = []
     anchors: set[str] = set()
-    for day in sorted(by_day, key=lambda d: (-day_runs[d], day_order(d))):
+    for day, group in ordered_days(tables):
         anchor = slugify(day.name) or "day"
         while anchor in anchors:
             anchor += "-2"
         anchors.add(anchor)
-        group = sorted(by_day[day], key=lambda t: (-runs(t), t.direction_id or 0))
         span = trip_span(group)
         views.append(
             DayView(
                 anchor=anchor,
                 name=day.name,
                 notes=day_notes(day, locale),
-                tables=tuple(
-                    table_view(
-                        feed, table, time_format, f"{anchor}-{i + 1}", marked, locale
-                    )
-                    for i, table in enumerate(group)
+                tables=distinct_titles(
+                    [
+                        table_view(
+                            feed,
+                            table,
+                            time_format,
+                            f"{anchor}-{i + 1}",
+                            marked,
+                            locale,
+                            numbers,
+                        )
+                        for i, table in enumerate(group)
+                    ],
+                    locale,
                 ),
-                runs=day_runs[day],
+                runs=sum(runs(t) for t in group),
                 first=clock_label(span[0], time_format) if span else "",
                 last=clock_label(span[1], time_format) if span else "",
             )

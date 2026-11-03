@@ -4,7 +4,6 @@ import pytest
 from pydantic import ValidationError
 
 from gtfs_zone_timetable_sites.config import (
-    BasemapPair,
     CatalogFeed,
     RouteFilter,
     Site,
@@ -17,7 +16,7 @@ REPO_CONFIG = Path(__file__).parent.parent / "sites.yaml"
 
 def test_repo_config_loads():
     config = load_config(REPO_CONFIG.read_text())
-    assert config.defaults.basemap == "stadia-toner-dark"
+    assert config.defaults.map == "maplibre"
     assert all(site.routes == RouteFilter() for site in config.sites)
 
 
@@ -35,16 +34,6 @@ sites:
     assert config.entry("b").time_format == "12h"
 
 
-def test_basemap_pair():
-    config = load_config(
-        "sites: [{slug: a, url: u, basemap:"
-        " {light: stadia-toner-lite, dark: stadia-toner-dark}}]"
-    )
-    assert config.entry("a").basemap == BasemapPair(
-        light="stadia-toner-lite", dark="stadia-toner-dark"
-    )
-
-
 @pytest.mark.parametrize(
     "text",
     [
@@ -57,8 +46,8 @@ def test_basemap_pair():
         "sites: [{slug: a, url: u, style: fancy}]",
         "sites: [{slug: a, url: u, orientation: trips-down}]",
         "sites: [{slug: a, url: u, brand_color: red}]",
-        "sites: [{slug: a, url: u, basemap: osm}]",
-        "sites: [{slug: a, url: u, basemap: {light: stadia-toner-lite}}]",
+        "sites: [{slug: a, url: u, basemap: stadia-toner}]",
+        "sites: [{slug: a, url: u, map: svg}]",
         "sites: [{slug: a, url: u, interactive_map: true}]",
         "sites: [{url: u}]",
         "sites: [{feed: f-0123456789}, {slug: b, feed: f-0123456789}]",

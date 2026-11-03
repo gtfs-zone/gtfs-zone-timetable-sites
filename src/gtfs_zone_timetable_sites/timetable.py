@@ -260,12 +260,20 @@ def headsign(feed: Feed, trip: Trip) -> str:
     return stop.name if stop else last
 
 
+def branch_key(feed: Feed, trip: Trip) -> str:
+    """The trip's headsign, or its station pattern when the feed gives none."""
+    if trip.headsign:
+        return trip.headsign
+    return "\0".join(feed.station(st.stop_id) for st in feed.stop_times[trip.trip_id])
+
+
 def branches(feed: Feed, trips: Sequence[Trip]) -> list[list[Trip]]:
-    """Split trips into groups of headsigns whose stop sets overlap enough."""
+    """Split trips into groups of headsigns (or patterns, without headsigns)
+    whose stop sets overlap enough."""
     stops_by_headsign: dict[str, set[str]] = {}
     for trip in trips:
         stops = {feed.station(st.stop_id) for st in feed.stop_times[trip.trip_id]}
-        stops_by_headsign.setdefault(headsign(feed, trip), set()).update(stops)
+        stops_by_headsign.setdefault(branch_key(feed, trip), set()).update(stops)
 
     names = list(stops_by_headsign)
     parent = {name: name for name in names}
@@ -283,7 +291,7 @@ def branches(feed: Feed, trips: Sequence[Trip]) -> list[list[Trip]]:
 
     groups: dict[str, list[Trip]] = {}
     for trip in trips:
-        groups.setdefault(root(headsign(feed, trip)), []).append(trip)
+        groups.setdefault(root(branch_key(feed, trip)), []).append(trip)
     return list(groups.values())
 
 
@@ -358,12 +366,13 @@ def build_timetable(
         chosen = every_row
     elif timepoints == "timepoint-flag":
         chosen = flagged or every_row
-    elif route.route_type in ALL_STOPS_ROUTE_TYPES:
+    elif route.route_type in ALL_STOPS_ROUTE_TYPES or len(merged) <= cap:
         chosen = every_row
+    elif flagged:
+        ends = {p for pattern in positions.values() for p in (pattern[0], pattern[-1])}
+        chosen = flagged | ends
     else:
-        chosen = flagged or auto_timepoints(
-            columns, list(positions.values()), len(merged), cap
-        )
+        chosen = auto_timepoints(columns, list(positions.values()), len(merged), cap)
 
     names = Counter(column.headsign for column in columns)
     return Timetable(

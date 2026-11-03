@@ -5,8 +5,12 @@
 Static timetable websites generated from GTFS, served at
 [sites.gtfs.zone](https://sites.gtfs.zone). One site per agency, listed in
 `sites.yaml` or taken from the gtfs.zone feed catalog: an index of routes, printed-style timetables per route, direction
-and service day, and a simple route map. Plain HTML and CSS, no JavaScript
-needed to read a timetable.
+and service day, with numbered stops matching an interactive route map. The
+index has a map of every route and opens each route's timetables in place.
+Maps use MapLibre GL JS and OpenFreeMap tiles, loaded from their CDNs when a
+map scrolls into view, and show live vehicles when the catalog feed has a
+working vehicle positions URL (fetched through the cors.kcfam.us proxy, as
+rt-viewer does). No JavaScript is needed to read a timetable.
 
 ## Running Locally
 
@@ -58,19 +62,12 @@ built whatever the catalog filter says:
 
 | Option | Values | Default |
 |---|---|---|
-| `map` | `svg`, `none` | `svg` |
+| `map` | `maplibre`, `none` | `maplibre` |
 | `horizon_days` | days used to derive day types | `28` |
 | `time_format` | `12h`, `24h` | `12h` |
 | `timepoints` | `auto`, `all`, `timepoint-flag` | `auto` |
-| `basemap` | `none`, a Stadia style, or `{light: <style>, dark: <style>}` to follow the color scheme (tiles under the svg map) | `none` |
 | `locale` | `en`, `fr`: the language of the site's pages (the root and country pages stay English) | `en` |
 | `index` | `true`, `false`: whether search engines may index the site's pages; `false` adds a robots `noindex` to every page and leaves them out of the sitemap, as for expired routes | `true` |
-
-Stadia styles: `stadia-alidade-smooth`, `stadia-alidade-smooth-dark`,
-`stadia-alidade-bright`, `stadia-alidade-satellite`, `stadia-outdoors`,
-`stadia-osm-bright`, `stadia-toner`, `stadia-toner-lite`, `stadia-toner-dark`,
-`stadia-toner-blacklite`, `stadia-toner-background`, `stadia-terrain`,
-`stadia-terrain-background`, `stadia-watercolor`.
 
 `title` names the site, and `routes` filters routes by `route_types`,
 `route_ids`, `exclude_route_types` and `exclude_route_ids`. Unknown keys are an

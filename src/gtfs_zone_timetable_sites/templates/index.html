@@ -4,17 +4,36 @@
 {% block main %}
 <h1 class="text-3xl font-bold">{{ site_title }}</h1>
 {% if local %}<p class="text-base-content/80">{{ t("index.serves", modes=modes, modes_lower=modes_lower, place=place) }}</p>{% endif %}
+{% if system_map %}
+<section class="card system bg-base-100 shadow-sm" data-src="map.json">
+<div class="card-body gap-3 p-4">
+<h2 class="card-title">{{ t("index.map") }}</h2>
+<div class="map-modes flex flex-wrap gap-2" role="group" aria-label="{{ t("map.modes") }}" hidden></div>
+<div class="relative">
+<div class="system-map" role="region" aria-label="{{ t("map.system", site=site_title) }}"></div>
+<p class="map-cap" hidden></p>
+</div>
+<p class="map-live" hidden></p>
+</div>
+</section>
+{% endif %}
 {% for group in groups %}
 {% if groups | length > 1 %}
 <h2 class="text-xl font-semibold" id="{{ group.anchor }}">{{ group.heading }}</h2>
 {% endif %}
 <ul class="list rounded-box bg-base-100 shadow-sm">
 {% for route in group.routes %}
-<li><a class="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 rounded-box px-4 py-3 hover:bg-base-200 focus-visible:bg-base-200" href="{{ route.slug }}/">
+<li><details class="route-item" id="r-{{ route.slug }}">
+<summary class="flex min-h-14 cursor-pointer flex-wrap items-center gap-x-4 gap-y-1 rounded-box px-4 py-3 hover:bg-base-200 focus-visible:bg-base-200">
 {{ badge(route) }}
 {% if route.name %}<span class="min-w-0 flex-1 font-semibold">{{ route.name }}</span>{% endif %}
 {% if route.days or route.state_label %}<span class="basis-full text-sm text-base-content/70">{{ route.days | join(", ") }}{% if route.days and route.state_label %}, {% endif %}{{ route.state_label }}</span>{% endif %}
-</a></li>
+</summary>
+<div class="route-body space-y-6 px-2 pb-4 sm:px-4" data-src="{{ route.slug }}/">
+<p class="route-loading text-base-content/70">{{ t("index.loading") }}</p>
+<div class="route-open flex"><a class="btn btn-sm h-11 gap-2" href="{{ route.slug }}/" aria-label="{{ t("index.route_page_label", route=route.title) }}">{{ t("index.route_page") }}<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+</div>
+</details></li>
 {% endfor %}
 </ul>
 {% endfor %}
@@ -30,18 +49,6 @@
 </a></li>
 {% endfor %}
 </ul>
-{% endif %}
-{% if maps %}
-<section class="card bg-base-100 shadow-sm">
-<div class="card-body p-4">
-<h2 class="card-title">{{ t("index.maps", n=maps | length) }}</h2>
-{% for heading, svg in maps %}
-{% if heading %}<h3 class="font-semibold">{{ heading }}</h3>{% endif %}
-{{ svg }}
-{% endfor %}
-{% include "map-script.html" %}
-</div>
-</section>
 {% endif %}
 <section class="card bg-base-100 shadow-sm">
 <div class="card-body space-y-1 p-4">

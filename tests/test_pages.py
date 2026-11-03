@@ -12,6 +12,7 @@ from gtfs_zone_timetable_sites.pages import (
     clock,
     clock_label,
     day_views,
+    dot_text,
     feed_amenities,
     google_link,
     headsign_spans,
@@ -94,6 +95,11 @@ def test_headsign_spans_merge_adjacent_runs():
     )
 
 
+def test_dot_text_keeps_line_colors_readable_on_white():
+    assert dot_text("2E7D32") == "2E7D32"
+    assert dot_text("FFD100") == "1F2937"
+
+
 def test_table_title_skips_to_for_services_and_loops():
     assert table_title(["Albany", "Hudson"]) == "To Albany / Hudson"
     assert table_title(["Patriots Game Train"]) == "Patriots Game Train"
@@ -137,6 +143,15 @@ def test_rows_link_stops_to_google_maps():
     rows = [row for day in days for table in day.tables for row in table.rows]
     assert rows
     assert all(row.google.startswith("https://www.google.com/maps/") for row in rows)
+
+
+def test_tables_sharing_a_title_name_their_ends():
+    site = Site(slug="t", url="https://example.org/g.zip")
+    feed = site_feed(fixture_zip("shared-terminus"), site)
+    [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
+    [day] = day_views(feed, tables, "12h")
+    titles = [table.title for table in day.tables]
+    assert sorted(titles) == ["Alpha to Golf", "Hotel to Golf", "To Alpha"]
 
 
 def test_days_sorted_by_runs():

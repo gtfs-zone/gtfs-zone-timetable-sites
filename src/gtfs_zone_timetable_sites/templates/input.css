@@ -1,8 +1,9 @@
 @import "tailwindcss" source(none);
 @source "./*.html";
+@source "./map.js";
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
-  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link;
+  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap;
   logs: false;
 }
 
@@ -12,19 +13,22 @@
 }
 
 /* Timetables */
-/* Isolated so the rail's z-index stays inside the table */
-.timetable { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; isolation: isolate; }
+/* Isolated so the rail's z-index stays inside the table. Sized to its
+   content, since fitting the scroll box would squeeze the stop column */
+.timetable { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; isolation: isolate; }
 .timetable th, .timetable td { padding: .4rem .6rem; border-bottom: 1px solid var(--color-base-300); }
 .timetable tbody tr:last-child > * { border-bottom: 0; }
 .timetable td { text-align: right; white-space: nowrap; }
 /* Sticky without a z-index: anything positioned or below full opacity in later cells paints over it */
 .timetable :is(th[scope=row], thead td:first-child, tfoot td:first-child) {
   position: sticky; left: 0;
-  min-width: 8rem; max-width: 40vw;
+  min-width: 8rem;
   background: var(--color-base-100);
   border-right: 1px solid var(--color-base-300);
   font-weight: 400; text-align: left;
 }
+/* Caps the stop column; max-width on a table cell itself is ignored */
+.timetable th[scope=row] .stop { display: block; max-width: calc(40vw - var(--gutter, 40px)); }
 .timetable th[scope=row] small { display: block; opacity: .7; }
 .timetable thead th { font-size: .85rem; font-weight: 600; text-align: right; }
 .timetable thead tr.to th { font-weight: 400; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); white-space: normal; }
@@ -38,7 +42,7 @@
 .timetable sup { position: static; vertical-align: .5em; font-size: .7em; line-height: 0; }
 .timetable tbody tr:hover > * { background: var(--color-base-300); }
 .timetable td.every { white-space: normal; min-width: 7rem; font-size: .85rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); text-align: left; }
-@media (min-width: 40rem) { .timetable th[scope=row] { max-width: 18rem; } }
+@media (min-width: 40rem) { .timetable th[scope=row] .stop { max-width: calc(18rem - var(--gutter, 40px)); } }
 
 /* Route-colored rail down the stop column: lanes per branch, a dot per stop, filled where trips start or end */
 .timetable th[scope=row] { padding-left: calc(var(--gutter, 40px) + .25rem); }
@@ -60,14 +64,21 @@
 .timetable .rail.u::before { top: 0; bottom: 50%; }
 .timetable .rail.u.d::before { bottom: 0; }
 .timetable .rail.d:not(.u)::before { top: 50%; bottom: 0; }
+/* Stop numbers in the dots match the numbers on the route map; white dots in
+   both themes, with --dot-text the line color or ink when it is too faint */
 .timetable .dot {
   position: absolute; top: 50%;
-  width: .9rem; height: .9rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 1.25rem; height: 1.25rem; padding: 0 .15rem; border-radius: 999px;
   transform: translate(-50%, -50%);
-  background: var(--color-base-100);
-  box-shadow: inset 0 0 0 3px var(--line, var(--color-base-content)), 0 0 0 1px color-mix(in oklab, var(--color-base-content) 25%, transparent);
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--line, var(--color-base-content)), 0 0 0 1px color-mix(in oklab, var(--color-base-content) 25%, transparent);
+  color: var(--dot-text, #1f2937);
+  font-size: 10px; font-weight: 700; line-height: 1;
 }
-.timetable .dot.solid { width: 1rem; height: 1rem; background: var(--line, var(--color-base-content)); }
+.timetable .dot:empty { min-width: .9rem; height: .9rem; padding: 0; box-shadow: inset 0 0 0 3px var(--line, var(--color-base-content)), 0 0 0 1px color-mix(in oklab, var(--color-base-content) 25%, transparent); }
+.timetable .dot.solid { background: var(--line, var(--color-base-content)); color: var(--line-text, var(--color-base-100)); }
+.timetable tbody tr.hl > * { background: color-mix(in oklab, var(--line, var(--color-base-content)) 20%, var(--color-base-100)); transition: background .3s; }
 /* Arrival over departure in one cell, tighter than the row spacing */
 .timetable td.dw { padding-block: .15rem; line-height: 1.15; }
 .timetable td.dw > span { display: block; font-weight: 400; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
@@ -78,51 +89,56 @@
 .icon + .icon { margin-left: .2em; }
 .timetable thead tr.amenities th { padding-block: .2rem; }
 
-/* Maps */
-.map { position: relative; display: block; width: 100%; max-width: 36rem; height: auto; margin: 0 auto; }
-.map path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.map .case { stroke: var(--color-base-100); stroke-width: 7px; }
-.map .line { stroke-width: 4px; }
-.map .ink { stroke: var(--color-base-content); }
-.map .stop { fill: var(--color-base-100); stroke: var(--color-base-content); stroke-width: 2px; vector-effect: non-scaling-stroke; }
-.map text {
-  font: 500 20px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  letter-spacing: .01em;
-  fill: var(--color-base-content);
-  stroke: var(--color-base-100); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke;
-}
-/* Caption for the hovered or tapped stop or route, filled in by map-script.html */
-.map .cap {
-  position: absolute; top: .5rem; left: .5rem; max-width: calc(100% - 1rem);
+/* Maps: MapLibre, drawn by map.js */
+.route-maps { display: grid; gap: .75rem; }
+.route-map { height: 18rem; border-radius: var(--radius-box); overflow: hidden; }
+/* Insets stacked to the right share its height; the main map stretches to the column when that is taller */
+.route-maps.has-insets { grid-template-columns: 2fr 1fr; }
+.route-maps.has-insets .route-map { height: auto; min-height: 18rem; }
+.route-maps.has-insets .map-live { grid-column: 1 / -1; }
+.route-insets { display: flex; flex-direction: column; gap: .5rem; min-height: 0; }
+.route-maps:not(.has-insets) .route-insets { display: none; }
+/* Beats daisyUI .card figure, whose flex centering shrinks the map to 0 width */
+.route-insets > .route-inset { display: flex; flex: 1; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: .25rem; min-width: 0; min-height: 0; margin: 0; }
+.route-inset figcaption { font-size: .8rem; font-weight: 600; line-height: 1.2; min-height: 1.2em; }
+.route-inset-map { flex: 1; min-height: 7rem; border-radius: var(--radius-field); overflow: hidden; }
+.system-map { height: 30rem; border-radius: var(--radius-box); overflow: hidden; }
+.map-cap {
+  position: absolute; top: .5rem; left: .5rem; max-width: calc(100% - 4rem);
   padding: .25rem .6rem; border-radius: var(--radius-field);
   background: color-mix(in oklab, var(--color-base-100) 92%, transparent);
   box-shadow: 0 1px 3px rgb(0 0 0 / .15);
   font-size: .875rem; font-weight: 600; line-height: 1.3; pointer-events: none;
 }
-.map .pin .hit { fill: transparent; pointer-events: all; }
-.map .pin:hover .stop { stroke-width: 3px; }
-.map.basemap { overflow: hidden; border-radius: var(--radius-box); }
-.tiles img { position: absolute; max-width: none; opacity: .75; }
-.map .over { position: absolute; inset: 0; width: 100%; height: 100%; }
-/* Route lines that link to their route page */
-.map a path { pointer-events: stroke; cursor: pointer; transition: stroke-width .15s; }
-.map a { transition: opacity .15s; outline: none; }
-.map a:is(:hover, :focus-visible, .hl) .case { stroke-width: 11px; }
-.map a:is(:hover, :focus-visible, .hl) .line { stroke-width: 7px; }
-.map:has(a:is(:hover, :focus-visible, .hl)) a:not(:hover, :focus-visible, .hl) { opacity: .35; }
-/* Stops on one route open it on click */
-.map .pin[data-routes]:not([data-routes*=" "]) { cursor: pointer; }
-.map :is(text, .stop) { pointer-events: none; }
-.attribution { font-size: .75rem; opacity: .7; text-align: center; margin-top: .25rem; }
-@media (prefers-color-scheme: light) { .map .pale { stroke: var(--color-base-content); } }
-@media (prefers-color-scheme: dark) { .map .deep { stroke: var(--color-base-content); } }
+.map-live { font-size: .85rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
+.map-popup-routes { display: flex; flex-wrap: wrap; gap: .25rem; margin: 0; padding: 0; list-style: none; }
+.maplibregl-popup-content { background: var(--color-base-100); color: var(--color-base-content); }
+.maplibregl-popup-tip { border-top-color: var(--color-base-100) !important; border-bottom-color: var(--color-base-100) !important; }
+@media (max-width: 40rem) {
+  .route-map { height: 14rem; }
+  .system-map { height: 24rem; }
+  .route-maps.has-insets { grid-template-columns: 1fr; }
+  .route-maps.has-insets .route-map { height: 14rem; min-height: 0; }
+  .route-insets { flex-direction: row; }
+  .route-inset-map { flex: none; height: 10rem; min-height: 0; }
+}
+
+/* Route accordion on the site's index */
+.route-item > summary { list-style: none; }
+.route-item > summary::-webkit-details-marker { display: none; }
+.route-item > summary::after {
+  content: ""; width: .5rem; height: .5rem; margin-left: auto; flex-shrink: 0;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(45deg); opacity: .5; transition: transform .15s;
+}
+.route-item[open] > summary::after { transform: rotate(225deg); }
+.route-item[open] > summary { background: var(--color-base-200); }
 
 @media print {
-  .navbar, .tiles, .attribution { display: none !important; }
+  .navbar, .route-maps, .system { display: none !important; }
   .timetable :is(th[scope=row], thead td:first-child, tfoot td:first-child) { position: relative; }
   .timetable { font-size: 9pt; }
   .timetable th, .timetable td { padding: .15rem .35rem; }
   .timetable tr { break-inside: avoid; }
-  .map .pale { stroke: var(--color-base-content); }
-  .map, .alt, .timetable th[scope=row], .timetable .rail { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .alt, .timetable th[scope=row], .timetable .rail { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

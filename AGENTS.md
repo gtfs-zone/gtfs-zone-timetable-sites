@@ -30,8 +30,8 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 | `build.py` | `build_site(zip_bytes, site) -> {path: bytes}`, the only entry point |
 | `places.py` | A feed's state, province or country from its stop times, reverse-geocoded offline with `reverse_geocode`, for page titles and JSON-LD |
 | `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts) for the content report |
-| `maps/svg.py` | Route and system maps as inline SVG: Web Mercator, Douglas-Peucker, label placement (none on bus-only system maps), basemap tiles |
-| `maps/split.py` | A mode's routes to system maps by grid density: local clusters, then long routes grouped by overlap with the rest sharing one map; one map when that fragments the mode |
+| `maps/geo.py` | Route and system map data for `map.js`: shapes (or stop sequences) simplified by Douglas-Peucker at a share of the map's extent, parts that retrace a line dropped, numbered stops, lines shared by routes stored once |
+| `templates/map.js` | MapLibre route maps (numbered stops, insets for crowded stops), the system map (mode toggles, hover, click to open a route), the index's route accordion and live vehicles; MapLibre and the GTFS-RT decoder come from jsdelivr |
 | `i18n.py` | `en` and `fr` string catalogs, `t()` with `_one` / `_other` plurals, weekday and month names for dates |
 | `render.py` | Jinja environment over `templates/`, with `t()` as a global in the page's `locale` |
 | `templates/` | Page templates and CSS (Tailwind + daisyUI, `style.css` built by `pnpm run build:css` and committed) |

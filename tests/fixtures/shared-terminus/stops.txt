@@ -1,0 +1,9 @@
+stop_id,stop_name,stop_lat,stop_lon
+A,Alpha,42.0,-73.0
+B,Bravo,42.1,-73.1
+C,Charlie,42.2,-73.2
+F,Foxtrot,42.5,-73.5
+G,Golf,42.6,-73.6
+H,Hotel,42.7,-73.7
+I,India,42.8,-73.8
+J,Juliet,42.9,-73.9

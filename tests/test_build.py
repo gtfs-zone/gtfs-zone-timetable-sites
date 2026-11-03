@@ -39,18 +39,20 @@ def test_site_files():
         "site.json",
         "content.json",
         "style.css",
+        "map.js",
+        "map.json",
         "logo.svg",
     }
     home = files["index.html"]
     assert "Test &amp; Co</h1>" in home
-    assert 'href="4/">' in home
+    assert 'href="4/" aria-label=' in home
     assert '<link rel="canonical" href="https://sites.gtfs.zone/test/">' in home
 
 
 def test_route_page_has_timetable():
     page = build("overnight")["1/index.html"]
     assert '<section class="card bg-base-100 shadow-sm" id="daily">' in page
-    assert "Charlie</a> <small>CDT time</small></th>" in page
+    assert "Charlie</a> <small>CDT time</small></span></th>" in page
     assert '<td class="pm">11:40</td>' in page
     assert "PM times are in bold." in page
 
@@ -79,29 +81,28 @@ def test_not_a_zip():
         build_site(b"not a zip", site)
 
 
-def test_site_with_basemap():
-    files = build("branching", basemap="stadia-toner")
-    assert set(files) == {
-        "index.html",
-        "4/index.html",
-        "site.json",
-        "content.json",
-        "style.css",
-        "logo.svg",
-    }
+def test_site_with_maps():
+    files = build("branching")
     home = files["index.html"]
     assert '<link rel="stylesheet" href="style.css">' in home
-    assert "--color-primary" not in home
+    assert '<script type="module" src="map.js"></script>' in home
+    assert (
+        '<section class="card system bg-base-100 shadow-sm" data-src="map.json">'
+        in home
+    )
+    assert '<details class="route-item" id="r-4">' in home
+    assert 'aria-label="Open the route page: 4 Forks">Open the route page<svg' in home
     page = files["4/index.html"]
     assert '<link rel="stylesheet" href="../style.css">' in page
+    assert '<script type="module" src="../map.js"></script>' in page
     assert "<nav" not in page.split("<main", 1)[1]
     assert "<details" not in page
+    assert '<div class="space-y-6" data-route-body>' in page
     assert '<section class="card bg-base-100 shadow-sm" id="' in page
-    assert "stamen_toner/" in page
+    assert '<script type="application/json" class="route-data">{"color":"#' in page
     assert '<link rel="icon" type="image/svg+xml" href="../logo.svg">' in page
     assert 'href="../../" aria-label="sites.gtfs.zone"' in page
-    assert '<a href="4/" aria-label="4 Forks" data-cap="4 Forks">' in home
-    rows = re.findall(r'<th scope="row">.*?</th>', page, re.S)
+    rows = re.findall(r'<th scope="row"[^>]*>.*?</th>', page, re.S)
     assert rows and all('<span class="dot' in row for row in rows)
     assert all(
         'href="https://www.google.com/maps/search/?api=1&amp;query=' in row
@@ -127,12 +128,9 @@ def test_index_groups_routes_by_mode():
     assert 'href="#subway"' not in home
     assert home.index('id="subway">Subway</h2>') < home.index('id="bus">Bus</h2>')
     assert home.index('href="red/"') < home.index('href="4/"')
-    assert '<h2 class="card-title">Maps</h2>' in home
-    maps = home.split('<h2 class="card-title">Maps</h2>', 1)[1]
-    assert maps.index('<h3 class="font-semibold">Subway</h3>') < maps.index(
-        '<h3 class="font-semibold">Bus</h3>'
-    )
-    assert maps.count('<div class="map') == 2 and home.count("<script>") == 1
+    assert home.count('class="system-map"') == 1
+    system = json.loads(build_site(make_zip(files), site, today=MONDAY)["map.json"])
+    assert [r["mode"] for r in system["routes"]] == ["subway", "bus"]
 
 
 def test_title_from_the_agency_with_most_routes():
@@ -265,10 +263,10 @@ def test_arrival_and_departure_share_a_cell_on_dwells():
 def test_rail_branches():
     page = build("branching")["4/index.html"]
     # Alpha-bound trips split at Delta: via Charlie or via Echo.
-    delta = re.search(r'<th scope="row">.*?Delta</a>', page)[0]
+    delta = re.search(r'<th scope="row"[^>]*>.*?Delta</a>', page)[0]
     assert "C20,80 34,70 34,100" in delta
-    echo = re.search(r'<th scope="row">[^\n]*?Echo</a>[^\n]*?</th>', page)[0]
-    charlie = re.search(r'<th scope="row">[^\n]*?Charlie</a>[^\n]*?</th>', page)[0]
+    echo = re.search(r'<th scope="row"[^>]*>[^\n]*?Echo</a>[^\n]*?</th>', page)[0]
+    charlie = re.search(r'<th scope="row"[^>]*>[^\n]*?Charlie</a>[^\n]*?</th>', page)[0]
     assert 'style="left:20px"' in echo and "<small>" not in echo
     assert 'style="left:34px"' in charlie
     # Straight single-lane rows are drawn by CSS, with no SVG.

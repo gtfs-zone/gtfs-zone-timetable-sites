@@ -129,8 +129,24 @@ def test_timepoint_flags_win_in_auto():
     files["stop_times.txt"] = "\n".join([header + ",timepoint", *flagged])
     feed = read_feed(make_zip(files))
     types = day_types(feed, feed.trips, MONDAY, 7)
-    (table,) = route_timetables(feed, "R", types)
-    assert [row.stop_id for row in table.rows if row.timepoint] == ["A", "D"]
+    (table,) = route_timetables(feed, "R", types, cap=4)
+    # Flags plus the pattern's ends
+    assert [row.stop_id for row in table.rows if row.timepoint] == ["A", "D", "G"]
+
+
+def test_tables_under_the_cap_show_every_stop():
+    out, loop, back = tables("shared-terminus")
+    assert all(row.timepoint for table in (out, loop, back) for row in table.rows)
+    assert [row.stop_id for row in back.rows] == ["G", "F", "C", "B", "A"]
+
+
+def test_headsignless_trips_sharing_a_terminus_split():
+    out, loop, back = tables("shared-terminus")
+    assert [c.trip_id for c in out.columns] == ["out"]
+    assert [row.stop_id for row in out.rows] == ["A", "B", "C", "F", "G"]
+    assert [c.trip_id for c in loop.columns] == ["loop"]
+    assert [row.stop_id for row in loop.rows] == ["H", "I", "J", "F", "G"]
+    assert back.direction_id == 1
 
 
 def test_platforms_merge_into_their_station():
