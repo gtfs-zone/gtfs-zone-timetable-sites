@@ -5,6 +5,8 @@ const MAPLIBRE = "https://cdn.jsdelivr.net/npm/maplibre-gl@6.16.0/dist/";
 const RT_LIB = "https://cdn.jsdelivr.net/npm/gtfs-realtime-bindings@2.2.0/+esm";
 // Same CORS proxy as rt-viewer; most feeds send no CORS headers
 const PROXY = "https://cors.kcfam.us/";
+// rt.gtfs.zone sends its own CORS headers
+const viaProxy = (url) => (new URL(url).hostname === "rt.gtfs.zone" ? url : PROXY + url);
 const STYLES = {
   light: "https://tiles.openfreemap.org/styles/positron",
   dark: "https://tiles.openfreemap.org/styles/dark",
@@ -688,7 +690,7 @@ function live(L, map, el, url, colorOf) {
     if (!visible || document.hidden) return;
     try {
       const { FeedMessage } = await rt();
-      const res = await fetch(PROXY + url, { cache: "no-store" });
+      const res = await fetch(viaProxy(url), { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const feed = FeedMessage.decode(new Uint8Array(await res.arrayBuffer()));
       const features = [];
