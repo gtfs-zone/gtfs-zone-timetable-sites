@@ -1,3 +1,9 @@
+## v0.18.0 (2026-11-03)
+
+### Feat
+
+- MapLibre route and system maps with a route accordion
+
 ## v0.17.0 (2026-10-28)
 
 ### Feat
