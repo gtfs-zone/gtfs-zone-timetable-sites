@@ -62,8 +62,8 @@ def test_build_clears_old_files_and_writes_root(tmp_path):
     (out / "local" / "old").mkdir(parents=True)
     main(["build", "--out", str(out), "--config", str(config), "--cache", str(cache)])
     assert not (out / "gone").exists() and not (out / "local" / "old").exists()
-    assert b'href="countries/other/"' in (out / "index.html").read_bytes()
-    country = (out / "countries" / "other" / "index.html").read_bytes()
+    assert b'href="countries/us/"' in (out / "index.html").read_bytes()
+    country = (out / "countries" / "us" / "index.html").read_bytes()
     assert b'href="../../local/"' in country
     assert (out / "error.html").exists() and (out / "logo.svg").exists()
     sitemap = (out / "sitemaps" / f"{shard_of('local'):02d}.xml").read_text()

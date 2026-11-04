@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Transit timetables - sites.gtfs.zone{% endblock %}
 {% block description %}Bus and train timetables for {{ total }} transit agencies in {{ countries | length }} countr{{ "ies" if countries | length != 1 else "y" }}, generated from their GTFS feeds.{% endblock %}
+{% block head %}
+<script type="module" src="root.js"></script>
+{% endblock %}
 {% block brand %}
 <a class="btn btn-ghost h-auto min-h-11 gap-3 py-2" href="./">
 <img class="w-8 rounded-lg" src="logo.svg" alt="">
@@ -9,6 +12,20 @@
 {% endblock %}
 {% block main %}
 <h1 class="text-3xl font-bold">Transit timetables</h1>
+<label class="input input-lg w-full">
+<svg class="size-5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<input type="search" id="site-search" data-src="sites.json" data-status="search-status" aria-controls="search-results" placeholder="Search agencies, places" autocomplete="off" aria-describedby="search-status">
+</label>
+<p class="sr-only" id="search-status" role="status"></p>
+<ul class="list rounded-box bg-base-100 shadow-sm" id="search-results" hidden></ul>
+<section class="card area bg-base-100 shadow-sm" data-src="world.json" data-key="key" data-href="countries/{}/">
+<div class="card-body p-2">
+<div class="relative">
+<div class="area-map" role="region" aria-label="Map of countries with timetables"></div>
+<p class="map-cap" hidden></p>
+</div>
+</div>
+</section>
 <ul class="list rounded-box bg-base-100 shadow-sm">
 {% for country in countries %}
 <li><a class="flex min-h-14 items-center gap-4 rounded-box px-4 py-3 hover:bg-base-200 focus-visible:bg-base-200" href="countries/{{ country.key }}/">
@@ -20,5 +37,5 @@
 {% endblock %}
 {% block footer %}
 <p>Generated daily from each agency's GTFS feed by <a class="link" href="https://github.com/gtfs-zone/gtfs-zone-timetable-sites" target="_blank" rel="noopener">timetable-sites</a>. Check with the agency before you travel.</p>
-<p>Feeds found through <a class="link" href="https://list.gtfs.zone" target="_blank" rel="noopener">list.gtfs.zone</a>, from the <a class="link" href="https://github.com/transitland/transitland-atlas" target="_blank" rel="noopener">Transitland Atlas</a> (<a class="link" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>) and the <a class="link" href="https://mobilitydatabase.org" target="_blank" rel="noopener">Mobility Database</a>. Each timetable is built from its publisher's data, on the publisher's terms.</p>
+<p>Feeds found through <a class="link" href="https://list.gtfs.zone" target="_blank" rel="noopener">list.gtfs.zone</a>, from the <a class="link" href="https://github.com/transitland/transitland-atlas" target="_blank" rel="noopener">Transitland Atlas</a> (<a class="link" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>) and the <a class="link" href="https://mobilitydatabase.org" target="_blank" rel="noopener">Mobility Database</a>. Country borders from <a class="link" href="https://www.naturalearthdata.com" target="_blank" rel="noopener">Natural Earth</a>. Each timetable is built from its publisher's data, on the publisher's terms.</p>
 {% endblock %}

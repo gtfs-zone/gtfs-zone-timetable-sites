@@ -284,9 +284,13 @@ def test_site_json():
         "valid_from": summary["valid_from"],
         "valid_through": summary["valid_through"],
         "generated": "2026-10-05",
-        "country_code": None,
-        "country": None,
+        # Geocoded from the stops, with no catalog entry.
+        "country_code": "US",
+        "country": "United States",
         "subdivision": None,
+        # Its stops straddle two states, so no point.
+        "lat": None,
+        "lon": None,
         "noindex": [],
     }
 
@@ -373,9 +377,14 @@ def test_build_root():
         "countries/us/index.html",
         "countries/ca/index.html",
         "countries/other/index.html",
+        "countries/us/regions.json",
+        "countries/ca/regions.json",
         "error.html",
         "style.css",
         "logo.svg",
+        "root.js",
+        "sites.json",
+        "world.json",
         "sitemap.xml",
         "sitemaps/root.xml",
         shard,
@@ -396,7 +405,12 @@ def test_build_root():
     assert '"@type": "WebSite"' in home
 
     country = files["countries/us/index.html"]
-    assert country.index(">Maine</h2>") < country.index(">Oregon</h2>")
+    assert country.index('id="US-ME">Maine</h2>') < country.index(
+        'id="US-OR">Oregon</h2>'
+    )
+    assert 'data-src="regions.json"' in country and "geoBoundaries" in country
+    assert "United States Census Bureau" in country
+    assert json.loads(files["countries/us/regions.json"])["license"] == "Public Domain"
     assert country.index('href="../../a/"') < country.index('href="../../b/"')
     assert "2 routes, to Dec 1, 2026" in country
     assert 'rounded-full bg-success" title="Current"' in country
@@ -674,3 +688,45 @@ def test_upcoming_routes_get_their_first_timetable():
     home = out["index.html"].decode()
     assert 'id="expired"' not in home and "Starts Dec 1, 2026" in home
     assert "service starts on Dec 1, 2026" in out["9/index.html"].decode()
+
+
+def test_root_groups_by_region_and_writes_maps():
+    us = {"country_code": "US", "country": "United States", "routes": 1}
+    summaries = [
+        # Boston, with no catalog subdivision.
+        {"slug": "a", "title": "Alpha", "lat": 42.36, "lon": -71.06} | us,
+        # Named by code only.
+        {"slug": "b", "title": "Bravo", "subdivision": "MA"} | us,
+        # A point wins over a wrong name.
+        {
+            "slug": "c",
+            "title": "Charlie",
+            "subdivision": "Oregon",
+            "lat": 47.6,
+            "lon": -122.33,
+        }
+        | us,
+        {"slug": "d", "title": "Delta", "subdivision": "Atlantis"} | us,
+    ]
+    files = build_root(summaries, MONDAY)
+    country = files["countries/us/index.html"].decode()
+    assert country.count("<h2") == 3
+    # By name; a section with no region has no anchor.
+    assert (
+        country.index('<h2 class="scroll-mt-4 text-xl font-semibold">Atlantis</h2>')
+        < country.index('id="US-MA">Massachusetts</h2>')
+        < country.index('id="US-WA">Washington</h2>')
+    )
+    regions = json.loads(files["countries/us/regions.json"])
+    counts = {
+        f["properties"]["id"]: f["properties"]["count"] for f in regions["features"]
+    }
+    assert counts["US-MA"] == 2 and counts["US-WA"] == 1 and counts["US-OR"] == 0
+    world = json.loads(files["world.json"])
+    counts = {
+        f["properties"]["key"]: f["properties"]["count"] for f in world["features"]
+    }
+    assert counts["us"] == 4 and counts["fr"] == 0
+    rows = json.loads(files["sites.json"])
+    assert ["a", "Alpha", "", "Massachusetts, United States", "unavailable"] in rows
+    assert ["d", "Delta", "", "Atlantis, United States", "unavailable"] in rows

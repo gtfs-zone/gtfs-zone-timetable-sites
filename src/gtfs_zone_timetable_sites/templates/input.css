@@ -1,9 +1,10 @@
 @import "tailwindcss" source(none);
 @source "./*.html";
 @source "./map.js";
+@source "./root.js";
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
-  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap;
+  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap, input;
   logs: false;
 }
 
@@ -119,6 +120,11 @@
 .route-inset figcaption { font-size: .8rem; font-weight: 600; line-height: 1.2; min-height: 1.2em; }
 .route-inset-map { flex: 1; min-height: 7rem; border-radius: var(--radius-field); overflow: hidden; }
 .system-map { height: 30rem; border-radius: var(--radius-box); overflow: hidden; }
+/* Country and region choropleths on the root pages */
+.area-map { aspect-ratio: 2 / 1; max-height: 28rem; width: 100%; border-radius: var(--radius-box); overflow: hidden; }
+.area[data-key="id"] .area-map { aspect-ratio: 4 / 3; }
+/* Search hides list items and sections whose classes set a display */
+.site-section[hidden], .site-section li[hidden], .list[hidden] { display: none; }
 .map-cap {
   position: absolute; top: .5rem; left: .5rem; max-width: calc(100% - 4rem);
   padding: .25rem .6rem; border-radius: var(--radius-field);
@@ -180,7 +186,7 @@
 .route-item[open] > summary { background: var(--color-base-200); }
 
 @media print {
-  .navbar, .route-maps, .system { display: none !important; }
+  .navbar, .route-maps, .system, .area, .input { display: none !important; }
   .timetable :is(th[scope=row], thead td:first-child, tfoot td:first-child) { position: relative; }
   .timetable { font-size: 9pt; }
   .timetable th, .timetable td { padding: .15rem .35rem; }
