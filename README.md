@@ -9,8 +9,15 @@ and service day, with numbered stops matching an interactive route map. The
 index has a map of every route and opens each route's timetables in place.
 Maps use MapLibre GL JS and OpenFreeMap tiles, loaded from their CDNs when a
 map scrolls into view, and show live vehicles when the catalog feed has a
-working vehicle positions URL (fetched through the cors.kcfam.us proxy, as
-rt-viewer does). No JavaScript is needed to read a timetable.
+working vehicle positions URL. With a working trip updates URL, timetables
+show predicted times for running trips, from each route's `live.json`
+(fetched once the timetable is on screen). Realtime feeds are fetched through
+the cors.kcfam.us proxy, as rt-viewer does, except rt.gtfs.zone. No
+JavaScript is needed to read a timetable.
+
+The home page and each country page have an agency search (uFuzzy, as on
+list.gtfs.zone) and a map of countries or regions colored by agency count. A
+country page groups its agencies by the region holding each feed's stops.
 
 ## Running Locally
 
@@ -124,6 +131,23 @@ Environment: `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`
 (default 4), `TIMETABLE_SITES_WORKER_MEMORY` (address space per worker in bytes,
 default 2500000000).
 
+## Boundary data
+
+Country and region borders are bundled in
+`src/gtfs_zone_timetable_sites/boundaries/`, simplified from
+[Natural Earth](https://www.naturalearthdata.com) (public domain) and
+[geoBoundaries](https://www.geoboundaries.org) (CC BY 4.0). Each country's
+regions keep the license of their original source, many of them ODbL or
+CC BY-SA; [SOURCES.md](src/gtfs_zone_timetable_sites/boundaries/SOURCES.md)
+lists the source and license of every file, each published `regions.json`
+carries its own, and each country page credits them. To regenerate them:
+
+```bash
+uv run --with shapely python scripts/boundaries.py --cache .cache/boundaries
+uv run --with shapely python scripts/boundaries.py --cache .cache/boundaries --countries US FR   # some countries only
+```
+
 ## License
 
-AGPL-3.0-or-later. See `LICENSE.txt`.
+AGPL-3.0-or-later. See `LICENSE.txt`. The bundled boundary data is under the
+licenses listed in [SOURCES.md](src/gtfs_zone_timetable_sites/boundaries/SOURCES.md).

@@ -13,9 +13,6 @@
 {%- if row.google %}<a class="link link-hover" href="{{ row.google }}" target="_blank" rel="noopener">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}
 {%- endmacro %}
 {% block main %}
-{% if days | selectattr("icons") | list %}
-<svg hidden><symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5 9 9h7l2.5 7.5M9 9l3 7.5H5.5M16 9l-4 7.5M9 9 8.4 7M7 7h3M16 9l-1-3h2"/></symbol><symbol id="i-wheelchair" viewBox="0 0 24 24"><circle cx="11" cy="4" r="1.8" fill="currentColor" stroke="none"/><path d="M11 7.5v6h5l2 5h2M11 10h4M15.5 19A5.5 5.5 0 1 1 8 11.6"/></symbol></svg>
-{% endif %}
 <div class="space-y-2">
 <h1 class="flex flex-wrap items-center gap-3 text-2xl font-bold sm:text-3xl">{{ badge(route) }}{% if route.name %}<span class="min-w-0">{{ route.name }}</span>{% endif %}</h1>
 {% if route.state == "expired" %}
@@ -37,6 +34,11 @@
 {% endfor %}
 </div>
 <div class="space-y-6" data-route-body>
+{# The icon sprite and live-times link go inside the route body, which the index accordion copies #}
+{% if days | selectattr("icons") | list %}
+<svg hidden><symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5 9 9h7l2.5 7.5M9 9l3 7.5H5.5M16 9l-4 7.5M9 9 8.4 7M7 7h3M16 9l-1-3h2"/></symbol><symbol id="i-wheelchair" viewBox="0 0 24 24"><circle cx="11" cy="4" r="1.8" fill="currentColor" stroke="none"/><path d="M11 7.5v6h5l2 5h2M11 10h4M15.5 19A5.5 5.5 0 1 1 8 11.6"/></symbol></svg>
+{% endif %}
+{% if live %}<div class="rt-data" data-src="{{ live }}" hidden></div>{% endif %}
 {% if map %}
 <section class="card bg-base-100 shadow-sm">
 <div class="card-body p-4">

@@ -156,5 +156,41 @@ def test_vehicles_from_the_catalog_when_up():
     assert Site(slug="test", feed=feed.feed_id, catalog=down).vehicles_url() is None
 
 
+def test_live_times_from_the_catalog_when_up():
+    feed = CatalogFeed(
+        feedId="f-0123456789",
+        name="Test",
+        urls={
+            "scheduled": ("https://example.org/g.zip",),
+            "trip_updates": ("https://example.org/tu.pb",),
+        },
+        roleState={"trip_updates": "up"},
+    )
+    site = Site(slug="test", feed=feed.feed_id, catalog=feed)
+    built = build_site(make_zip(fixture_files("amenities")), site, today=MONDAY)
+    page = built["7/index.html"].decode()
+    assert '<div class="rt-data" data-src="live.json" hidden></div>' in page
+    live = json.loads(built["7/live.json"])
+    assert {k: live[k] for k in ("url", "tz", "fmt")} == {
+        "url": "https://example.org/tu.pb",
+        "tz": "America/New_York",
+        "fmt": "12h",
+    }
+    # One entry per table, in page order, lined up with its rows and columns
+    tables = re.findall(r'<table class="timetable".*?</table>', page, re.S)
+    assert len(live["tables"]) == len(tables)
+    for table, data in zip(tables, live["tables"], strict=True):
+        rows = table.split("<tbody>", 1)[1].count('<th scope="row"')
+        assert data["trips"] == ["t1", "t2", "t3"]
+        assert len(data["stops"]) == rows
+        assert all(len(times) == rows for times in data["sched"])
+        assert data["sched"][0] == [8 * 60, 10, 10]
+    # The accordion copies the route body, so the icon sprite must be inside it
+    assert page.index("data-route-body") < page.index('id="i-wheelchair"')
+    plain = build(fixture_files("amenities"))
+    assert 'class="rt-data"' not in plain["7/index.html"]
+    assert "7/live.json" not in plain
+
+
 def test_script_json_cannot_close_the_script():
     assert script_json({"name": "</script>"}) == '{"name":"\\u003c/script>"}'

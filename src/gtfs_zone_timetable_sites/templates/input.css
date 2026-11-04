@@ -1,9 +1,10 @@
 @import "tailwindcss" source(none);
 @source "./*.html";
 @source "./map.js";
+@source "./root.js";
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
-  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap;
+  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap, input;
   logs: false;
 }
 
@@ -19,9 +20,9 @@
 .timetable th, .timetable td { padding: .4rem .6rem; border-bottom: 1px solid var(--color-base-300); }
 .timetable tbody tr:last-child > * { border-bottom: 0; }
 .timetable td { text-align: right; white-space: nowrap; }
-/* Sticky without a z-index: anything positioned or below full opacity in later cells paints over it */
+/* Above the positioned live edges of the cells that scroll under it */
 .timetable :is(th[scope=row], thead td:first-child, tfoot td:first-child) {
-  position: sticky; left: 0;
+  position: sticky; left: 0; z-index: 2;
   min-width: 8rem;
   background: var(--color-base-100);
   border-right: 1px solid var(--color-base-300);
@@ -46,10 +47,12 @@
 
 /* Route-colored rail down the stop column: lanes per branch, a dot per stop, filled where trips start or end */
 .timetable th[scope=row] { padding-left: calc(var(--gutter, 40px) + .25rem); }
-/* Above every row's background and border, so the next row can't cut the line */
-.timetable .rail { position: absolute; left: 0; top: 0; bottom: -1px; z-index: 1; width: var(--gutter, 40px); pointer-events: none; }
+/* Over the borders above and below its row, so rounding at fractional row
+   heights can't open a gap at a join */
+.timetable .rail { position: absolute; left: 0; top: -1px; bottom: -1px; z-index: 1; width: var(--gutter, 40px); pointer-events: none; }
 .timetable .rail svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
-/* The last row has no border below to cover, so its rail stays inside the table */
+/* The first and last rows' rails stay inside the table body */
+.timetable tbody tr:first-child .rail { top: 0; }
 .timetable tbody tr:last-child .rail { bottom: 0; }
 .timetable .rail path { fill: none; stroke: var(--line, var(--color-base-content)); stroke-width: 7px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .timetable .rail path.case { stroke: color-mix(in oklab, var(--color-base-content) 15%, transparent); stroke-width: 9px; }
@@ -78,11 +81,25 @@
 }
 .timetable .dot:empty { min-width: .9rem; height: .9rem; padding: 0; box-shadow: inset 0 0 0 3px var(--line, var(--color-base-content)), 0 0 0 1px color-mix(in oklab, var(--color-base-content) 25%, transparent); }
 .timetable .dot.solid { background: var(--line, var(--color-base-content)); color: var(--line-text, var(--color-base-100)); }
-.timetable tbody tr.hl > * { background: color-mix(in oklab, var(--line, var(--color-base-content)) 20%, var(--color-base-100)); transition: background .3s; }
+.timetable tbody :is(tr.hl > *, td.hl) { background: color-mix(in oklab, var(--line, var(--color-base-content)) 20%, var(--color-base-100)); transition: background .3s; }
 /* Arrival over departure in one cell, tighter than the row spacing */
 .timetable td.dw { padding-block: .15rem; line-height: 1.15; }
 .timetable td.dw > span { display: block; font-weight: 400; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
 .timetable td.dw > span.pm { font-weight: 700; }
+
+/* Live times: running trips get a green edge, predictions sit under the
+   scheduled time; colors hold 4.5:1 on base-100 in each theme */
+:root { --live: #166534; --late: #b91c1c; }
+[data-theme="dark"] { --live: #4ade80; --late: #f87171; }
+/* The edge covers the row borders above and below, like the rail; opaque,
+   so the overlap at each join doesn't show darker */
+.timetable td.live { position: relative; }
+.timetable td.live::before { content: ""; position: absolute; left: 0; top: -1px; bottom: -1px; z-index: 1; width: 3px; background: color-mix(in oklab, var(--live) 60%, var(--color-base-100)); pointer-events: none; }
+.timetable tbody tr:first-child td.live::before { top: 0; }
+.timetable tbody tr:last-child td.live::before { bottom: 0; }
+.timetable .rt { display: block; font-size: .75rem; font-weight: 700; color: var(--live); }
+.timetable .rt[data-state="late"] { color: var(--late); }
+.timetable td.canceled { text-decoration: line-through; color: color-mix(in oklab, var(--color-base-content) 65%, transparent); }
 
 /* Stroke icons from the page's sprite, sized to the text */
 .icon { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -.2em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -103,6 +120,11 @@
 .route-inset figcaption { font-size: .8rem; font-weight: 600; line-height: 1.2; min-height: 1.2em; }
 .route-inset-map { flex: 1; min-height: 7rem; border-radius: var(--radius-field); overflow: hidden; }
 .system-map { height: 30rem; border-radius: var(--radius-box); overflow: hidden; }
+/* Country and region choropleths on the root pages */
+.area-map { aspect-ratio: 2 / 1; max-height: 28rem; width: 100%; border-radius: var(--radius-box); overflow: hidden; }
+.area[data-key="id"] .area-map { aspect-ratio: 4 / 3; }
+/* Search hides list items and sections whose classes set a display */
+.site-section[hidden], .site-section li[hidden], .list[hidden] { display: none; }
 .map-cap {
   position: absolute; top: .5rem; left: .5rem; max-width: calc(100% - 4rem);
   padding: .25rem .6rem; border-radius: var(--radius-field);
@@ -112,8 +134,37 @@
 }
 .map-live { font-size: .85rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
 .map-popup-routes { display: flex; flex-wrap: wrap; gap: .25rem; margin: 0; padding: 0; list-style: none; }
-.maplibregl-popup-content { background: var(--color-base-100); color: var(--color-base-content); }
-.maplibregl-popup-tip { border-top-color: var(--color-base-100) !important; border-bottom-color: var(--color-base-100) !important; }
+.map-popup-stops { display: grid; gap: .5rem; }
+.map-popup-vehicle { display: grid; gap: .25rem; }
+.map-popup-route { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+/* Popups and controls in the page theme; map.js loads MapLibre's CSS before
+   this file, so these win at equal specificity */
+.maplibregl-popup-content {
+  padding: .6rem 2.25rem .6rem .75rem;
+  border: 1px solid color-mix(in oklab, var(--color-base-content) 25%, transparent); border-radius: var(--radius-field);
+  background: var(--color-base-100); color: var(--color-base-content);
+  box-shadow: 0 2px 8px rgb(0 0 0 / .25);
+  font-size: .875rem; line-height: 1.35;
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip, .maplibregl-popup-anchor-top-left .maplibregl-popup-tip, .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--color-base-100); }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip, .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--color-base-100); }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--color-base-100); }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--color-base-100); }
+.maplibregl-popup-close-button {
+  top: .25rem; right: .25rem;
+  display: flex; align-items: center; justify-content: center;
+  width: 1.75rem; height: 1.75rem; border-radius: var(--radius-field);
+  color: var(--color-base-content); font-size: 1.25rem; line-height: 1;
+}
+.maplibregl-popup-close-button:hover { background-color: var(--color-base-200); }
+.maplibregl-popup-close-button:focus-visible { outline: 2px solid var(--color-base-content); outline-offset: -2px; }
+[data-theme="dark"] .maplibregl-ctrl-group { background: var(--color-base-200); }
+[data-theme="dark"] .maplibregl-ctrl-group:not(:empty) { box-shadow: 0 0 0 2px rgb(255 255 255 / .2); }
+[data-theme="dark"] .maplibregl-ctrl-group button + button { border-top-color: var(--color-base-300); }
+[data-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon,
+[data-theme="dark"] .maplibregl-ctrl-attrib-button { filter: invert(1); }
+[data-theme="dark"] .maplibregl-ctrl-attrib.maplibregl-compact { background-color: var(--color-base-200); color: var(--color-base-content); }
+[data-theme="dark"] .maplibregl-ctrl-attrib a { color: var(--color-base-content); }
 @media (max-width: 40rem) {
   .route-map { height: 14rem; }
   .system-map { height: 24rem; }
@@ -135,7 +186,7 @@
 .route-item[open] > summary { background: var(--color-base-200); }
 
 @media print {
-  .navbar, .route-maps, .system { display: none !important; }
+  .navbar, .route-maps, .system, .area, .input { display: none !important; }
   .timetable :is(th[scope=row], thead td:first-child, tfoot td:first-child) { position: relative; }
   .timetable { font-size: 9pt; }
   .timetable th, .timetable td { padding: .15rem .35rem; }

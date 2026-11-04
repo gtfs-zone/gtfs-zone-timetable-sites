@@ -11,8 +11,16 @@ from importlib.metadata import version
 from typing import NamedTuple
 from urllib.parse import urlsplit
 
+from anyascii import anyascii
 from markupsafe import Markup
 
+from gtfs_zone_timetable_sites.boundaries import (
+    Region,
+    country,
+    region_of,
+    regions,
+    world,
+)
 from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import RouteFilter, Site
 from gtfs_zone_timetable_sites.facts import feed_facts
@@ -43,7 +51,7 @@ from gtfs_zone_timetable_sites.pages import (
     tidy,
 )
 from gtfs_zone_timetable_sites.places import feed_place, place_label
-from gtfs_zone_timetable_sites.render import asset, render
+from gtfs_zone_timetable_sites.render import asset, compact_json, render
 from gtfs_zone_timetable_sites.timetable import Timetable, route_timetables
 
 BASE_URL = "https://sites.gtfs.zone"
@@ -251,6 +259,7 @@ def build_site(
     groups = mode_groups([view for view in routes if view.state != "expired"], locale)
     expired = [view for view in routes if view.state == "expired"]
     vehicles = site.vehicles_url()
+    updates = site.trip_updates_url()
     shown = [view.slug for group in groups for view in group.routes]
     by_slug = {
         view.slug: (view, rt) for view, rt in zip(routes, timetables, strict=True)
@@ -298,12 +307,26 @@ def build_site(
             else None
         )
         route_map = script_json(data) if data and data["lines"] else ""
+        days = day_views(feed, rt.tables, site.time_format, marked, locale)
+        # Live-times data is fetched only once a timetable is on screen, so
+        # it adds nothing to the page itself
+        if updates:
+            files[f"{view.slug}/{LIVE_FILE}"] = compact_json(
+                {
+                    "url": updates,
+                    "tz": feed.timezone(rt.route),
+                    "fmt": site.time_format,
+                    "tables": [table.live for day in days for table in day.tables],
+                    "parents": stop_parents(feed, rt.tables),
+                }
+            ).encode()
         files[f"{view.slug}/index.html"] = render(
             "route.html",
             **common,
             route=view,
             map=route_map,
-            days=day_views(feed, rt.tables, site.time_format, marked, locale),
+            live=LIVE_FILE if updates else "",
+            days=days,
             jsonld=[
                 breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
                 *place_jsonld(place, label, f"{base_url}{view.slug}/"),
@@ -342,9 +365,15 @@ def build_site(
         valid_from=start.isoformat() if start else None,
         valid_through=end.isoformat() if end else None,
         generated=today.isoformat(),
-        country_code=site.catalog and site.catalog.country_code,
-        country=site.catalog and site.catalog.country,
+        # The catalog's country, else the one the stops are in.
+        country_code=(site.catalog and site.catalog.country_code)
+        or (place and place.country_code),
+        country=(site.catalog and site.catalog.country) or (place and place.country),
         subdivision=site.catalog and site.catalog.subdivision,
+        # Only for a feed within one region; a national network's center
+        # would place it in whichever region that falls in.
+        lat=place.lat if place and place.region else None,
+        lon=place.lon if place and place.region else None,
         noindex=sorted(noindex),
     )
     files["content.json"] = summary_json(
@@ -356,18 +385,29 @@ def build_site(
     return files
 
 
-def script_json(value: object) -> Markup:
-    """JSON safe to put inside a <script> element."""
-    text = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
-    return Markup(text.replace("<", "\\u003c"))
+# JSON safe to put inside a <script> element.
+script_json = compact_json
 
+
+# A route's live-times data, next to its page.
+LIVE_FILE = "live.json"
 
 # Text map.js shows, by i18n key.
 MAP_TEXT = (
     "map.in_timetable",
     "map.vehicle",
+    "map.to",
+    "map.stopped_at",
+    "map.arriving_at",
+    "map.next_stop",
+    "map.position_ago",
+    "map.open_timetable",
     "map.live_one",
     "map.live_other",
+    "map.updated",
+    "rt.on_time",
+    "rt.skipped",
+    "rt.canceled",
     "index.load_error",
 )
 
@@ -387,6 +427,18 @@ def map_text(locale: Locale, modes: list[str]) -> Markup:
 
 # Trip ids listed for realtime matching up to this many per route.
 MAX_RT_TRIPS = 400
+
+
+def stop_parents(feed: Feed, tables: list[Timetable]) -> dict[str, str]:
+    """Stop id -> the station the timetable rows use, for the route's stops
+    inside a station; realtime feeds name the platform."""
+    trips = {c.trip_id for t in tables for c in t.columns}
+    return {
+        st.stop_id: station
+        for trip in sorted(trips)
+        for st in feed.stop_times.get(trip, ())
+        if (station := feed.station(st.stop_id)) != st.stop_id
+    }
 
 
 def route_ids(feed: Feed, tables: list[Timetable]) -> dict[str, list[str]]:
@@ -473,6 +525,53 @@ def country_key(summary: dict) -> str:
     return (summary.get("country_code") or OTHER).lower()
 
 
+def site_region(key: str, site: dict) -> Region | None:
+    """The region of country `key` a site is in: the one holding its point,
+    else the one its catalog subdivision names by name or ISO code suffix
+    (`Oregon` or `OR` for US-OR)."""
+    if site.get("lat") is not None and site.get("lon") is not None:
+        found = region_of(key, site["lat"], site["lon"])
+        if found:
+            return found
+    name = region_key(site.get("subdivision") or "")
+    if not name:
+        return None
+    for region in regions(key):
+        if name in (region_key(region.name), region_key(region.id.partition("-")[2])):
+            return region
+    return None
+
+
+# Words that say what kind of region a name is, not which one.
+REGION_WORDS = re.compile(
+    r"\b(prefecture|province|region|state|county|autonomous|community|of|the)\b"
+)
+
+
+def region_key(name: str) -> str:
+    """A region name romanized and casefolded, without words like Prefecture,
+    so `Aomori Prefecture` matches `Aomori` and `Ile-de-France` `Île-de-France`."""
+    folded = REGION_WORDS.sub(" ", anyascii(name).casefold())
+    return " ".join(re.findall(r"[a-z0-9]+", folded))
+
+
+def subdivision_groups(key: str, members: list[dict]) -> list[dict]:
+    """A country's sites as `{id, name, sites}` sections: by region, else by
+    catalog subdivision (with no id), unnamed last."""
+    groups: dict[str, dict] = {}
+    for site in members:
+        region = site_region(key, site)
+        if region:
+            group_id, name = region.id, region.name
+        else:
+            group_id, name = "", site.get("subdivision") or ""
+        group = groups.setdefault(
+            group_id or f"name:{name}", {"id": group_id, "name": name, "sites": []}
+        )
+        group["sites"].append(site)
+    return sorted(groups.values(), key=lambda g: (not g["name"], g["name"].casefold()))
+
+
 def country_groups(sites: list[dict]) -> list[dict]:
     """Countries by name, each with its sites grouped by subdivision."""
     countries: dict[str, list[dict]] = {}
@@ -481,18 +580,12 @@ def country_groups(sites: list[dict]) -> list[dict]:
     groups = []
     for key, members in countries.items():
         fallback = "Other" if key == OTHER else key.upper()
-        subdivisions: dict[str, list[dict]] = {}
-        for site in members:
-            subdivisions.setdefault(site.get("subdivision") or "", []).append(site)
         groups.append(
             {
                 "key": key,
                 "name": members[0].get("country") or fallback,
                 "sites": members,
-                # Unnamed subdivisions last.
-                "subdivisions": sorted(
-                    subdivisions.items(), key=lambda item: (not item[0], item[0])
-                ),
+                "subdivisions": subdivision_groups(key, members),
             }
         )
     # Other last.
@@ -563,6 +656,39 @@ def site_row(summary: dict, outcome: dict, today: date) -> dict:
     )
 
 
+def with_counts(doc: dict, key: str, counts: dict[str, int]) -> bytes:
+    """GeoJSON `doc` with each feature's `count` of sites, by its `key`
+    property, keeping the doc's other fields (its name, license, source)."""
+    features = [
+        f | {"properties": props | {"count": counts.get(props[key], 0)}}
+        for f in doc["features"]
+        for props in (f["properties"],)
+    ]
+    return json.dumps(
+        doc | {"features": features},
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode()
+
+
+def search_index(countries: list[dict]) -> bytes:
+    """sites.json for root.js's search: [slug, title, source, where, status] per
+    site, where being its region and country."""
+    rows = [
+        [
+            site["slug"],
+            site["title"],
+            site.get("source") or "",
+            ", ".join(n for n in (group["name"], place["name"]) if n),
+            site["status"],
+        ]
+        for place in countries
+        for group in place["subdivisions"]
+        for site in group["sites"]
+    ]
+    return json.dumps(rows, separators=(",", ":"), ensure_ascii=False).encode()
+
+
 def build_root(
     summaries: list[dict],
     today: date,
@@ -608,20 +734,35 @@ def build_root(
         "error.html": render("error.html", **common, root="/"),
         "style.css": asset("style.css"),
         "logo.svg": asset("logo.svg"),
+        "root.js": asset("root.js"),
+        "sites.json": search_index(countries),
+        "world.json": with_counts(
+            world(), "key", {c["key"]: len(c["sites"]) for c in countries}
+        ),
     }
-    for country in countries:
-        url = f"{BASE_URL}/countries/{country['key']}/"
-        files[f"countries/{country['key']}/index.html"] = render(
+    for group in countries:
+        key = group["key"]
+        url = f"{BASE_URL}/countries/{key}/"
+        boundaries = country(key) if key != OTHER else None
+        if boundaries:
+            files[f"countries/{key}/regions.json"] = with_counts(
+                boundaries,
+                "id",
+                {g["id"]: len(g["sites"]) for g in group["subdivisions"] if g["id"]},
+            )
+        files[f"countries/{key}/index.html"] = render(
             "country.html",
             **(common | {"base_url": url}),
-            country=country,
-            jsonld=breadcrumbs([(ROOT_TITLE, f"{BASE_URL}/"), (country["name"], url)]),
+            country=group,
+            boundaries=boundaries
+            and {k: v for k, v in boundaries.items() if k != "features"},
+            jsonld=breadcrumbs([(ROOT_TITLE, f"{BASE_URL}/"), (group["name"], url)]),
             root="../../",
         )
 
     # One sitemap per shard of sites, so each stays far below 50,000 URLs.
     root_urls = [(f"{BASE_URL}/", None)] + [
-        (f"{BASE_URL}/countries/{country['key']}/", None) for country in countries
+        (f"{BASE_URL}/countries/{c['key']}/", None) for c in countries
     ]
     maps = {"sitemaps/root.xml": root_urls}
     noindex = {s["slug"]: set(s.get("noindex", ())) for s in summaries}
