@@ -1,3 +1,9 @@
+## v0.19.1 (2026-11-05)
+
+### Fix
+
+- **timetable**: show every stop for extended rail, metro, tram and ferry route types
+
 ## v0.19.0 (2026-11-04)
 
 ### Feat
