@@ -58,7 +58,10 @@ function maplibre() {
     const css = document.createElement("link");
     css.rel = "stylesheet";
     css.href = `${MAPLIBRE}maplibre-gl.css`;
-    document.head.append(css);
+    // Before the page's stylesheet, so its map rules win at equal specificity
+    const own = document.querySelector('link[rel="stylesheet"][href$="style.css"]');
+    if (own) own.before(css);
+    else document.head.append(css);
     return import(`${MAPLIBRE}maplibre-gl.mjs`);
   })();
   return lib;
@@ -134,6 +137,51 @@ function whenNear(el, fn) {
     { rootMargin: "300px" },
   );
   seen.observe(el);
+}
+
+/* Clicks: one handler and one popup per map */
+
+const clickers = new WeakMap();
+// Adds handle(e) to the map's click handlers, tried by rank (lowest first);
+// the first returning { at, content } shows it in the map's single popup (and
+// passes it to hit.opened), and one returning true takes the click without a popup
+function onClick(L, map, rank, handle) {
+  let c = clickers.get(map);
+  if (!c) {
+    c = { handlers: [], popup: null };
+    clickers.set(map, c);
+    map.on("click", (e) => {
+      c.popup?.remove();
+      c.popup = null;
+      for (const { handle } of c.handlers) {
+        const hit = handle(e);
+        if (!hit) continue;
+        if (hit.content) {
+          c.popup = new L.Popup({ offset: 10, maxWidth: "18rem", ...hit.options }).setLngLat(hit.at).setDOMContent(hit.content).addTo(map);
+          hit.opened?.(c.popup);
+        }
+        return;
+      }
+    });
+  }
+  c.handlers.push({ rank, handle });
+  c.handlers.sort((a, b) => a.rank - b.rank);
+}
+const closePopup = (map) => clickers.get(map)?.popup?.remove();
+const RANK_VEHICLE = 0;
+const RANK_STOP = 1;
+const RANK_LINE = 2;
+
+// Features of layers within pad pixels of point; none while a new basemap style loads
+function hits(map, point, layers, pad = 6) {
+  if (!layers.every((id) => map.getLayer(id))) return [];
+  return map.queryRenderedFeatures(
+    [
+      [point.x - pad, point.y - pad],
+      [point.x + pad, point.y + pad],
+    ],
+    { layers },
+  );
 }
 
 /* Route maps */
@@ -213,38 +261,107 @@ function addRouteLayers(map, data) {
   });
 }
 
-function stopPopup(card, props) {
+// Highlights timetable rows or cells for 2 s
+function flash(els) {
+  for (const el of els) el.classList.add("hl");
+  setTimeout(() => els.forEach((el) => el.classList.remove("hl")), 2000);
+}
+
+// A popup link that runs fn and closes the popup
+function popupLink(map, text, fn) {
+  const p = document.createElement("p");
+  const a = document.createElement("a");
+  a.className = "link";
+  a.href = "#";
+  a.textContent = text;
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    closePopup(map);
+    fn();
+  });
+  p.append(a);
+  return p;
+}
+
+// Each stop's number and name, with a link to its timetable row
+function stopPopup(map, card, stops) {
   const root = document.createElement("div");
-  const name = document.createElement("strong");
-  name.textContent = `${props.num}. ${props.name}`;
-  root.append(name);
-  const row = card.querySelector(`th[data-num="${props.num}"]`);
-  if (row) {
-    const p = document.createElement("p");
-    const a = document.createElement("a");
-    a.className = "link";
-    a.href = "#";
-    a.textContent = t("map.in_timetable");
-    a.addEventListener("click", (e) => {
-      e.preventDefault();
-      row.scrollIntoView({ behavior: "smooth", block: "center" });
-      row.parentElement.classList.add("hl");
-      setTimeout(() => row.parentElement.classList.remove("hl"), 2000);
-    });
-    p.append(a);
-    root.append(p);
+  root.className = "map-popup-stops";
+  for (const props of stops) {
+    const item = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = `${props.num}. ${props.name}`;
+    item.append(name);
+    const row = card.querySelector(`th[data-num="${props.num}"]`);
+    if (row) {
+      item.append(
+        popupLink(map, t("map.in_timetable"), () => {
+          row.scrollIntoView({ behavior: "smooth", block: "center" });
+          flash([row.parentElement]);
+        }),
+      );
+    }
+    root.append(item);
   }
   return root;
 }
 
 function stopHandlers(L, map, card) {
-  const layer = "stops";
-  map.on("click", layer, (e) => {
-    const f = e.features[0];
-    new L.Popup({ offset: 8 }).setLngLat(f.geometry.coordinates).setDOMContent(stopPopup(card, f.properties)).addTo(map);
+  onClick(L, map, RANK_STOP, (e) => {
+    const found = hits(map, e.point, ["stops"], 4);
+    if (!found.length) return null;
+    const stops = [...new Map(found.map((f) => [f.properties.num, f.properties])).values()].sort((a, b) => a.num - b.num);
+    return { at: found[0].geometry.coordinates, content: stopPopup(map, card, stops) };
   });
-  map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
-  map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
+  map.on("mouseenter", "stops", () => (map.getCanvas().style.cursor = "pointer"));
+  map.on("mouseleave", "stops", () => (map.getCanvas().style.cursor = ""));
+}
+
+// A row's stop as the stop popups name it: "num. name", without the rail and notes
+function rowStop(th) {
+  const stop = th.querySelector(".stop")?.cloneNode(true);
+  if (!stop) return "";
+  for (const el of stop.querySelectorAll(".rail, small, svg")) el.remove();
+  const name = stop.textContent.trim();
+  return th.dataset.num ? `${th.dataset.num}. ${name}` : name;
+}
+
+// The headsign over a table column, from the colspans of its "to" row
+function columnHeadsign(table, col) {
+  const cells = table.tHead?.querySelector("tr.to")?.cells;
+  if (!cells) return "";
+  let at = 0;
+  for (const cell of [...cells].slice(1)) {
+    at += cell.colSpan;
+    if (col < at) return cell.textContent.trim();
+  }
+  return "";
+}
+
+// A route map vehicle's popup parts from the timetables its trip runs in
+// (config is the route's live.json): its headsign, the name of its stop, and
+// a link that shows its column
+function vehiclePlace(map, card, config, v) {
+  const tables = card.querySelectorAll("table.timetable");
+  const i = config?.tables.findIndex((data) => data.trips.includes(v.tripId)) ?? -1;
+  const table = tables[i];
+  if (!table?.tBodies[0]) return {};
+  const data = config.tables[i];
+  const col = data.trips.indexOf(v.tripId);
+  const rows = [...table.tBodies[0].rows];
+  const row = v.stopId ? data.stops.indexOf(config.parents[v.stopId] ?? v.stopId) : -1;
+  const headsign = columnHeadsign(table, col);
+  let head = null;
+  if (headsign) {
+    head = document.createElement("div");
+    head.textContent = t("map.to", { headsign });
+  }
+  const link = popupLink(map, t("map.in_timetable"), () => {
+    const cells = rows.map((r) => r.cells[col + 1]);
+    (cells[row] ?? cells[0])?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    flash(cells.filter(Boolean));
+  });
+  return { head, stop: row >= 0 && rows[row]?.cells[0] ? rowStop(rows[row].cells[0]) : null, link };
 }
 
 function stopPoints(map, data) {
@@ -449,7 +566,17 @@ async function initRouteMap(card) {
     if (data.rt) {
       const routes = new Set(data.rt.routes);
       const trips = new Set(data.rt.trips);
-      vehicles = live(L, map, holder, data.rt.url, (v) => (routes.has(v.routeId) || trips.has(v.tripId) ? lineColor(data.color) : null));
+      const route = { color: data.color };
+      let config = null;
+      liveConfig(card).then((c) => (config = c), () => {});
+      vehicles = live(
+        L,
+        map,
+        holder,
+        data.rt.url,
+        (v) => (routes.has(v.routeId) || trips.has(v.tripId) ? route : null),
+        (v) => vehiclePlace(map, card, config, v),
+      );
     }
   });
   onTheme(map, draw);
@@ -495,6 +622,17 @@ function badge(route) {
   return span;
 }
 
+// A system map vehicle's popup parts: its route's badge and title, and a link
+// that opens the route
+function vehicleRoute(map, route) {
+  const head = document.createElement("div");
+  head.className = "map-popup-route";
+  const title = document.createElement("span");
+  title.textContent = route.title;
+  head.append(badge(route), title);
+  return { head, link: popupLink(map, t("map.open_timetable"), () => openRoute(route.slug)) };
+}
+
 function openRoute(slug) {
   if (location.hash === `#r-${slug}`) openFromHash();
   else location.hash = `r-${slug}`;
@@ -511,13 +649,14 @@ async function initSystemMap(el) {
   const width = (wide, narrow) => ["case", ["==", ["get", "wide"], 1], wide, narrow];
   const layout = { "line-join": "round", "line-cap": "round", "line-sort-key": ["get", "wide"] };
   const filtered = ["sys-casing", "sys-lines", "sys-transfers", "sys-transfer-names"];
+  let vehicles;
   const showModes = () => {
     if (!map.getLayer("sys-lines")) return;
     const filter = modeFilter(enabled);
     for (const id of filtered) map.setFilter(id, filter);
     map.setFilter("sys-hover", ["==", ["get", "rs"], ""]);
+    vehicles?.refresh();
   };
-  let vehicles;
 
   // Line colors depend on the basemap, so the GeoJSON is rebuilt per style
   const draw = () => {
@@ -551,10 +690,17 @@ async function initSystemMap(el) {
     if (data.rt) {
       const byId = new Map();
       data.routes.forEach((r, i) => r.ids.forEach((id) => byId.set(id, i)));
-      vehicles = live(L, map, el, data.rt, (v) => {
-        const i = byId.get(v.routeId);
-        return i == null || !enabled.has(data.routes[i].mode) ? null : lineColor(data.routes[i].color);
-      });
+      vehicles = live(
+        L,
+        map,
+        el,
+        data.rt,
+        (v) => {
+          const i = byId.get(v.routeId);
+          return i == null || !enabled.has(data.routes[i].mode) ? null : data.routes[i];
+        },
+        (v, route) => vehicleRoute(map, route),
+      );
     }
   });
   onTheme(map, draw);
@@ -603,7 +749,7 @@ async function initSystemMap(el) {
   }
   map.on("mousemove", (e) => {
     const ids = routesAt(e.point, 4);
-    map.getCanvas().style.cursor = ids.length ? "pointer" : "";
+    map.getCanvas().style.cursor = ids.length || hits(map, e.point, ["vehicles-hit"], 4).length ? "pointer" : "";
     if (map.getLayer("sys-hover")) map.setFilter("sys-hover", ids.length ? ["in", `,${ids[0]},`, ["get", "rs"]] : ["==", ["get", "rs"], ""]);
     if (cap) {
       cap.hidden = !ids.length;
@@ -611,12 +757,13 @@ async function initSystemMap(el) {
     }
   });
   map.on("mouseout", () => cap && (cap.hidden = true));
-  let popup;
-  map.on("click", (e) => {
-    popup?.remove();
+  onClick(L, map, RANK_LINE, (e) => {
     const ids = routesAt(e.point, 8);
-    if (ids.length === 1) return openRoute(data.routes[ids[0]].slug);
-    if (!ids.length) return;
+    if (!ids.length) return null;
+    if (ids.length === 1) {
+      openRoute(data.routes[ids[0]].slug);
+      return true;
+    }
     const ul = document.createElement("ul");
     ul.className = "map-popup-routes";
     for (const i of ids) {
@@ -629,8 +776,8 @@ async function initSystemMap(el) {
       li.append(a);
       ul.append(li);
     }
-    ul.addEventListener("click", () => popup.remove());
-    popup = new L.Popup({ offset: 8, closeButton: false, maxWidth: "16rem" }).setLngLat(e.lngLat).setDOMContent(ul).addTo(map);
+    ul.addEventListener("click", () => closePopup(map));
+    return { at: e.lngLat, content: ul, options: { closeButton: false, maxWidth: "16rem" } };
   });
 }
 
@@ -639,90 +786,464 @@ async function initSystemMap(el) {
 let rtLib;
 const rt = () => (rtLib ??= import(RT_LIB).then((m) => (m.default ?? m).transit_realtime));
 
-
-function arrowImage(map) {
-  const s = 32;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = s;
-  const g = canvas.getContext("2d");
-  g.fillStyle = ink();
-  g.beginPath();
-  g.moveTo(s / 2, 1);
-  g.lineTo(s / 2 + 6, 11);
-  g.lineTo(s / 2 - 6, 11);
-  g.closePath();
-  g.fill();
-  if (!map.hasImage("bearing")) map.addImage("bearing", g.getImageData(0, 0, s, s), { pixelRatio: 2 });
+// Protobuf longs as numbers
+function num(v) {
+  if (v == null) return null;
+  return typeof v === "number" ? v : typeof v.toNumber === "function" ? v.toNumber() : Number(v);
 }
 
-// Polls url every POLL_MS while el is on screen and the tab is visible; colorOf
-// gives a vehicle's color, or null to leave it off this map. Returns draw,
-// which puts the vehicle layers on a new basemap style
-function live(L, map, el, url, colorOf) {
-  let vehicles = { type: "FeatureCollection", features: [] };
-  const draw = () => {
-    arrowImage(map);
-    map.addSource("vehicles", { type: "geojson", data: vehicles });
-    map.addLayer({
-      id: "vehicle-bearing",
-      type: "symbol",
-      source: "vehicles",
-      filter: ["has", "bearing"],
-      layout: { "icon-image": "bearing", "icon-rotate": ["get", "bearing"], "icon-rotation-alignment": "map", "icon-allow-overlap": true },
-    });
-    map.addLayer({
-      id: "vehicles",
-      type: "circle",
-      source: "vehicles",
-      paint: { "circle-radius": 6, "circle-color": ["get", "color"], "circle-stroke-color": paper(), "circle-stroke-width": 2 },
-    });
-  };
-  draw();
-  map.on("click", "vehicles", (e) => {
-    const f = e.features[0];
-    new L.Popup({ offset: 10 }).setLngLat(f.geometry.coordinates).setText(f.properties.label).addTo(map);
-  });
-  const status = el.querySelector(".map-live");
+async function fetchFeed(url) {
+  const { FeedMessage } = await rt();
+  const res = await fetch(viaProxy(url), { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return FeedMessage.decode(new Uint8Array(await res.arrayBuffer()));
+}
+
+// Calls fn every POLL_MS while el is on screen and the tab is visible
+function pollWhileShown(el, fn) {
   let visible = false;
   let timer;
-  async function poll() {
+  let running = false;
+  async function tick() {
     clearTimeout(timer);
-    if (!visible || document.hidden) return;
+    if (!visible || document.hidden || running) return;
+    running = true;
     try {
-      const { FeedMessage } = await rt();
-      const res = await fetch(viaProxy(url), { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const feed = FeedMessage.decode(new Uint8Array(await res.arrayBuffer()));
-      const features = [];
-      for (const entity of feed.entity ?? []) {
-        const v = entity.vehicle;
-        const pos = v?.position;
-        if (!pos) continue;
-        const color = colorOf({ routeId: v.trip?.routeId, tripId: v.trip?.tripId });
-        if (!color) continue;
-        const label = v.vehicle?.label || v.vehicle?.id || entity.id;
-        const properties = { color, label: t("map.vehicle", { label }) };
-        if (pos.bearing != null) properties.bearing = pos.bearing;
-        features.push({ type: "Feature", properties, geometry: { type: "Point", coordinates: [pos.longitude, pos.latitude] } });
-      }
-      vehicles = { type: "FeatureCollection", features };
-      map.getSource("vehicles")?.setData(vehicles);
-      if (status) {
-        status.hidden = false;
-        status.textContent = t("map.live", { n: features.length });
-      }
+      await fn();
     } catch (err) {
-      console.warn("vehicles", err);
-      if (status) status.hidden = true;
+      console.warn("realtime", err);
     }
-    timer = setTimeout(poll, POLL_MS);
+    running = false;
+    timer = setTimeout(tick, POLL_MS);
   }
   new IntersectionObserver((entries) => {
     visible = entries.some((e) => e.isIntersecting);
-    poll();
+    tick();
   }).observe(el);
-  document.addEventListener("visibilitychange", poll);
-  return { draw };
+  document.addEventListener("visibilitychange", tick);
+}
+
+// Status lines say how long ago their feed was updated, rewritten every second
+const statuses = new Set();
+const ago = new Intl.RelativeTimeFormat(LANG, { numeric: "auto" });
+function agoText(seconds) {
+  if (seconds < 60) return ago.format(-Math.max(0, Math.round(seconds)), "second");
+  if (seconds < 3600) return ago.format(-Math.floor(seconds / 60), "minute");
+  return ago.format(-Math.floor(seconds / 3600), "hour");
+}
+function showStatus(el) {
+  const live = t("map.live", { n: +el.dataset.n });
+  el.textContent = t("map.updated", { live, ago: agoText(Date.now() / 1000 - +el.dataset.ts) });
+}
+// Vehicle popups' "Position ... ago" lines, by their data-ts
+const showAgo = (el) => (el.textContent = t("map.position_ago", { ago: agoText(Date.now() / 1000 - +el.dataset.ts) }));
+setInterval(() => {
+  for (const el of statuses) if (!el.hidden) showStatus(el);
+  for (const el of document.querySelectorAll(".vehicle-ago")) showAgo(el);
+}, 1000);
+
+// Bearing in degrees from a to b, both [lon, lat]
+function bearingOf(a, b) {
+  const rad = Math.PI / 180;
+  const [x1, y1, x2, y2] = [a[0] * rad, a[1] * rad, b[0] * rad, b[1] * rad];
+  const y = Math.sin(x2 - x1) * Math.cos(y2);
+  const x = Math.cos(y1) * Math.sin(y2) - Math.sin(y1) * Math.cos(y2) * Math.cos(x2 - x1);
+  return ((Math.atan2(y, x) / rad) + 360) % 360;
+}
+// Metres between two [lon, lat], flat-earth, fine for a poll's movement
+function metres(a, b) {
+  const k = Math.cos((a[1] * Math.PI) / 180);
+  return Math.hypot((b[0] - a[0]) * k, b[1] - a[1]) * 111_320;
+}
+// Movement below this between polls gives no bearing
+const MIN_MOVE_M = 15;
+
+// Vehicle layers as rt-viewer draws them: a route-colored dot on a dark
+// casing, or a route-colored arrow with a dark halo for vehicles with a bearing
+const VEHICLE_CASING = "#0f172a";
+const VEHICLE_LAYERS = ["vehicles-halo", "vehicles-casing", "vehicles-dot", "vehicles-arrow", "vehicles-hit"];
+const byZoom = (...stops) => ["interpolate", ["linear"], ["zoom"], ...stops];
+const FOCUSED = ["boolean", ["feature-state", "focused"], false];
+
+// A north-pointing arrow as an SDF, so icon-color tints it; blurred so the
+// edge has a ramp for the distance field
+function addArrowImage(map) {
+  if (map.hasImage("vehicle-arrow")) return;
+  const size = 48;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext("2d");
+  g.filter = "blur(2px)";
+  g.fillStyle = "#000";
+  g.beginPath();
+  g.moveTo(size / 2, 6);
+  g.lineTo(size - 10, size - 8);
+  g.lineTo(size / 2, size - 16);
+  g.lineTo(10, size - 8);
+  g.closePath();
+  g.fill();
+  map.addImage("vehicle-arrow", g.getImageData(0, 0, size, size), { sdf: true });
+}
+
+function addVehicleLayers(map, data) {
+  addArrowImage(map);
+  map.addSource("vehicles", { type: "geojson", data, promoteId: "id" });
+  const noBearing = ["==", ["get", "has_bearing"], false];
+  map.addLayer({
+    id: "vehicles-halo",
+    type: "circle",
+    source: "vehicles",
+    paint: {
+      "circle-radius": byZoom(8, ["case", FOCUSED, 11, 0], 14, ["case", FOCUSED, 17, 0], 18, ["case", FOCUSED, 23, 0]),
+      "circle-color": ink(),
+      "circle-opacity": 0.25,
+      "circle-stroke-color": ink(),
+      "circle-stroke-width": ["case", FOCUSED, 2, 0],
+    },
+  });
+  map.addLayer({
+    id: "vehicles-casing",
+    type: "circle",
+    source: "vehicles",
+    filter: noBearing,
+    paint: { "circle-radius": byZoom(8, 7, 14, 9.5, 18, 13), "circle-color": VEHICLE_CASING },
+  });
+  map.addLayer({
+    id: "vehicles-dot",
+    type: "circle",
+    source: "vehicles",
+    filter: noBearing,
+    paint: {
+      "circle-radius": byZoom(8, 5, 14, 7.5, 18, 11),
+      "circle-color": ["get", "color"],
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": ["case", FOCUSED, 3, 1.5],
+    },
+  });
+  map.addLayer({
+    id: "vehicles-arrow",
+    type: "symbol",
+    source: "vehicles",
+    filter: ["==", ["get", "has_bearing"], true],
+    layout: {
+      "icon-image": "vehicle-arrow",
+      "icon-size": byZoom(8, 0.6, 14, 0.85, 18, 1.15),
+      "icon-rotate": ["get", "bearing"],
+      "icon-rotation-alignment": "map",
+      "icon-allow-overlap": true,
+      "icon-ignore-placement": true,
+    },
+    paint: {
+      "icon-color": ["get", "color"],
+      "icon-halo-color": VEHICLE_CASING,
+      "icon-halo-width": ["case", FOCUSED, 3, 2],
+    },
+  });
+  // The only layer clicks and hovers query, never smaller than a drawn vehicle
+  map.addLayer({
+    id: "vehicles-hit",
+    type: "circle",
+    source: "vehicles",
+    paint: { "circle-radius": byZoom(8, 12, 14, 15, 18, 20), "circle-color": "transparent", "circle-opacity": 0 },
+  });
+}
+
+// Where a vehicle is relative to its stop, from currentStatus
+const STATUS_TEXT = ["map.arriving_at", "map.stopped_at", "map.next_stop"];
+
+// Polls url every POLL_MS while el is on screen and the tab is visible.
+// routeOf(v) gives a vehicle's route ({ color, ... }), or null to leave it off
+// this map; describe(v, route) gives { head, stop, link } for its popup: a
+// node above the label, the name of v.stopId and a node below. Returns draw,
+// which puts the vehicle layers on a new basemap style, and refresh, which
+// rebuilds them after routeOf changes
+function live(L, map, el, url, routeOf, describe) {
+  // Vehicles from the last poll: { id, label, routeId, tripId, stopId, status, at, bearing, ts }
+  let list = [];
+  // Last position and bearing per vehicle, for feeds that send no bearing
+  const last = new Map();
+  // The vehicle whose popup is open
+  let focused = null;
+  let popup = null;
+
+  const features = () => {
+    const out = [];
+    for (const v of list) {
+      const route = routeOf(v);
+      if (!route) continue;
+      const properties = { id: v.id, color: lineColor(route.color), has_bearing: v.bearing != null };
+      if (v.bearing != null) properties.bearing = v.bearing;
+      out.push({ type: "Feature", properties, geometry: { type: "Point", coordinates: v.at } });
+    }
+    return { type: "FeatureCollection", features: out };
+  };
+  const setFocus = (id) => {
+    if (focused != null && map.getSource("vehicles")) map.setFeatureState({ source: "vehicles", id: focused }, { focused: false });
+    focused = id;
+    if (focused != null && map.getSource("vehicles")) map.setFeatureState({ source: "vehicles", id: focused }, { focused: true });
+  };
+  const draw = () => {
+    addVehicleLayers(map, features());
+    setFocus(focused);
+  };
+  const refresh = () => {
+    map.getSource("vehicles")?.setData(features());
+    if (focused != null && !list.some((v) => v.id === focused && routeOf(v))) popup?.remove();
+  };
+
+  const content = (v) => {
+    const route = routeOf(v);
+    const { head, stop, link } = describe(v, route);
+    const root = document.createElement("div");
+    root.className = "map-popup-vehicle";
+    if (head) root.append(head);
+    const label = document.createElement("strong");
+    label.textContent = t("map.vehicle", { label: v.label });
+    root.append(label);
+    if (stop) {
+      const line = document.createElement("div");
+      line.textContent = t(STATUS_TEXT[v.status] ?? STATUS_TEXT[2], { stop });
+      root.append(line);
+    }
+    if (v.ts) {
+      const line = document.createElement("div");
+      line.className = "vehicle-ago";
+      line.dataset.ts = v.ts;
+      showAgo(line);
+      root.append(line);
+    }
+    if (link) root.append(link);
+    return root;
+  };
+
+  draw();
+  onClick(L, map, RANK_VEHICLE, (e) => {
+    const [found] = hits(map, e.point, ["vehicles-hit"], 4);
+    const v = found && list.find((x) => x.id === found.properties.id);
+    if (!v) return null;
+    return {
+      at: v.at,
+      content: content(v),
+      opened: (p) => {
+        popup = p;
+        setFocus(v.id);
+        p.on("close", () => {
+          if (popup !== p) return;
+          popup = null;
+          setFocus(null);
+        });
+      },
+    };
+  });
+  map.on("mouseenter", "vehicles-hit", () => (map.getCanvas().style.cursor = "pointer"));
+  map.on("mouseleave", "vehicles-hit", () => (map.getCanvas().style.cursor = ""));
+
+  const status = el.querySelector(".map-live");
+  if (status) statuses.add(status);
+  pollWhileShown(el, async () => {
+    let feed;
+    try {
+      feed = await fetchFeed(url);
+    } catch (err) {
+      if (status) status.hidden = true;
+      throw err;
+    }
+    const feedTs = num(feed.header?.timestamp) || Date.now() / 1000;
+    list = [];
+    for (const entity of feed.entity ?? []) {
+      const v = entity.vehicle;
+      const pos = v?.position;
+      if (!pos) continue;
+      const id = v.vehicle?.id || entity.id;
+      const at = [pos.longitude, pos.latitude];
+      const seen = last.get(id);
+      let bearing = Object.hasOwn(pos, "bearing") ? pos.bearing : null;
+      if (bearing == null && seen) bearing = metres(seen.at, at) >= MIN_MOVE_M ? bearingOf(seen.at, at) : seen.bearing;
+      if (!seen || metres(seen.at, at) >= MIN_MOVE_M) last.set(id, { at, bearing });
+      list.push({
+        id,
+        label: v.vehicle?.label || id,
+        routeId: v.trip?.routeId,
+        tripId: v.trip?.tripId,
+        stopId: v.stopId || null,
+        // Unset means IN_TRANSIT_TO, as the spec defaults it
+        status: Object.hasOwn(v, "currentStatus") ? v.currentStatus : 2,
+        at,
+        bearing,
+        ts: num(v.timestamp) || feedTs,
+      });
+    }
+    const data = features();
+    map.getSource("vehicles")?.setData(data);
+    // The open popup follows its vehicle, and closes once it leaves the map
+    const v = focused != null && list.find((x) => x.id === focused && routeOf(x));
+    if (v && popup) popup.setLngLat(v.at).setDOMContent(content(v));
+    else popup?.remove();
+    if (status) {
+      status.dataset.n = data.features.length;
+      status.dataset.ts = feedTs;
+      status.hidden = false;
+      showStatus(status);
+    }
+  });
+  return { draw, refresh };
+}
+
+/* Live times in the timetable */
+
+const dayClocks = new Map();
+// Seconds after local midnight in tz for an epoch in seconds
+function secondsOfDay(epoch, tz) {
+  let f = dayClocks.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { timeZone: tz || undefined, hourCycle: "h23", hour: "numeric", minute: "numeric", second: "numeric" });
+    dayClocks.set(tz, f);
+  }
+  const parts = Object.fromEntries(f.formatToParts(new Date(epoch * 1000)).map((p) => [p.type, p.value]));
+  return +parts.hour * 3600 + +parts.minute * 60 + +parts.second;
+}
+// sec moved by whole days to within half a day of ref, for times past midnight
+function nearDay(sec, ref) {
+  return sec + Math.round((ref - sec) / 86400) * 86400;
+}
+// A clock time as the tables show it in prose, like pages.clock_label
+function clockText(sec, fmt) {
+  const minutes = Math.floor((((sec % 86400) + 86400) % 86400) / 60);
+  const [h, m] = [Math.floor(minutes / 60), String(minutes % 60).padStart(2, "0")];
+  if (fmt === "24h") return `${String(h).padStart(2, "0")}:${m}`;
+  return `${((h + 11) % 12) + 1}:${m} ${h >= 12 ? "PM" : "AM"}`;
+}
+
+// Seconds from pages.minute_steps: the first minute, then minutes since the previous
+function fromSteps(steps) {
+  let minute = null;
+  return steps.map((step) => {
+    if (step == null) return null;
+    minute = minute == null ? step : minute + step;
+    return minute * 60;
+  });
+}
+
+// The route body's live.json, fetched once and shared by its map and tables;
+// null without one. A failed fetch is retried on the next call
+const liveConfigs = new WeakMap();
+function liveConfig(body) {
+  const el = body.querySelector(".rt-data");
+  if (!el) return Promise.resolve(null);
+  let config = liveConfigs.get(body);
+  if (!config) {
+    config = fetch(el.dataset.src).then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    });
+    config.catch(() => liveConfigs.delete(body));
+    liveConfigs.set(body, config);
+  }
+  return config;
+}
+
+// Polls the trip updates feed for the route body's tables: running trips'
+// columns marked, predicted times under the scheduled ones, canceled trips
+// struck. The route's live.json is fetched once the body is first on screen
+function initLiveTimes(body) {
+  let config;
+  // trip id -> [{ table, col, stops, sched }]
+  const byTrip = new Map();
+  async function load() {
+    config = await liveConfig(body);
+    // Tables in page order, as build.py lists them
+    const tables = body.querySelectorAll("table.timetable");
+    config.tables.forEach((data, i) => {
+      const table = tables[i];
+      if (!table?.tBodies[0]) return;
+      data.trips.forEach((trip, col) => {
+        if (!trip) return;
+        if (!byTrip.has(trip)) byTrip.set(trip, []);
+        byTrip.get(trip).push({ table, col, stops: data.stops, sched: fromSteps(data.sched[col]) });
+      });
+    });
+  }
+  const cellAt = (table, row, col) => table.tBodies[0].rows[row]?.cells[col + 1];
+  const marked = new Set();
+  const clear = () => {
+    for (const el of marked) {
+      el.classList.remove("live", "canceled");
+      el.removeAttribute("title");
+      el.querySelector(".rt")?.remove();
+    }
+    marked.clear();
+  };
+  const mark = (el, cls) => {
+    el.classList.add(cls);
+    marked.add(el);
+  };
+
+  pollWhileShown(body, async () => {
+    if (!config) await load();
+    if (!byTrip.size) return;
+    const { TripDescriptor, TripUpdate } = await rt();
+    const feed = await fetchFeed(config.url);
+    const SKIPPED = TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED;
+    const NO_DATA = TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA;
+    const now = secondsOfDay(Date.now() / 1000, config.tz);
+    clear();
+    for (const entity of feed.entity ?? []) {
+      const tu = entity.tripUpdate;
+      const places = byTrip.get(tu?.trip?.tripId);
+      if (!places) continue;
+      // By the stop ids the rows use: platforms under their station
+      const updates = new Map((tu.stopTimeUpdate ?? []).filter((u) => u.stopId).map((u) => [config.parents[u.stopId] ?? u.stopId, u]));
+      for (const { table, col, stops, sched } of places) {
+        const cells = sched.map((_, row) => cellAt(table, row, col));
+        if (tu.trip.scheduleRelationship === TripDescriptor.ScheduleRelationship.CANCELED) {
+          for (const el of cells) {
+            if (!el) continue;
+            mark(el, "canceled");
+            el.title = t("rt.canceled");
+          }
+          continue;
+        }
+        // The last known delay carries forward to later stops
+        let delay = null;
+        const shown = [];
+        sched.forEach((time, row) => {
+          if (time == null) return;
+          const u = updates.get(stops[row]);
+          let skipped = false;
+          if (u) {
+            if (u.scheduleRelationship === SKIPPED) skipped = true;
+            else if (u.scheduleRelationship === NO_DATA) delay = null;
+            else {
+              const event = u.departure ?? u.arrival;
+              if (event && Object.hasOwn(event, "delay")) delay = event.delay;
+              else if (event && Object.hasOwn(event, "time")) delay = nearDay(secondsOfDay(num(event.time), config.tz), time) - time;
+            }
+          }
+          shown.push({ row, time, skipped, delay });
+        });
+        const ref = (time) => nearDay(now, time);
+        const started = shown.some((p) => p.delay != null && p.time + p.delay <= ref(p.time));
+        const upcoming = shown.filter((p) => p.skipped || (p.delay != null && p.time + p.delay >= ref(p.time) - 60));
+        if (started && upcoming.length) for (const el of cells) if (el) mark(el, "live");
+        for (const p of upcoming) {
+          const el = cells[p.row];
+          if (!el) continue;
+          const tag = document.createElement("small");
+          tag.className = "rt";
+          if (p.skipped) {
+            tag.textContent = t("rt.skipped");
+            tag.dataset.state = "late";
+          } else {
+            const late = Math.round(p.delay / 60);
+            tag.textContent = late === 0 ? t("rt.on_time") : `${clockText(p.time + p.delay, config.fmt)} (${late > 0 ? "+" : ""}${late})`;
+            tag.dataset.state = late > 1 ? "late" : "ontime";
+          }
+          el.append(tag);
+          marked.add(el);
+        }
+      }
+    }
+  });
 }
 
 /* Route accordion on the site's index */
@@ -741,11 +1262,13 @@ async function loadRoute(details) {
     // Links in the route page are relative to it
     const base = new URL(body.dataset.src, location.href);
     for (const a of content.querySelectorAll("a[href]")) a.href = new URL(a.getAttribute("href"), base).href;
+    for (const el of content.querySelectorAll(".rt-data")) el.dataset.src = new URL(el.dataset.src, base).href;
     // Above the route-page button, which stays last
     const open = body.querySelector(".route-open");
     if (open) open.before(...content.childNodes);
     else body.append(...content.childNodes);
     if (body.querySelector(".route-data")) initRouteMap(body);
+    if (body.querySelector(".rt-data")) initLiveTimes(body);
   } catch (err) {
     console.warn("route", err);
     const p = body.querySelector(".route-loading");
@@ -773,6 +1296,7 @@ openFromHash();
 for (const card of document.querySelectorAll("[data-route-body]")) {
   const holder = card.querySelector(".route-maps");
   if (holder) whenNear(holder, () => initRouteMap(card));
+  if (card.querySelector(".rt-data")) initLiveTimes(card);
 }
 const system = document.querySelector(".system");
 if (system) whenNear(system, () => initSystemMap(system));

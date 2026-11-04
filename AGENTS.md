@@ -31,7 +31,7 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 | `places.py` | A feed's state, province or country from its stop times, reverse-geocoded offline with `reverse_geocode`, for page titles and JSON-LD |
 | `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts) for the content report |
 | `maps/geo.py` | Route and system map data for `map.js`: shapes (or stop sequences) simplified by Douglas-Peucker at a share of the map's extent, parts that retrace a line dropped, numbered stops, lines shared by routes stored once |
-| `templates/map.js` | MapLibre route maps (numbered stops, insets for crowded stops), the system map (mode toggles, hover, click to open a route), the index's route accordion and live vehicles; MapLibre and the GTFS-RT decoder come from jsdelivr |
+| `templates/map.js` | MapLibre route maps (numbered stops, insets for crowded stops), the system map (mode toggles, hover, click to open a route), the index's route accordion, live vehicles and live times in the timetables (from `<slug>/live.json`); MapLibre and the GTFS-RT decoder come from jsdelivr |
 | `i18n.py` | `en` and `fr` string catalogs, `t()` with `_one` / `_other` plurals, weekday and month names for dates |
 | `render.py` | Jinja environment over `templates/`, with `t()` as a global in the page's `locale` |
 | `templates/` | Page templates and CSS (Tailwind + daisyUI, `style.css` built by `pnpm run build:css` and committed) |

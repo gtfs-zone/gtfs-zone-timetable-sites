@@ -9,8 +9,11 @@ and service day, with numbered stops matching an interactive route map. The
 index has a map of every route and opens each route's timetables in place.
 Maps use MapLibre GL JS and OpenFreeMap tiles, loaded from their CDNs when a
 map scrolls into view, and show live vehicles when the catalog feed has a
-working vehicle positions URL (fetched through the cors.kcfam.us proxy, as
-rt-viewer does). No JavaScript is needed to read a timetable.
+working vehicle positions URL. With a working trip updates URL, timetables
+show predicted times for running trips, from each route's `live.json`
+(fetched once the timetable is on screen). Realtime feeds are fetched through
+the cors.kcfam.us proxy, as rt-viewer does, except rt.gtfs.zone. No
+JavaScript is needed to read a timetable.
 
 ## Running Locally
 

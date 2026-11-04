@@ -293,6 +293,16 @@ class TableView:
     anchor: str = ""
     trips: int = 0
     gutter: int = 0
+    # For live times: each column's trip id ("" for frequency columns), each
+    # row's stop id, and each column's scheduled times (see `minute_steps`).
+    trip_ids: tuple[str, ...] = ()
+    stop_ids: tuple[str, ...] = ()
+    sched: tuple[tuple[int | None, ...], ...] = ()
+
+    @property
+    def live(self) -> dict[str, object]:
+        """The live-times data map.js reads for this table, in page order."""
+        return {"trips": self.trip_ids, "stops": self.stop_ids, "sched": self.sched}
 
     @property
     def show_amenities(self) -> bool:
@@ -529,6 +539,22 @@ def feed_amenities(
     return tuple(notes), frozenset(marked)
 
 
+def minute_steps(times: Sequence[int | None]) -> tuple[int | None, ...]:
+    """Times in seconds as minutes: the first time, then minutes since the
+    previous time, None where there is none. Trips of a pattern share their
+    steps, which keeps the page small once compressed."""
+    steps: list[int | None] = []
+    last = None
+    for seconds in times:
+        if seconds is None:
+            steps.append(None)
+            continue
+        minute = seconds // 60
+        steps.append(minute if last is None else minute - last)
+        last = minute
+    return tuple(steps)
+
+
 def table_view(
     feed: Feed,
     table: Timetable,
@@ -634,6 +660,16 @@ def table_view(
         anchor=anchor,
         trips=len(table.columns),
         gutter=gutter_width(graph.lane_count),
+        trip_ids=tuple(
+            "" if column.headway else column.trip_id for column in table.columns
+        ),
+        stop_ids=tuple(table.rows[i].stop_id for i in shown),
+        sched=tuple(
+            minute_steps(
+                [column.cells[i].time if column.cells[i] else None for i in shown]
+            )
+            for column in table.columns
+        ),
     )
 
 

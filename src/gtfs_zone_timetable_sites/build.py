@@ -43,7 +43,7 @@ from gtfs_zone_timetable_sites.pages import (
     tidy,
 )
 from gtfs_zone_timetable_sites.places import feed_place, place_label
-from gtfs_zone_timetable_sites.render import asset, render
+from gtfs_zone_timetable_sites.render import asset, compact_json, render
 from gtfs_zone_timetable_sites.timetable import Timetable, route_timetables
 
 BASE_URL = "https://sites.gtfs.zone"
@@ -251,6 +251,7 @@ def build_site(
     groups = mode_groups([view for view in routes if view.state != "expired"], locale)
     expired = [view for view in routes if view.state == "expired"]
     vehicles = site.vehicles_url()
+    updates = site.trip_updates_url()
     shown = [view.slug for group in groups for view in group.routes]
     by_slug = {
         view.slug: (view, rt) for view, rt in zip(routes, timetables, strict=True)
@@ -298,12 +299,26 @@ def build_site(
             else None
         )
         route_map = script_json(data) if data and data["lines"] else ""
+        days = day_views(feed, rt.tables, site.time_format, marked, locale)
+        # Live-times data is fetched only once a timetable is on screen, so
+        # it adds nothing to the page itself
+        if updates:
+            files[f"{view.slug}/{LIVE_FILE}"] = compact_json(
+                {
+                    "url": updates,
+                    "tz": feed.timezone(rt.route),
+                    "fmt": site.time_format,
+                    "tables": [table.live for day in days for table in day.tables],
+                    "parents": stop_parents(feed, rt.tables),
+                }
+            ).encode()
         files[f"{view.slug}/index.html"] = render(
             "route.html",
             **common,
             route=view,
             map=route_map,
-            days=day_views(feed, rt.tables, site.time_format, marked, locale),
+            live=LIVE_FILE if updates else "",
+            days=days,
             jsonld=[
                 breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
                 *place_jsonld(place, label, f"{base_url}{view.slug}/"),
@@ -356,18 +371,29 @@ def build_site(
     return files
 
 
-def script_json(value: object) -> Markup:
-    """JSON safe to put inside a <script> element."""
-    text = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
-    return Markup(text.replace("<", "\\u003c"))
+# JSON safe to put inside a <script> element.
+script_json = compact_json
 
+
+# A route's live-times data, next to its page.
+LIVE_FILE = "live.json"
 
 # Text map.js shows, by i18n key.
 MAP_TEXT = (
     "map.in_timetable",
     "map.vehicle",
+    "map.to",
+    "map.stopped_at",
+    "map.arriving_at",
+    "map.next_stop",
+    "map.position_ago",
+    "map.open_timetable",
     "map.live_one",
     "map.live_other",
+    "map.updated",
+    "rt.on_time",
+    "rt.skipped",
+    "rt.canceled",
     "index.load_error",
 )
 
@@ -387,6 +413,18 @@ def map_text(locale: Locale, modes: list[str]) -> Markup:
 
 # Trip ids listed for realtime matching up to this many per route.
 MAX_RT_TRIPS = 400
+
+
+def stop_parents(feed: Feed, tables: list[Timetable]) -> dict[str, str]:
+    """Stop id -> the station the timetable rows use, for the route's stops
+    inside a station; realtime feeds name the platform."""
+    trips = {c.trip_id for t in tables for c in t.columns}
+    return {
+        st.stop_id: station
+        for trip in sorted(trips)
+        for st in feed.stop_times.get(trip, ())
+        if (station := feed.station(st.stop_id)) != st.stop_id
+    }
 
 
 def route_ids(feed: Feed, tables: list[Timetable]) -> dict[str, list[str]]:

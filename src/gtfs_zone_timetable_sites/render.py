@@ -1,5 +1,6 @@
 """Jinja environment over templates/, rendering pages to bytes."""
 
+import json
 from datetime import date
 from functools import cache
 
@@ -21,6 +22,12 @@ def translate(context: Context, key: str, **values: object) -> Markup:
 @pass_context
 def long_date(context: Context, day: date) -> str:
     return i18n.long_date(day, context["locale"])
+
+
+def compact_json(value: object) -> Markup:
+    """JSON without spaces, safe inside a <script> element."""
+    text = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+    return Markup(text.replace("<", "\\u003c"))
 
 
 @cache

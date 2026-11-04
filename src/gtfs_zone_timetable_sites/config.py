@@ -100,12 +100,19 @@ class Site(Options):
             return (self.license_url,)
         return self.catalog.licenses if self.catalog else ()
 
-    def vehicles_url(self) -> str | None:
-        """The catalog's best vehicle positions URL, when its check is up."""
-        if self.catalog is None or self.catalog.role_state.get("vehicles") != "up":
+    def realtime_url(self, role: str) -> str | None:
+        """The catalog's best URL for a realtime role (vehicles, trip_updates),
+        when its check is up."""
+        if self.catalog is None or self.catalog.role_state.get(role) != "up":
             return None
-        urls = self.catalog.urls.get("vehicles")
+        urls = self.catalog.urls.get(role)
         return urls[0] if urls else None
+
+    def vehicles_url(self) -> str | None:
+        return self.realtime_url("vehicles")
+
+    def trip_updates_url(self) -> str | None:
+        return self.realtime_url("trip_updates")
 
     def download_url(self) -> str:
         """The direct URL, else the catalog's best scheduled URL."""
