@@ -1,3 +1,15 @@
+## v0.19.0 (2026-11-04)
+
+### Feat
+
+- agency search, world map and region maps on the root pages
+- live times in timetables, rt-viewer style vehicles with popups
+
+### Fix
+
+- **maps**: scale vehicles with zoom, small but visible zoomed out
+- **maps**: fetch rt.gtfs.zone vehicles without the CORS proxy
+
 ## v0.18.1 (2026-11-03)
 
 ### Fix
