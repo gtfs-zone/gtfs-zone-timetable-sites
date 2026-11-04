@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ country.name }} transit timetables - sites.gtfs.zone{% endblock %}
 {% block description %}Bus and train timetables for {{ country.sites | length }} transit agenc{{ "ies" if country.sites | length != 1 else "y" }} in {{ country.name }}, generated from their GTFS feeds.{% endblock %}
+{% block head %}
+<script type="module" src="{{ root }}root.js"></script>
+{% endblock %}
 {% block brand %}
 <a class="btn btn-ghost h-auto min-h-11 gap-3 py-2" href="{{ root }}">
 <img class="w-8 rounded-lg" src="{{ root }}logo.svg" alt="">
@@ -16,12 +19,30 @@
   "unavailable": ("bg-base-300", "Unavailable", "badge-ghost"),
 } %}
 <h1 class="text-3xl font-bold">{{ country.name }}</h1>
-{% for subdivision, sites in country.subdivisions %}
+{% if country.sites | length > 1 %}
+<label class="input input-lg w-full">
+<svg class="size-5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<input type="search" id="site-search" data-status="search-status" placeholder="Search agencies in {{ country.name }}" autocomplete="off" aria-describedby="search-status">
+</label>
+<p class="sr-only" id="search-status" role="status"></p>
+{% endif %}
+{% if boundaries %}
+<section class="card area bg-base-100 shadow-sm" data-src="regions.json" data-key="id" data-href="#{}">
+<div class="card-body p-2">
+<div class="relative">
+<div class="area-map" role="region" aria-label="Map of regions of {{ country.name }} with timetables"></div>
+<p class="map-cap" hidden></p>
+</div>
+</div>
+</section>
+{% endif %}
+{% for subdivision in country.subdivisions %}
+<div class="site-section flex flex-col gap-4" data-name="{{ subdivision.name }}">
 {% if country.subdivisions | length > 1 %}
-<h2 class="text-xl font-semibold">{{ subdivision or "Elsewhere" }}</h2>
+<h2 class="scroll-mt-4 text-xl font-semibold"{% if subdivision.id %} id="{{ subdivision.id }}"{% endif %}>{{ subdivision.name or "Elsewhere" }}</h2>
 {% endif %}
 <ul class="list rounded-box bg-base-100 shadow-sm">
-{% for site in sites %}
+{% for site in subdivision.sites %}
 {% set status = statuses[site.status] %}
 {% set tag = "a" if site.status != "unavailable" else "div" %}
 <li><{{ tag }} class="flex min-h-11 items-center gap-3 rounded-box px-4 py-2{% if tag == "a" %} hover:bg-base-200{% else %} opacity-70{% endif %}"{% if tag == "a" %} href="{{ root }}{{ site.slug }}/"{% endif %}>
@@ -40,10 +61,14 @@
 </{{ tag }}></li>
 {% endfor %}
 </ul>
+</div>
 {% endfor %}
 {% endblock %}
 {% block footer %}
 <p>Generated daily from each agency's GTFS feed by <a class="link" href="https://github.com/gtfs-zone/gtfs-zone-timetable-sites" target="_blank" rel="noopener">timetable-sites</a>. Check with the agency before you travel.</p>
 <p>Feeds found through <a class="link" href="https://list.gtfs.zone" target="_blank" rel="noopener">list.gtfs.zone</a>, from the <a class="link" href="https://github.com/transitland/transitland-atlas" target="_blank" rel="noopener">Transitland Atlas</a> (<a class="link" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>) and the <a class="link" href="https://mobilitydatabase.org" target="_blank" rel="noopener">Mobility Database</a>. Each timetable is built from its publisher's data, on the publisher's terms.</p>
+{% if boundaries %}
+<p>Region borders from <a class="link" href="https://www.geoboundaries.org" target="_blank" rel="noopener">geoBoundaries</a> (<a class="link" href="{{ boundaries.source_url }}" target="_blank" rel="noopener">{{ boundaries.source or "source" }}</a>), {% if boundaries.license_url %}<a class="link" href="{{ boundaries.license_url }}" target="_blank" rel="noopener">{{ boundaries.license }}</a>{% else %}{{ boundaries.license }}{% endif %}.</p>
+{% endif %}
 <p><a class="link" href="{{ root }}">All countries</a></p>
 {% endblock %}
