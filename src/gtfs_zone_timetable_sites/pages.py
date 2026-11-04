@@ -38,7 +38,7 @@ from gtfs_zone_timetable_sites.strip import (
     row_paths,
     stop_stats,
 )
-from gtfs_zone_timetable_sites.timetable import Cell, Column, Timetable
+from gtfs_zone_timetable_sites.timetable import Cell, Column, Timetable, mode_name
 
 DAY_SECONDS = 24 * 3600
 # Minimum WCAG contrast for badge text on the route color.
@@ -96,30 +96,6 @@ def badge_colors(route: Route) -> tuple[str, str]:
     return color, text_color(color, route.text_color)
 
 
-# Basic GTFS route types, then extended ones as (first, last) ranges.
-MODES = {
-    0: "light rail",
-    1: "subway",
-    2: "train",
-    3: "bus",
-    4: "ferry",
-    5: "cable car",
-    6: "gondola",
-    7: "funicular",
-    11: "trolleybus",
-    12: "monorail",
-}
-EXTENDED_MODES = (
-    (100, 199, "train"),
-    (200, 299, "bus"),
-    (400, 499, "subway"),
-    (700, 799, "bus"),
-    (800, 800, "trolleybus"),
-    (900, 999, "light rail"),
-    (1000, 1099, "ferry"),
-    (1300, 1399, "gondola"),
-    (1400, 1499, "funicular"),
-)
 # Order of the mode sections on a site's index.
 MODE_ORDER = (
     "subway",
@@ -134,16 +110,6 @@ MODE_ORDER = (
     "funicular",
     "transit",
 )
-
-
-def mode_name(route_type: int) -> str:
-    """'bus', 'train' and so on for a route type, else 'transit'."""
-    if route_type in MODES:
-        return MODES[route_type]
-    for first, last, name in EXTENDED_MODES:
-        if first <= route_type <= last:
-            return name
-    return "transit"
 
 
 def mode_label(mode: str, locale: Locale = "en") -> str:

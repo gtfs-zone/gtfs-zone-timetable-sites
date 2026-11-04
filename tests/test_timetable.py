@@ -1,5 +1,6 @@
 from datetime import date
 
+import pytest
 from conftest import fixture_files, fixture_zip, make_zip
 
 from gtfs_zone_timetable_sites.gtfs.reader import read_feed
@@ -120,6 +121,16 @@ def test_auto_timepoints_capped_and_spread_without_flags():
     assert chosen[0] == "A" and chosen[-1] == "G"
     assert len(chosen) == 4
     assert "C" not in chosen and "E" not in chosen
+
+
+@pytest.mark.parametrize(("route_type", "shown"), [(109, 7), (900, 7), (700, 4)])
+def test_extended_route_types_by_mode(route_type, shown):
+    files = fixture_files("missing-timepoints")
+    files["routes.txt"] = files["routes.txt"].replace(",3", f",{route_type}")
+    feed = read_feed(make_zip(files))
+    types = day_types(feed, feed.trips, MONDAY, 7)
+    (table,) = route_timetables(feed, "R", types, cap=4)
+    assert sum(row.timepoint for row in table.rows) == shown
 
 
 def test_timepoint_flags_win_in_auto():

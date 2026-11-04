@@ -16,11 +16,56 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     trip_note,
 )
 
-# Route types shown with every stop: tram, subway, rail, ferry, cable, funicular.
-ALL_STOPS_ROUTE_TYPES = frozenset({0, 1, 2, 4, 5, 6, 7, 12})
+# Basic GTFS route types, then extended ones as (first, last) ranges.
+MODES = {
+    0: "light rail",
+    1: "subway",
+    2: "train",
+    3: "bus",
+    4: "ferry",
+    5: "cable car",
+    6: "gondola",
+    7: "funicular",
+    11: "trolleybus",
+    12: "monorail",
+}
+EXTENDED_MODES = (
+    (100, 199, "train"),
+    (200, 299, "bus"),
+    (400, 499, "subway"),
+    (700, 799, "bus"),
+    (800, 800, "trolleybus"),
+    (900, 999, "light rail"),
+    (1000, 1099, "ferry"),
+    (1300, 1399, "gondola"),
+    (1400, 1499, "funicular"),
+)
+# Modes shown with every stop.
+ALL_STOPS_MODES = frozenset(
+    {
+        "light rail",
+        "subway",
+        "train",
+        "ferry",
+        "cable car",
+        "gondola",
+        "funicular",
+        "monorail",
+    }
+)
 # Headsign groups sharing less than this share of the smaller one's stops get
 # separate tables.
 BRANCH_OVERLAP = 0.5
+
+
+def mode_name(route_type: int) -> str:
+    """'bus', 'train' and so on for a route type, else 'transit'."""
+    if route_type in MODES:
+        return MODES[route_type]
+    for first, last, name in EXTENDED_MODES:
+        if first <= route_type <= last:
+            return name
+    return "transit"
 
 
 @dataclass(frozen=True, slots=True)
@@ -366,7 +411,7 @@ def build_timetable(
         chosen = every_row
     elif timepoints == "timepoint-flag":
         chosen = flagged or every_row
-    elif route.route_type in ALL_STOPS_ROUTE_TYPES or len(merged) <= cap:
+    elif mode_name(route.route_type) in ALL_STOPS_MODES or len(merged) <= cap:
         chosen = every_row
     elif flagged:
         ends = {p for pattern in positions.values() for p in (pattern[0], pattern[-1])}
