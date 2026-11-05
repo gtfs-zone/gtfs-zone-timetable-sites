@@ -1,3 +1,9 @@
+## v0.21.0 (2026-11-05)
+
+### Feat
+
+- route modes from gtfs-zone-vocab, with coach, air, taxi and misc modes
+
 ## v0.20.0 (2026-11-05)
 
 ### Feat
