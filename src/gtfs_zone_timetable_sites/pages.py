@@ -102,12 +102,16 @@ MODE_ORDER = (
     "light rail",
     "monorail",
     "train",
+    "coach",
     "trolleybus",
     "bus",
     "ferry",
     "cable car",
     "gondola",
     "funicular",
+    "air",
+    "taxi",
+    "misc",
     "transit",
 )
 

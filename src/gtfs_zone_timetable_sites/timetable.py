@@ -1,10 +1,13 @@
 """Route + direction + day type to a Timetable: stops down, trips across."""
 
+import logging
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from functools import cmp_to_key
+from functools import cache, cmp_to_key
 from itertools import pairwise
+
+from gtfs_zone_vocab.route_types import route_type_info
 
 from gtfs_zone_timetable_sites.config import TimeFormat, Timepoints
 from gtfs_zone_timetable_sites.gtfs.reader import Feed, StopTime, Trip
@@ -16,7 +19,9 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     trip_note,
 )
 
-# Basic GTFS route types, then extended ones as (first, last) ranges.
+log = logging.getLogger(__name__)
+
+# Mode name per base GTFS route type.
 MODES = {
     0: "light rail",
     1: "subway",
@@ -29,17 +34,8 @@ MODES = {
     11: "trolleybus",
     12: "monorail",
 }
-EXTENDED_MODES = (
-    (100, 199, "train"),
-    (200, 299, "bus"),
-    (400, 499, "subway"),
-    (700, 799, "bus"),
-    (800, 800, "trolleybus"),
-    (900, 999, "light rail"),
-    (1000, 1099, "ferry"),
-    (1300, 1399, "gondola"),
-    (1400, 1499, "funicular"),
-)
+# Vocab families shown as their own mode instead of their base type's.
+FAMILY_MODES = frozenset({"coach", "air", "taxi", "misc"})
 # Modes shown with every stop.
 ALL_STOPS_MODES = frozenset(
     {
@@ -58,14 +54,18 @@ ALL_STOPS_MODES = frozenset(
 BRANCH_OVERLAP = 0.5
 
 
+@cache
 def mode_name(route_type: int) -> str:
     """'bus', 'train' and so on for a route type, else 'transit'."""
-    if route_type in MODES:
-        return MODES[route_type]
-    for first, last, name in EXTENDED_MODES:
-        if first <= route_type <= last:
-            return name
-    return "transit"
+    info = route_type_info(route_type)
+    if info is None:
+        log.warning("Unknown route_type %d, shown as transit", route_type)
+        return "transit"
+    if info.family in FAMILY_MODES:
+        return info.family
+    if info.base_type is None:
+        raise ValueError(f"route_type {route_type} has no base type or mode")
+    return MODES[info.base_type]
 
 
 @dataclass(frozen=True, slots=True)

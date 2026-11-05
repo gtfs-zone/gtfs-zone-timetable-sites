@@ -596,6 +596,7 @@ version = "0.20.0"
 source = { editable = "." }
 dependencies = [
     { name = "anyascii" },
+    { name = "gtfs-zone-vocab" },
     { name = "jinja2" },
     { name = "markupsafe" },
     { name = "pydantic" },
@@ -627,6 +628,7 @@ requires-dist = [
     { name = "anyascii", specifier = ">=0.3.3" },
     { name = "dagster", marker = "extra == 'pipeline'", specifier = "==1.13.24" },
     { name = "dagster-postgres", marker = "extra == 'pipeline'", specifier = "==0.29.24" },
+    { name = "gtfs-zone-vocab", git = "https://github.com/gtfs-zone/gtfs-zone-vocab.git?tag=v0.1.0" },
     { name = "httpx", marker = "extra == 'pipeline'", specifier = ">=0.27" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "markupsafe", specifier = ">=2" },
@@ -647,6 +649,11 @@ dev = [
     { name = "ruff" },
     { name = "vulture", specifier = ">=2.16" },
 ]
+
+[[package]]
+name = "gtfs-zone-vocab"
+version = "0.1.0"
+source = { git = "https://github.com/gtfs-zone/gtfs-zone-vocab.git?tag=v0.1.0#52bc8ee4eb2f7059e1b5050ee73dbb55858e3599" }
 
 [[package]]
 name = "h11"
