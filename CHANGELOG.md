@@ -1,3 +1,9 @@
+## v0.21.1 (2026-11-05)
+
+### Fix
+
+- **docker**: install git in the builder for the gtfs-zone-vocab git dependency
+
 ## v0.21.0 (2026-11-05)
 
 ### Feat
