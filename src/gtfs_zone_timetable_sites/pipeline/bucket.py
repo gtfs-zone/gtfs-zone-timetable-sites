@@ -1,12 +1,16 @@
 """The sites.gtfs.zone bucket over the S3 API."""
 
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass
 from pathlib import PurePosixPath
+from typing import TYPE_CHECKING
 
-import boto3
-from botocore.config import Config
-from botocore.exceptions import ClientError
+import obstore
+
+if TYPE_CHECKING:
+    from obstore.store import ObjectStore
 
 # Pages refresh daily, so browsers and proxies may keep them only briefly.
 CACHE_CONTROL = "public, max-age=600"
@@ -31,7 +35,7 @@ class BucketSettings:
     region: str
 
     @classmethod
-    def from_env(cls) -> "BucketSettings":
+    def from_env(cls) -> BucketSettings:
         return cls(
             endpoint=os.environ["S3_ENDPOINT"],
             bucket=os.environ.get("S3_BUCKET", "sites.gtfs.zone"),
@@ -41,60 +45,63 @@ class BucketSettings:
         )
 
 
-class Bucket:
-    """list_keys / get / put / delete against one bucket."""
+def s3_store(settings: BucketSettings) -> ObjectStore:
+    from obstore.store import S3Store
 
-    def __init__(self, settings: BucketSettings) -> None:
+    return S3Store(
+        settings.bucket,
+        endpoint=settings.endpoint,
+        region=settings.region,
+        access_key_id=settings.access_key,
+        secret_access_key=settings.secret_key,
+        # Garage serves every bucket from one host, so the bucket goes in the
+        # path.
+        virtual_hosted_style_request=False,
+        client_options={
+            "allow_http": settings.endpoint.startswith("http://"),
+            "timeout": "120s",
+        },
+    )
+
+
+class Bucket:
+    """list_keys / get / put / delete against one bucket, or against `store`."""
+
+    def __init__(
+        self, settings: BucketSettings, store: ObjectStore | None = None
+    ) -> None:
         self.name = settings.bucket
-        self._client = boto3.client(
-            "s3",
-            endpoint_url=settings.endpoint,
-            aws_access_key_id=settings.access_key,
-            aws_secret_access_key=settings.secret_key,
-            region_name=settings.region,
-            # Garage serves every bucket from one host, so the bucket goes in
-            # the path.
-            config=Config(s3={"addressing_style": "path"}, retries={"max_attempts": 3}),
-        )
+        self._store = store if store is not None else s3_store(settings)
 
     def list_keys(self, prefix: str = "") -> set[str]:
-        paginator = self._client.get_paginator("list_objects_v2")
         return {
-            item["Key"]
-            for page in paginator.paginate(Bucket=self.name, Prefix=prefix)
-            for item in page.get("Contents", [])
+            meta["path"]
+            for batch in obstore.list(self._store, prefix=prefix or None)
+            for meta in batch
         }
 
     def get(self, key: str) -> bytes | None:
         """The object's body, or None when there is no such key."""
         try:
-            response = self._client.get_object(Bucket=self.name, Key=key)
-        except ClientError as exc:
-            if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
-                return None
-            raise
-        with response["Body"] as stream:
-            return stream.read()
+            return bytes(obstore.get(self._store, key).bytes())
+        except FileNotFoundError:
+            return None
 
     def put(self, key: str, body: bytes) -> None:
-        self._client.put_object(
-            Bucket=self.name,
-            Key=key,
-            Body=body,
-            ContentType=CONTENT_TYPES.get(
-                PurePosixPath(key).suffix, "application/octet-stream"
-            ),
-            CacheControl=CACHE_CONTROL,
+        obstore.put(
+            self._store,
+            key,
+            body,
+            use_multipart=False,
+            attributes={
+                "Content-Type": CONTENT_TYPES.get(
+                    PurePosixPath(key).suffix, "application/octet-stream"
+                ),
+                "Cache-Control": CACHE_CONTROL,
+            },
         )
 
     def delete(self, keys: set[str]) -> None:
-        batch = sorted(keys)
-        # delete_objects takes at most 1000 keys per call.
-        for start in range(0, len(batch), 1000):
-            self._client.delete_objects(
-                Bucket=self.name,
-                Delete={
-                    "Objects": [{"Key": key} for key in batch[start : start + 1000]],
-                    "Quiet": True,
-                },
-            )
+        # obstore sends S3 bulk deletes of up to 1000 keys each.
+        if keys:
+            obstore.delete(self._store, sorted(keys))
