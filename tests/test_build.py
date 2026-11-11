@@ -295,6 +295,22 @@ def test_site_json():
     }
 
 
+def test_locality_names_the_town_in_titles():
+    files = build("overnight", title="Test & Co", locality="Quesnel")
+    index = files["index.html"]
+    assert (
+        "<title>Test &amp; Co schedules and timetables - Quesnel, United States</title>"
+    ) in index
+    assert "Test &amp; Co, Quesnel, United States" in index
+    page = files["1/index.html"]
+    title = "1 Night Owl bus schedule - Test &amp; Co, Quesnel, United States"
+    assert f"<title>{title}</title>" in page
+    assert "from Test &amp; Co, Quesnel, United States." in page
+    crumbs, _ = json_ld(page)
+    assert crumbs["itemListElement"][1]["name"] == "Test & Co, Quesnel"
+    assert json.loads(files["site.json"])["title"] == "Test & Co, Quesnel"
+
+
 def test_site_json_country_from_catalog():
     feed = CatalogFeed(
         feedId="f-0123456789",

@@ -37,6 +37,12 @@ def test_place_label():
     national = Place("", "United States", "US", 39.0, -98.0)
     assert place_label(national, "Amtrak") == "United States"
     assert place_label(None, "Amtrak") == ""
+    assert place_label(OREGON, "TriMet", "Portland") == "Portland, Oregon"
+    assert place_label(None, "TriMet", "Portland") == "Portland"
+    # Parts the title already names are left out.
+    assert place_label(OREGON, "Portland Streetcar", "Portland") == "Oregon"
+    assert place_label(OREGON, "Oregon Coast Transit", "Newport") == "Newport"
+    assert place_label(OREGON, "TriMet", "Oregon") == "Oregon"
 
 
 def test_place_jsonld():

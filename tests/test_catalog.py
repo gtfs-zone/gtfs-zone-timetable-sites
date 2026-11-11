@@ -7,9 +7,11 @@ from gtfs_zone_timetable_sites.catalog import (
     assign_slugs,
     base_slug,
     country_options,
+    locality,
     redirects,
     resolve_sites,
     shard_of,
+    shared_names,
     slugify,
 )
 from gtfs_zone_timetable_sites.config import CatalogFeed, RouteFilter, load_config
@@ -110,6 +112,60 @@ def test_assign_slugs_takes_the_place_once_a_name_is_shared():
     ]
     slugs = assign_slugs(feeds, {"f-0000000001": "zenbus"}, set())
     assert slugs["f-0000000002"] == "zenbus-meudon"
+
+
+def test_locality_tells_shared_names_apart():
+    quesnel = catalog_feed("f-0000000001", "BCTransit", municipality="Quesnel")
+    merritt = catalog_feed("f-0000000002", "BCTransit", municipality=" Merritt ")
+    guelph = catalog_feed("f-0000000003", "Guelph Transit", municipality="Guelph")
+    guelph_2 = catalog_feed("f-0000000004", "Guelph Transit", municipality="Guelph")
+    bare = catalog_feed("f-0000000005", "BCTransit")
+    alone = catalog_feed("f-0000000006", "TriMet", municipality="Portland")
+    shared = shared_names([quesnel, merritt, guelph, guelph_2, bare, alone])
+    assert shared == {"bctransit", "guelph-transit"}
+    assert locality(quesnel, shared) == "Quesnel"
+    assert locality(merritt, shared) == "Merritt"
+    # The name already holds the town.
+    assert locality(guelph, shared) is None
+    assert locality(bare, shared) is None
+    # A name no other feed has.
+    assert locality(alone, shared) is None
+
+
+def test_resolve_sites_sets_the_locality_of_shared_names():
+    config = load_config(
+        """
+catalog: {countries: [CA]}
+sites:
+  - {feed: f-0000000003, title: Merritt Transit}
+"""
+    )
+    doc = {
+        "feeds": [
+            feed(
+                "f-0000000001", "BCTransit", country_code="CA", municipality="Quesnel"
+            ),
+            feed(
+                "f-0000000002", "BCTransit", country_code="CA", municipality="Kamloops"
+            ),
+            feed(
+                "f-0000000003", "BCTransit", country_code="CA", municipality="Merritt"
+            ),
+            feed(
+                "f-0000000004",
+                "Edmonton Transit",
+                country_code="CA",
+                municipality="Edmonton",
+            ),
+        ]
+    }
+    sites, _, _ = resolve_sites(config, doc, {})
+    by_feed = {site.feed: site for site in sites}
+    assert by_feed["f-0000000001"].locality == "Quesnel"
+    assert by_feed["f-0000000002"].locality == "Kamloops"
+    # A configured title stands as given.
+    assert by_feed["f-0000000003"].locality is None
+    assert by_feed["f-0000000004"].locality is None
 
 
 def test_assign_slugs_never_reuses_a_dropped_feeds_slug():

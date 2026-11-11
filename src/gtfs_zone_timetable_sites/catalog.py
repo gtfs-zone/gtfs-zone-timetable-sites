@@ -82,6 +82,26 @@ def place_slug(feed: CatalogFeed) -> str:
     return base
 
 
+def shared_names(feeds: list[CatalogFeed]) -> set[str]:
+    """Base slugs that more than one feed has."""
+    counts: dict[str, int] = {}
+    for feed in feeds:
+        counts[base_slug(feed)] = counts.get(base_slug(feed), 0) + 1
+    return {slug for slug, n in counts.items() if n > 1}
+
+
+def locality(feed: CatalogFeed, shared: set[str]) -> str | None:
+    """The feed's municipality when its name is shared and does not already
+    hold it, else None."""
+    base = base_slug(feed)
+    if base not in shared or not feed.municipality:
+        return None
+    part = slugify(feed.municipality, feed.country_code)
+    if part == "feed" or part.replace("-", "") in base.replace("-", ""):
+        return None
+    return feed.municipality.strip()
+
+
 def assign_slugs(
     feeds: list[CatalogFeed], pinned: dict[str, str], taken: set[str]
 ) -> dict[str, str]:
@@ -91,14 +111,12 @@ def assign_slugs(
     `taken`."""
     slugs = dict(pinned)
     used = set(pinned.values()) | taken
-    names: dict[str, int] = {}
-    for feed in feeds:
-        names[base_slug(feed)] = names.get(base_slug(feed), 0) + 1
+    shared = shared_names(feeds)
     for feed in sorted(feeds, key=lambda f: f.feed_id):
         if feed.feed_id in slugs:
             continue
         base = base_slug(feed)
-        if names[base] > 1:
+        if base in shared:
             base = place_slug(feed)
         slug = base
         n = 1
@@ -196,6 +214,14 @@ def resolve_sites(
         if index_countries and feed.country_code not in index_countries:
             options["index"] = False
         sites.append(Site(**options, slug=slug, feed=feed.feed_id, catalog=feed))
+    # A site whose feed name another site shares is told apart by its town.
+    shared = shared_names([site.catalog for site in sites if site.catalog])
+    sites = [
+        site.model_copy(update={"locality": locality(site.catalog, shared)})
+        if site.catalog and not site.title
+        else site
+        for site in sites
+    ]
 
     counts: dict[str, int] = dict.fromkeys(aliases, 1)
     for site in sites:

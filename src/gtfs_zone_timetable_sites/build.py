@@ -191,6 +191,13 @@ def site_title(feed: Feed, site: Site) -> str:
     return (site.catalog and tidy(site.catalog.name)) or site.slug
 
 
+def with_locality(title: str, locality: str | None) -> str:
+    """'BCTransit, Quesnel' for a site told apart by its town, else the title."""
+    if locality and locality.casefold() not in title.casefold():
+        return f"{title}, {locality}"
+    return title
+
+
 def source_label(url: str) -> str:
     """'host: file' for a download URL, e.g. 'github.com: gtfs.zip'."""
     parts = urlsplit(url)
@@ -227,14 +234,15 @@ def build_site(
     )
     title = site_title(feed, site)
     place = feed_place(feed)
-    label = place_label(place, title)
+    label = place_label(place, title, site.locality)
     common = {
         "locale": locale,
         "site_title": title,
         # The title with where the feed runs, for page titles and descriptions.
         "site_place": f"{title}, {label}" if label else title,
         "place": label,
-        "local": bool(label) and place is not None and bool(place.region),
+        "local": bool(label)
+        and (bool(site.locality) or (place is not None and bool(place.region))),
         "base_url": base_url,
         "generated": today,
         "feed_notes": feed_notes,
@@ -264,7 +272,10 @@ def build_site(
     by_slug = {
         view.slug: (view, rt) for view, rt in zip(routes, timetables, strict=True)
     }
-    trail = [(ROOT_TITLE, f"{BASE_URL}/"), (common["site_title"], base_url)]
+    trail = [
+        (ROOT_TITLE, f"{BASE_URL}/"),
+        (with_locality(common["site_title"], site.locality), base_url),
+    ]
     # Search engines skip expired routes, and the whole site when it is not
     # indexed or every route has expired.
     indexed = site.index and any(view.state != "expired" for view in routes)
@@ -358,7 +369,7 @@ def build_site(
     download_url = common["source"]["download_url"]
     files["site.json"] = summary_json(
         slug=site.slug,
-        title=common["site_title"],
+        title=with_locality(common["site_title"], site.locality),
         source=source_label(download_url) if download_url else "",
         routes=len(routes),
         expired_routes=len(expired),
@@ -485,7 +496,9 @@ def unbuilt_summary(site: Site) -> dict:
         source = ""
     return {
         "slug": site.slug,
-        "title": site.title or (catalog and tidy(catalog.name)) or site.slug,
+        "title": with_locality(
+            site.title or (catalog and tidy(catalog.name)) or site.slug, site.locality
+        ),
         "source": source,
         "country_code": catalog and catalog.country_code,
         "country": catalog and catalog.country,

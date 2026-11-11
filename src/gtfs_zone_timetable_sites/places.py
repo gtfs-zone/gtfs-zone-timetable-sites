@@ -78,9 +78,20 @@ def feed_place(feed: Feed) -> Place | None:
     )
 
 
-def place_label(place: Place | None, site_title: str) -> str:
-    """'Texas' or 'United States', or "" when the site title already names it."""
-    if place is None:
-        return ""
-    label = place.region or place.country
-    return "" if label.casefold() in site_title.casefold() else label
+def place_label(
+    place: Place | None, site_title: str, locality: str | None = None
+) -> str:
+    """'Texas', 'United States' or 'Quesnel, British Columbia', leaving out
+    what the site title already names."""
+    title = site_title.casefold()
+    parts = []
+    if locality and locality.casefold() not in title:
+        parts.append(locality)
+    area = (place.region or place.country) if place else ""
+    if (
+        area
+        and area.casefold() not in title
+        and area.casefold() != (locality or "").casefold()
+    ):
+        parts.append(area)
+    return ", ".join(parts)

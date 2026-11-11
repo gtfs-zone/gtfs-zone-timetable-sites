@@ -93,6 +93,8 @@ class Site(Options):
     routes: RouteFilter = RouteFilter()
     # The feed's catalog entry, when it is in feeds.json.
     catalog: CatalogFeed | None = None
+    # The town that sets the site apart from others with the same feed name.
+    locality: str | None = None
 
     def licenses(self) -> tuple[str, ...]:
         """The configured license URL, else the catalog's."""
