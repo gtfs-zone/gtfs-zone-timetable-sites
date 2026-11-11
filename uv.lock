@@ -592,7 +592,7 @@ wheels = [
 
 [[package]]
 name = "gtfs-zone-timetable-sites"
-version = "0.21.1"
+version = "0.21.2"
 source = { editable = "." }
 dependencies = [
     { name = "anyascii" },

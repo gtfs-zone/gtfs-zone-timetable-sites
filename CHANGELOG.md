@@ -1,3 +1,9 @@
+## v0.21.2 (2026-11-11)
+
+### Fix
+
+- **titles**: name the town for sites that share a feed name
+
 ## v0.21.1 (2026-11-05)
 
 ### Fix
