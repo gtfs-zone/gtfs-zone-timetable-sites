@@ -1,3 +1,9 @@
+## v0.22.0 (2026-11-13)
+
+### Feat
+
+- **publish**: skip date-only page changes and upload in parallel
+
 ## v0.21.2 (2026-11-11)
 
 ### Fix
