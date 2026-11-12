@@ -3,7 +3,9 @@
 Each site lives under `<slug>/` with a `manifest.json` written last, holding
 the build date, the timetable-sites version, the feed's source headers, a hash per
 file, so a rebuild uploads only what changed, and per page a digest without the
-build date and the date that digest last changed, for the sitemap.
+build date and the date that digest last changed, for the sitemap. A page whose
+digest is unchanged is not uploaded again: the stored copy already carries the
+date its content last changed, which is the date the footer should show.
 
 Sites are built in shards. Each shard keeps `_shards/<nn>.json`, per site its
 summary, build date and page dates, so the root is rewritten from the shard
@@ -25,6 +27,7 @@ import logging
 import re
 import zipfile
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from typing import TYPE_CHECKING, Protocol
 
@@ -37,7 +40,7 @@ from gtfs_zone_timetable_sites.build import (
     redirect_pages,
     unbuilt_summary,
 )
-from gtfs_zone_timetable_sites.config import Site
+from gtfs_zone_timetable_sites.config import UPLOAD_WORKERS, Site
 from gtfs_zone_timetable_sites.facts import sniff
 from gtfs_zone_timetable_sites.gtfs.reader import MissingFiles
 from gtfs_zone_timetable_sites.pool import run_all
@@ -168,10 +171,18 @@ def publish_site(
         if old_pages.get(path, {}).get("digest") != page["digest"]
     )
     hashes = {path: hashlib.sha256(body).hexdigest() for path, body in files.items()}
-    changed = [path for path in files if old.get(path) != hashes[path]]
+    # A page that differs from the stored one only by its build date keeps the
+    # stored copy, and with it the stored hash.
+    for path, page in pages.items():
+        if path in old and old_pages.get(path, {}).get("digest") == page["digest"]:
+            hashes[path] = old[path]
+    changed = sorted(path for path in files if old.get(path) != hashes[path])
     # Pages last, so a new page never links a stylesheet that is not up yet.
-    for path in sorted(changed, key=lambda p: (p.endswith(".html"), p)):
-        store.put(f"{slug}/{path}", files[path])
+    assets = [path for path in changed if not path.endswith(".html")]
+    html = [path for path in changed if path.endswith(".html")]
+    with ThreadPoolExecutor(max_workers=UPLOAD_WORKERS) as pool:
+        for group in (assets, html):
+            list(pool.map(lambda path: store.put(f"{slug}/{path}", files[path]), group))
     built = {f"{slug}/{path}" for path in files} | {f"{slug}/{MANIFEST}"}
     stale = store.list_keys(f"{slug}/") - built
     store.delete(stale)

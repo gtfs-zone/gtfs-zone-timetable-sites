@@ -25,6 +25,8 @@ TODAY = date(2026, 10, 5)
 
 
 class FakeStore:
+    # put runs from several threads; list.append and dict assignment are
+    # atomic, so no lock is needed.
     def __init__(self, objects=None):
         self.objects = dict(objects or {})
         self.puts = []
@@ -50,12 +52,11 @@ def test_publish_uploads_only_changed_and_deletes_stale():
     counts, changed, _ = publish_site(store, "s", files, {}, TODAY, "1.0.0")
     assert counts["uploaded"] == 3
     assert changed == ["index.html", "old/index.html"]
-    assert store.puts == [
-        "s/style.css",
-        "s/index.html",
-        "s/old/index.html",
-        "s/manifest.json",
-    ]
+    # Uploads within a group run in parallel; the groups and the manifest
+    # keep their order.
+    assert store.puts[0] == "s/style.css"
+    assert set(store.puts[1:3]) == {"s/index.html", "s/old/index.html"}
+    assert store.puts[3] == "s/manifest.json"
 
     store.puts.clear()
     files = {"index.html": b"new home", "style.css": b"css"}
@@ -80,16 +81,23 @@ def test_publish_dates_pages_by_content_change():
     counts, changed, pages = publish_site(
         store, "s", {"index.html": page("b")}, {}, TODAY, "1"
     )
-    # The build date alone changes the file but not its content date.
-    assert counts["uploaded"] == 1 and changed == []
+    # The build date alone changes neither the content date nor the stored
+    # page, so nothing is uploaded and the footer keeps the content date.
+    assert counts["uploaded"] == 0 and changed == []
+    assert store.objects["s/index.html"] == page("a")
     manifest = json.loads(store.objects["s/manifest.json"])
     assert manifest["pages"]["index.html"]["modified"] == "2026-10-01"
     assert pages == manifest["pages"]
+
+    # The next date-only rebuild still matches the kept hash.
+    counts, _, _ = publish_site(store, "s", {"index.html": page("c")}, {}, TODAY, "1")
+    assert counts["uploaded"] == 0
 
     _, changed, _ = publish_site(
         store, "s", {"index.html": page("b") + b"new"}, {}, TODAY, "1"
     )
     assert changed == ["index.html"]
+    assert store.objects["s/index.html"] == page("b") + b"new"
     manifest = json.loads(store.objects["s/manifest.json"])
     assert manifest["pages"]["index.html"]["modified"] == "2026-10-05"
 

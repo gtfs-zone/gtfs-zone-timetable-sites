@@ -14,6 +14,10 @@ Timepoints = Literal["auto", "all", "timepoint-flag"]
 FEEDS_URL = "https://data.gtfs.zone/feeds.json"
 USER_AGENT = "gtfs-zone-timetable-sites (+https://sites.gtfs.zone)"
 
+# Parallel puts per site. Each put is a round trip to the object store, so a
+# site with thousands of changed pages is bound by latency, not bandwidth.
+UPLOAD_WORKERS = 32
+
 SLUG_PATTERN = r"^[a-z0-9]+(-[a-z0-9]+)*$"
 FEED_PATTERN = r"^f-[0-9a-f]{10}$"
 
