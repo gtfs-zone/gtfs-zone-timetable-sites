@@ -182,6 +182,23 @@ def test_publish_root_redirects_an_old_slug():
     assert "aliases.json" in store.objects
 
 
+def test_publish_root_uploads_only_changed_root_files():
+    store = FakeStore({"metro/route-1/index.html": b"old"})
+    entries = {"metro-lyon": entry("metro-lyon", "2026-10-05")}
+    redirects = {"metro": "metro-lyon"}
+    publish_root(store, entries, {"metro-lyon"}, TODAY, redirects=redirects)
+    assert "metro/route-1/index.html" in store.puts
+    store.puts.clear()
+    publish_root(store, entries, {"metro-lyon"}, TODAY, redirects=redirects)
+    assert set(store.puts) == {"_root.json", "_content/index.json"}
+    # A root file missing from the bucket is uploaded again.
+    del store.objects["index.html"]
+    store.puts.clear()
+    publish_root(store, entries, {"metro-lyon"}, TODAY, redirects=redirects)
+    assert "index.html" in store.puts
+    assert "_root.json" in store.objects
+
+
 def test_publish_root_keeps_sites_when_the_catalog_shrinks():
     store = FakeStore({f"{s}/index.html": b"x" for s in "abcdef"})
     entries = {s: entry(s, "2026-10-05") for s in "abcdef"}

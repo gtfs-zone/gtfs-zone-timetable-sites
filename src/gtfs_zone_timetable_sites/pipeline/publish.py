@@ -40,7 +40,7 @@ from gtfs_zone_timetable_sites.build import (
     redirect_pages,
     unbuilt_summary,
 )
-from gtfs_zone_timetable_sites.config import UPLOAD_WORKERS, Site
+from gtfs_zone_timetable_sites.config import ROOT_UPLOAD_WORKERS, UPLOAD_WORKERS, Site
 from gtfs_zone_timetable_sites.facts import sniff
 from gtfs_zone_timetable_sites.gtfs.reader import MissingFiles
 from gtfs_zone_timetable_sites.pool import run_all
@@ -57,7 +57,9 @@ SHARD_PREFIX = "_shards/"
 CONTENT_PREFIX = "_content/"
 CONTENT_INDEX = f"{CONTENT_PREFIX}index.json"
 # Keys at the root that are state, not pages, and never pruned.
-STATE = (SLUGS, ALIASES, SHARD_PREFIX, CONTENT_PREFIX)
+# The sha256 of every root file as last uploaded, by path.
+ROOT_MANIFEST = "_root.json"
+STATE = (SLUGS, ALIASES, SHARD_PREFIX, CONTENT_PREFIX, ROOT_MANIFEST)
 # Outcomes that are the feed's fault; such a feed is skipped until it changes.
 BAD = UNUSABLE
 RETRY_DAYS = 7
@@ -464,21 +466,27 @@ def publish_root(
             if c and "outcome" in c
         },
     )
-    old_pages = {
-        old: {
-            key.removeprefix(f"{old}/")
-            for key in store.list_keys(f"{old}/")
-            if key.endswith("index.html")
-        }
-        for old in redirects or {}
-    }
+    keys = store.list_keys()
+    old_pages: dict[str, set[str]] = {old: set() for old in redirects or {}}
+    for key in keys:
+        old, _, path = key.partition("/")
+        if old in old_pages and path.endswith("index.html"):
+            old_pages[old].add(path)
     files |= redirect_pages(
         redirects or {},
         {slug: entry["pages"] for slug, entry in listed.items()},
         old_pages,
     )
-    for path, body in files.items():
-        store.put(path, body)
+    uploaded = read_json(store, ROOT_MANIFEST) or {}
+    hashes = {path: hashlib.sha256(body).hexdigest() for path, body in files.items()}
+    changed = [
+        path
+        for path in sorted(files)
+        if uploaded.get(path) != hashes[path] or path not in keys
+    ]
+    with ThreadPoolExecutor(max_workers=ROOT_UPLOAD_WORKERS) as pool:
+        list(pool.map(lambda path: store.put(path, files[path]), changed))
+    put_json(store, ROOT_MANIFEST, hashes)
     reports = sorted(store.list_keys(CONTENT_PREFIX) - {CONTENT_INDEX})
     put_json(store, CONTENT_INDEX, {"shards": reports})
     if len(live) < PRUNE_RATIO * len(entries):
@@ -488,7 +496,7 @@ def publish_root(
     else:
         dropped = {
             key
-            for key in store.list_keys()
+            for key in keys
             if key not in files
             and not key.startswith(STATE)
             and key.split("/", 1)[0] not in live

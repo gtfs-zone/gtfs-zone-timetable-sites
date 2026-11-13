@@ -16,7 +16,11 @@ USER_AGENT = "gtfs-zone-timetable-sites (+https://sites.gtfs.zone)"
 
 # Parallel puts per site. Each put is a round trip to the object store, so a
 # site with thousands of changed pages is bound by latency, not bandwidth.
-UPLOAD_WORKERS = 32
+# Kept low: sites publish from build workers capped in address space, and
+# every thread reserves its own stack and malloc arena there.
+UPLOAD_WORKERS = 8
+# Parallel puts for the root pages, from the uncapped step process.
+ROOT_UPLOAD_WORKERS = 32
 
 SLUG_PATTERN = r"^[a-z0-9]+(-[a-z0-9]+)*$"
 FEED_PATTERN = r"^f-[0-9a-f]{10}$"
