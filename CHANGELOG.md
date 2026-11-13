@@ -1,3 +1,9 @@
+## v0.22.1 (2026-11-13)
+
+### Fix
+
+- **publish**: upload only changed root files and fewer threads per site
+
 ## v0.22.0 (2026-11-13)
 
 ### Feat
