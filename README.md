@@ -12,7 +12,7 @@ map scrolls into view, and show live vehicles when the catalog feed has a
 working vehicle positions URL. With a working trip updates URL, timetables
 show predicted times for running trips, from each route's `live.json`
 (fetched once the timetable is on screen). Realtime feeds are fetched through
-the cors.kcfam.us proxy, as rt-viewer does, except rt.gtfs.zone. No
+the cors.gtfs.zone proxy, as rt-viewer does, except rt.gtfs.zone. No
 JavaScript is needed to read a timetable.
 
 The home page and each country page have an agency search (uFuzzy, as on

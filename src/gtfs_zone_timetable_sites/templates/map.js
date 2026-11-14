@@ -4,7 +4,7 @@
 const MAPLIBRE = "https://cdn.jsdelivr.net/npm/maplibre-gl@6.16.0/dist/";
 const RT_LIB = "https://cdn.jsdelivr.net/npm/gtfs-realtime-bindings@2.2.0/+esm";
 // Same CORS proxy as rt-viewer; most feeds send no CORS headers
-const PROXY = "https://cors.kcfam.us/";
+const PROXY = "https://cors.gtfs.zone/";
 // rt.gtfs.zone sends its own CORS headers
 const viaProxy = (url) => (new URL(url).hostname === "rt.gtfs.zone" ? url : PROXY + url);
 const STYLES = {
