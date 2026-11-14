@@ -1,3 +1,9 @@
+## v0.22.2 (2026-11-14)
+
+### Fix
+
+- **map**: fetch realtime feeds through cors.gtfs.zone
+
 ## v0.22.1 (2026-11-13)
 
 ### Fix
