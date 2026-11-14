@@ -1,3 +1,9 @@
+## v0.22.3 (2026-11-14)
+
+### Fix
+
+- **publish**: retry out-of-memory sites alone with the whole memory cap
+
 ## v0.22.2 (2026-11-14)
 
 ### Fix
