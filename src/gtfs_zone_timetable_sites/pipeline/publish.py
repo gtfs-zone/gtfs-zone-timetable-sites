@@ -43,7 +43,7 @@ from gtfs_zone_timetable_sites.build import (
 from gtfs_zone_timetable_sites.config import ROOT_UPLOAD_WORKERS, UPLOAD_WORKERS, Site
 from gtfs_zone_timetable_sites.facts import sniff
 from gtfs_zone_timetable_sites.gtfs.reader import MissingFiles
-from gtfs_zone_timetable_sites.pool import run_all
+from gtfs_zone_timetable_sites.pool import isolated, run_all
 
 if TYPE_CHECKING:
     import httpx
@@ -277,6 +277,8 @@ def classify(error: str) -> tuple[str, str]:
         return "timeout", name
     if name in ("MemoryError", "BrokenProcessPool"):
         return "memory", name
+    if name == "RuntimeError" and "can't start new thread" in message:
+        return "memory", "can't start new thread"
     return "error", error
 
 
@@ -389,6 +391,24 @@ def run_shard(
             failures[site.slug] = str(result)
             log.warning("%s failed: %s", site.slug, failures[site.slug])
         else:
+            results[site.slug] = result
+    # Sites that ran out of address space get one more try each, alone, with
+    # every worker's share of the cap.
+    retry = [
+        site
+        for site in by_size
+        if workers > 1
+        and site.slug in failures
+        and classify(failures[site.slug])[0] == "memory"
+    ]
+    alone = max_bytes * workers if max_bytes else None
+    for site in retry:
+        result = isolated(publish, site, alone)
+        if isinstance(result, BaseException):
+            failures[site.slug] = str(result)
+            log.warning("%s failed alone: %s", site.slug, failures[site.slug])
+        else:
+            del failures[site.slug]
             results[site.slug] = result
     entries = {
         site.slug: results[site.slug]["entry"]

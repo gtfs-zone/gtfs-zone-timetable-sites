@@ -380,6 +380,10 @@ def test_run_shard_does_not_skip_transient_failures():
         ("ReadTimeout: timed out", ("timeout", "ReadTimeout")),
         ("BrokenProcessPool: worker died", ("memory", "BrokenProcessPool")),
         ("MemoryError: ", ("memory", "MemoryError")),
+        (
+            "RuntimeError: can't start new thread",
+            ("memory", "can't start new thread"),
+        ),
         ("KeyError: 'x'", ("error", "KeyError: 'x'")),
     ],
 )
@@ -497,3 +501,38 @@ def test_publish_root_lists_unbuilt_sites_from_the_catalog():
     assert "Never Built" in country and "example.org: g.zip" in country
     assert "Download failed: HTTP 404" in country
     assert 'href="../../never/"' not in country
+
+
+GiB = 1 << 30
+
+
+def needs_3_gib(site):
+    """A build that fails under an address-space cap below 3 GiB."""
+    import resource
+
+    soft, _ = resource.getrlimit(resource.RLIMIT_AS)
+    if soft != resource.RLIM_INFINITY and soft < 3 * GiB:
+        raise MemoryError()
+    return built(site.slug)
+
+
+def test_run_shard_retries_memory_failures_alone_with_the_whole_cap():
+    store = FakeStore({})
+    sites = [Site(slug="a", url="u"), Site(slug="b", url="v")]
+    results, failures, _ = run_shard(
+        store, 0, sites, needs_3_gib, TODAY, "1", workers=2, max_bytes=2 * GiB
+    )
+    assert failures == {}
+    assert set(results) == {"a", "b"}
+
+
+def test_run_shard_keeps_memory_failure_when_the_retry_fails_too():
+    store = FakeStore({})
+    sites = [Site(slug="a", url="u")]
+    results, failures, _ = run_shard(
+        store, 0, sites, needs_3_gib, TODAY, "1", workers=2, max_bytes=GiB
+    )
+    assert results == {}
+    assert failures == {"a": "MemoryError: "}
+    report = json.loads(store.objects["_content/00.json"])["a"]
+    assert report["outcome"] == "memory"
