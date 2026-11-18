@@ -118,6 +118,8 @@ class Row:
     # stop_code and platform_code shared by every stop served here, else "".
     code: str = ""
     platform: str = ""
+    # Fare zone_id shared by every stop served here, else "".
+    fare_zone: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -453,6 +455,9 @@ def build_timetable(
                 code=stop_code(feed, stop_id, served[row]),
                 platform=shared(
                     {feed.stops[s].platform for s in served[row] if s in feed.stops}
+                ),
+                fare_zone=shared(
+                    {feed.stops[s].zone_id for s in served[row] if s in feed.stops}
                 ),
             )
             for row, stop_id in enumerate(merged)

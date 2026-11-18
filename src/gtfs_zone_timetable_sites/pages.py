@@ -10,7 +10,13 @@ from zoneinfo import ZoneInfo
 
 from gtfs_zone_timetable_sites.colors import route_color
 from gtfs_zone_timetable_sites.config import TimeFormat
-from gtfs_zone_timetable_sites.fares import Fare, FlatFare, RouteFares, Transfers
+from gtfs_zone_timetable_sites.fares import (
+    Fare,
+    FlatFare,
+    RouteFares,
+    Transfers,
+    ZoneFares,
+)
 from gtfs_zone_timetable_sites.gtfs.reader import Feed, Route
 from gtfs_zone_timetable_sites.gtfs.service import (
     DayType,
@@ -252,6 +258,8 @@ class RowView:
     approx: bool = False
     code: str = ""
     platform: str = ""
+    # Fare zone badge, shown when the route's fares are by zone.
+    fare_zone: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -584,6 +592,7 @@ def table_view(
     locale: Locale = "en",
     numbers: Mapping[str, int] | None = None,
     routes: Mapping[str, "RouteView"] | None = None,
+    fare_zones: Mapping[str, str] | None = None,
 ) -> TableView:
     # Per column, its date note and the trip on another route it continues
     # as, each lettered by its first column.
@@ -640,6 +649,7 @@ def table_view(
             approx=not row.exact,
             code=tidy(row.code),
             platform=tidy(row.platform),
+            fare_zone=(fare_zones or {}).get(row.fare_zone, ""),
         )
         for k, row in enumerate(table.rows)
     )
@@ -835,9 +845,11 @@ def day_views(
     locale: Locale = "en",
     routes: Mapping[str, "RouteView"] | None = None,
     today: date | None = None,
+    fare_zones: Mapping[str, str] | None = None,
 ) -> list[DayView]:
     """A view per day type in page order (see `ordered_days`), stops numbered
-    by `stop_numbers`; `routes` links block continuations to other routes."""
+    by `stop_numbers`; `routes` links block continuations to other routes,
+    `fare_zones` labels the stops' fare zone badges by zone id."""
     numbers = stop_numbers(tables)
     views = []
     anchors: set[str] = set()
@@ -863,6 +875,7 @@ def day_views(
                             locale,
                             numbers,
                             routes,
+                            fare_zones,
                         )
                         for i, table in enumerate(group)
                     ],
@@ -1049,3 +1062,75 @@ def fare_lines(fares: RouteFares, locale: Locale = "en") -> tuple[str, ...]:
         return ()
     several = len(fares.fares) > 1
     return tuple(fare_text(fare, several, locale) for fare in fares.fares)
+
+
+@dataclass(frozen=True, slots=True)
+class FareChart:
+    """A from-to fare table: `rows` pairs a place with its prices, one per
+    column of `heads`; a triangle has shorter rows."""
+
+    caption: str
+    note: str
+    heads: tuple[str, ...]
+    rows: tuple[tuple[str, tuple[str, ...]], ...]
+
+
+def fare_charts(fares: RouteFares, locale: Locale = "en") -> tuple[FareChart, ...]:
+    """The route page's from-to tables for zone fares, one per payment method
+    when prices depend on it; a triangle when every ride costs the same both
+    ways. Empty for flat fares."""
+    if not isinstance(fares, ZoneFares):
+        return ()
+    labels = (
+        tuple(t(locale, "fare.zone", zone=label) for label in fares.labels)
+        if fares.zones
+        else fares.labels
+    )
+    methods = sorted(
+        {f.payment_method for row in fares.cells for cell in row for f in cell} - {None}
+    )
+    groups: list[int | None] = list(methods) if len(methods) > 1 else [None]
+    charts = []
+    for method in groups:
+        texts = [
+            [
+                " / ".join(
+                    price(f.price, f.currency, locale)
+                    for f in cell
+                    if method is None or f.payment_method in (method, None)
+                )
+                for cell in row
+            ]
+            for row in fares.cells
+        ]
+        size = len(texts)
+        symmetric = all(
+            texts[i][j] == texts[j][i] for i in range(size) for j in range(i)
+        )
+        within = any(texts[i][i] for i in range(size))
+        places = "zones" if fares.zones else "stops"
+        if symmetric:
+            # Row i holds the rides to every earlier place.
+            first = 0 if within else 1
+            rows = tuple(
+                (labels[i], tuple(texts[i][: i + 1 if within else i]))
+                for i in range(first, size)
+            )
+            heads = labels[: size if within else size - 1]
+            note = t(locale, f"fare.between_{places}")
+        else:
+            rows = tuple((labels[i], tuple(texts[i])) for i in range(size))
+            heads = labels
+            note = t(locale, f"fare.from_{places}")
+        caption = ""
+        if method is not None:
+            caption = t(locale, "fare.paid_before" if method else "fare.paid_on_board")
+        charts.append(FareChart(caption, note, heads, rows))
+    return tuple(charts)
+
+
+def fare_badges(fares: RouteFares) -> dict[str, str]:
+    """Badge label by zone id for stops in a zone fare table, else empty."""
+    if not isinstance(fares, ZoneFares) or not fares.zones:
+        return {}
+    return dict(zip(fares.zones, fares.labels, strict=True))

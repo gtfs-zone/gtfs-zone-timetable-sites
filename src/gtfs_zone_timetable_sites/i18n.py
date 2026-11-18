@@ -163,6 +163,19 @@ EN: dict[str, str] = {
     "fare.unlimited": "unlimited free transfers",
     "fare.within": "{transfers} within {duration}",
     "fare.minutes": "{n} min",
+    "fare.zone": "Zone {zone}",
+    "fare.by_stop": "Fares by stop",
+    "fare.by_zone": "Fares by zone",
+    "fare.between_stops": "Fare between two stops: one in the left column, the"
+    " other along the top.",
+    "fare.between_zones": "Fare between two zones: one in the left column, the"
+    " other along the top.",
+    "fare.from_stops": "Fare from the stop in the left column to the stop along"
+    " the top.",
+    "fare.from_zones": "Fare from the zone in the left column to the zone along"
+    " the top.",
+    "fare.paid_on_board": "Paid on board",
+    "fare.paid_before": "Paid before boarding",
     # Footer
     "footer.generated": "Generated {date} from the agency's GTFS feed. Check with"
     " the agency before you travel.",
@@ -319,6 +332,17 @@ FR: dict[str, str] = {
     "fare.unlimited": "correspondances gratuites illimitées",
     "fare.within": "{transfers} pendant {duration}",
     "fare.minutes": "{n} min",
+    "fare.zone": "Zone {zone}",
+    "fare.by_stop": "Tarifs par arrêt",
+    "fare.by_zone": "Tarifs par zone",
+    "fare.between_stops": "Tarif entre deux arrêts : l'un dans la colonne de"
+    " gauche, l'autre en haut.",
+    "fare.between_zones": "Tarif entre deux zones : l'une dans la colonne de"
+    " gauche, l'autre en haut.",
+    "fare.from_stops": "Tarif de l'arrêt de la colonne de gauche à l'arrêt du haut.",
+    "fare.from_zones": "Tarif de la zone de la colonne de gauche à la zone du haut.",
+    "fare.paid_on_board": "Payé à bord",
+    "fare.paid_before": "Payé avant de monter",
     "footer.generated": "Généré le {date} à partir du flux GTFS de l'organisme."
     " Vérifiez auprès de l'organisme avant de partir.",
     "footer.source": "Données d'horaires : {publisher}{feed}{terms}.",

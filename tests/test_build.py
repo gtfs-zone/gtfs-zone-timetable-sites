@@ -793,3 +793,15 @@ def test_route_page_fare_card_lists_prices():
     )
     assert "<p>Tarifs :</p>" in html
     assert "<li>190\xa0JPY payé avant de monter</li>" in html
+
+
+def test_route_page_zone_fare_chart_and_badges():
+    files = build("fares-zone-v1")
+    page = next(
+        body
+        for path, body in files.items()
+        if path.endswith("/index.html") and path != "index.html"
+    )
+    assert "<summary" in page and "Fares by zone</summary>" in page
+    assert '<th scope="col"><span>Zone 2</span></th>' in page
+    assert '<small class="code fare-zone">Zone 1</small>' in page

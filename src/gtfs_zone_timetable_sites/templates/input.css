@@ -47,6 +47,18 @@
 .timetable td.every { white-space: normal; min-width: 7rem; font-size: .85rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); text-align: left; }
 @media (min-width: 40rem) { .timetable th[scope=row] .stop { max-width: calc(18rem - var(--gutter, 40px)); } }
 
+/* Fare charts: from-to tables, scrolling inside their card under a sticky place column and header */
+.fare-scroll { overflow: auto; max-height: 80vh; margin-top: .5rem; }
+.fare-chart { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; font-size: .85rem; }
+.fare-chart th, .fare-chart td { padding: .2rem .4rem; border-bottom: 1px solid var(--color-base-300); border-right: 1px solid var(--color-base-300); white-space: nowrap; }
+.fare-chart td { text-align: right; }
+.fare-chart th[scope=row] { position: sticky; left: 0; z-index: 1; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; background: var(--color-base-100); font-weight: 400; text-align: left; }
+.fare-chart thead > tr > * { position: sticky; top: 0; z-index: 1; background: var(--color-base-100); vertical-align: bottom; }
+.fare-chart thead td { left: 0; z-index: 2; }
+.fare-chart thead th { font-weight: 400; }
+.fare-chart thead th span { display: block; max-height: 9rem; overflow: hidden; text-overflow: ellipsis; writing-mode: vertical-rl; }
+.fare-chart tbody tr:hover > * { background: var(--color-base-200); }
+
 /* Route-colored rail down the stop column: lanes per branch, a dot per stop, filled where trips start or end */
 .timetable th[scope=row] { padding-left: calc(var(--gutter, 40px) + .25rem); }
 /* Over the borders above and below its row, so rounding at fractional row

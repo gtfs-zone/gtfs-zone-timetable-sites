@@ -40,6 +40,8 @@ from gtfs_zone_timetable_sites.pages import (
     breadcrumbs,
     date_range,
     day_views,
+    fare_badges,
+    fare_charts,
     fare_lines,
     feed_amenities,
     mode_groups,
@@ -334,8 +336,17 @@ def build_site(
             else None
         )
         route_map = script_json(data) if data and data["lines"] else ""
+        trip_ids = {c.trip_id for table in rt.tables for c in table.columns} - {""}
+        fares = route_fares(read, trip_ids)
         days = day_views(
-            feed, rt.tables, site.time_format, marked, locale, by_route, today
+            feed,
+            rt.tables,
+            site.time_format,
+            marked,
+            locale,
+            by_route,
+            today,
+            fare_badges(fares),
         )
         # Live-times data is fetched only once a timetable is on screen, so
         # it adds nothing to the page itself. Without trip updates it still
@@ -356,12 +367,15 @@ def build_site(
                     ),
                 }
             ).encode()
-        trip_ids = {c.trip_id for table in rt.tables for c in table.columns} - {""}
         files[f"{view.slug}/index.html"] = render(
             "route.html",
             **common,
             route=view,
-            fares=fare_lines(route_fares(read, trip_ids), locale),
+            fares=fare_lines(fares, locale),
+            fare_charts=fare_charts(fares, locale),
+            fares_by=t(
+                locale, "fare.by_zone" if fare_badges(fares) else "fare.by_stop"
+            ),
             map=route_map,
             live=LIVE_FILE if live else "",
             days=days,

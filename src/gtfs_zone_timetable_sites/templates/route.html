@@ -13,6 +13,7 @@
 {%- if row.google %}<a class="link link-hover" href="{{ row.google }}" target="_blank" rel="noopener">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}
 {%- if row.code %} <small class="code">{{ row.code }}</small>{% endif %}
 {%- if row.platform %} <small class="code">{{ t("route.platform", platform=row.platform) }}</small>{% endif %}
+{%- if row.fare_zone %} <small class="code fare-zone">{{ t("fare.zone", zone=row.fare_zone) }}</small>{% endif %}
 {%- endmacro %}
 {% block main %}
 <div class="space-y-2">
@@ -53,6 +54,24 @@
 {% endfor %}</ul>
 {% endif %}
 </div>
+</section>
+{% elif fare_charts %}
+<section class="card bg-base-100 shadow-sm">
+<details class="card-body p-4">
+<summary class="cursor-pointer font-semibold">{{ fares_by }}</summary>
+{% for chart in fare_charts %}
+{% if chart.caption %}<h3 class="mt-2 font-semibold">{{ chart.caption }}</h3>{% endif %}
+<p class="text-sm opacity-70">{{ chart.note }}</p>
+<div class="fare-scroll">
+<table class="fare-chart">
+<thead><tr><td></td>{% for head in chart.heads %}<th scope="col"><span>{{ head }}</span></th>{% endfor %}</tr></thead>
+<tbody>
+{% for place, cells in chart.rows %}<tr><th scope="row">{{ place }}</th>{% for cell in cells %}<td>{{ cell }}</td>{% endfor %}</tr>
+{% endfor %}</tbody>
+</table>
+</div>
+{% endfor %}
+</details>
 </section>
 {% endif %}
 {% if map %}
