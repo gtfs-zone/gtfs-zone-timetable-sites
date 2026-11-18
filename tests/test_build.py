@@ -772,3 +772,24 @@ def test_validity_names_a_start_after_today():
     files = build_site(fixture_zip("blocks"), site, today=date(2025, 12, 1))
     page = files["1/index.html"].decode()
     assert "Valid from Jan 1, 2026 to Dec 31, 2026." in page
+
+
+def test_route_page_fare_card():
+    files = build("fares-flat-v1")
+    assert "<p>Fare: $1.25, no free transfers.</p>" in files["1/index.html"]
+    assert "<p>Fare: $2.00, 1 free transfer within 60 min.</p>" in files["x/index.html"]
+    assert "Fare:" not in build("overnight")["1/index.html"]
+
+
+def test_route_page_fare_card_lists_prices():
+    files = fixture_files("fares-zone-v1")
+    files["stop_times.txt"] = "\n".join(files["stop_times.txt"].splitlines()[:3])
+    site = Site(slug="test", url="https://example.org/g.zip", locale="fr")
+    page = build_site(make_zip(files), site, today=MONDAY)
+    html = next(
+        body.decode()
+        for path, body in page.items()
+        if path.endswith("/index.html") and path != "index.html"
+    )
+    assert "<p>Tarifs :</p>" in html
+    assert "<li>190\xa0JPY payé avant de monter</li>" in html

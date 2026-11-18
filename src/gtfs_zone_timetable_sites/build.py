@@ -25,6 +25,7 @@ from gtfs_zone_timetable_sites.boundaries import (
 from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import RouteFilter, Site
 from gtfs_zone_timetable_sites.facts import feed_facts
+from gtfs_zone_timetable_sites.fares import route_fares
 from gtfs_zone_timetable_sites.gtfs.reader import Agency, Feed, Route, read_feed
 from gtfs_zone_timetable_sites.gtfs.service import (
     Services,
@@ -39,6 +40,7 @@ from gtfs_zone_timetable_sites.pages import (
     breadcrumbs,
     date_range,
     day_views,
+    fare_lines,
     feed_amenities,
     mode_groups,
     mode_label,
@@ -354,10 +356,12 @@ def build_site(
                     ),
                 }
             ).encode()
+        trip_ids = {c.trip_id for table in rt.tables for c in table.columns} - {""}
         files[f"{view.slug}/index.html"] = render(
             "route.html",
             **common,
             route=view,
+            fares=fare_lines(route_fares(read, trip_ids), locale),
             map=route_map,
             live=LIVE_FILE if live else "",
             days=days,

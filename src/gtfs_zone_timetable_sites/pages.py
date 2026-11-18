@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from gtfs_zone_timetable_sites.colors import route_color
 from gtfs_zone_timetable_sites.config import TimeFormat
+from gtfs_zone_timetable_sites.fares import Fare, FlatFare, RouteFares, Transfers
 from gtfs_zone_timetable_sites.gtfs.reader import Feed, Route
 from gtfs_zone_timetable_sites.gtfs.service import (
     DayType,
@@ -25,6 +26,7 @@ from gtfs_zone_timetable_sites.i18n import (
     capitalize,
     join_and,
     long_date,
+    price,
     t,
 )
 from gtfs_zone_timetable_sites.places import Place
@@ -997,3 +999,53 @@ def date_range(
     if start:
         return t(locale, "range.from", start=long_date(start, locale))
     return t(locale, "range.to", end=long_date(end, locale)) if end else ""
+
+
+def duration_text(seconds: int, locale: Locale = "en") -> str:
+    """'60 min', in whole minutes rounded up."""
+    return t(locale, "fare.minutes", n=-(-seconds // 60))
+
+
+def transfers_text(transfers: Transfers, locale: Locale = "en") -> str:
+    """'1 free transfer within 60 min', 'no free transfers', or empty when
+    the feed leaves both count and duration blank."""
+    count, duration = transfers.count, transfers.duration
+    if count == 0:
+        if duration:
+            return t(locale, "fare.valid_for", duration=duration_text(duration, locale))
+        return t(locale, "fare.no_transfers")
+    if count is None and not duration:
+        return ""
+    text = (
+        t(locale, "fare.unlimited")
+        if count is None
+        else t(locale, "fare.transfers", n=count)
+    )
+    if duration:
+        return t(
+            locale,
+            "fare.within",
+            transfers=text,
+            duration=duration_text(duration, locale),
+        )
+    return text
+
+
+def fare_text(fare: Fare, several: bool, locale: Locale = "en") -> str:
+    """'$1.25, 1 free transfer within 60 min'; with `several`, the payment
+    method too ('$1.25 paid on board')."""
+    text = price(fare.price, fare.currency, locale)
+    if several and fare.payment_method is not None:
+        key = "fare.before_boarding" if fare.payment_method else "fare.on_board"
+        text = t(locale, key, price=text)
+    extra = transfers_text(fare.transfers, locale) if fare.transfers else ""
+    return t(locale, "fare.with", fare=text, transfers=extra) if extra else text
+
+
+def fare_lines(fares: RouteFares, locale: Locale = "en") -> tuple[str, ...]:
+    """A line per flat fare for the route page's fares card; empty without
+    fares."""
+    if not isinstance(fares, FlatFare):
+        return ()
+    several = len(fares.fares) > 1
+    return tuple(fare_text(fare, several, locale) for fare in fares.fares)

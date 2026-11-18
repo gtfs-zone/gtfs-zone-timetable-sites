@@ -8,7 +8,10 @@ missing from a locale's catalog falls back to English.
 import re
 from collections.abc import Mapping, Sequence
 from datetime import date
+from decimal import Decimal
 from typing import Literal
+
+from babel.numbers import format_currency
 
 Locale = Literal["en", "fr"]
 
@@ -148,6 +151,18 @@ EN: dict[str, str] = {
     "route.continues_as": "Continues as {route} to {headsign}",
     "route.all_routes": "All routes",
     "route.agency_page": "Route page on the agency's site",
+    "fare.one": "Fare: {fare}.",
+    "fare.several": "Fares:",
+    "fare.on_board": "{price} paid on board",
+    "fare.before_boarding": "{price} paid before boarding",
+    "fare.with": "{fare}, {transfers}",
+    "fare.no_transfers": "no free transfers",
+    "fare.valid_for": "valid for {duration}",
+    "fare.transfers_one": "{n} free transfer",
+    "fare.transfers_other": "{n} free transfers",
+    "fare.unlimited": "unlimited free transfers",
+    "fare.within": "{transfers} within {duration}",
+    "fare.minutes": "{n} min",
     # Footer
     "footer.generated": "Generated {date} from the agency's GTFS feed. Check with"
     " the agency before you travel.",
@@ -292,6 +307,18 @@ FR: dict[str, str] = {
     "route.continues_as": "Continue comme {route} vers {headsign}",
     "route.all_routes": "Toutes les lignes",
     "route.agency_page": "Page de la ligne sur le site de l'organisme",
+    "fare.one": "Tarif : {fare}.",
+    "fare.several": "Tarifs :",
+    "fare.on_board": "{price} payé à bord",
+    "fare.before_boarding": "{price} payé avant de monter",
+    "fare.with": "{fare}, {transfers}",
+    "fare.no_transfers": "aucune correspondance gratuite",
+    "fare.valid_for": "valable {duration}",
+    "fare.transfers_one": "{n} correspondance gratuite",
+    "fare.transfers_other": "{n} correspondances gratuites",
+    "fare.unlimited": "correspondances gratuites illimitées",
+    "fare.within": "{transfers} pendant {duration}",
+    "fare.minutes": "{n} min",
     "footer.generated": "Généré le {date} à partir du flux GTFS de l'organisme."
     " Vérifiez auprès de l'organisme avant de partir.",
     "footer.source": "Données d'horaires : {publisher}{feed}{terms}.",
@@ -427,3 +454,8 @@ def weekday_date(day: date, locale: Locale = "en") -> str:
         month=MONTHS_SHORT[locale][day.month - 1],
         day=day_number(day, locale),
     )
+
+
+def price(amount: Decimal, currency: str, locale: Locale = "en") -> str:
+    """'$1.25', '1,25 $US'."""
+    return format_currency(amount, currency, locale=locale)

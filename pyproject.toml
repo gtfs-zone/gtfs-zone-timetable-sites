@@ -13,6 +13,7 @@ dependencies = [
     "pykakasi>=2.3.0",
     "pyyaml>=6.0",
     "reverse-geocode>=1.6.6",
+    "babel>=2.16",
 ]
 
 [tool.uv.sources]
@@ -91,15 +92,10 @@ ignore_names = [
     # Fare fields on Feed, read only by the tests so far
     "amount",
     "areas",
-    "contains_id",
-    "currency",
-    "destination_id",
     "duration_limit",
     "duration_limit_type",
-    "fare_id",
     "fare_media_id",
     "fare_product_id",
-    "fares",
     "fare_transfer_type",
     "from_area_id",
     "from_leg_group_id",
@@ -110,19 +106,16 @@ ignore_names = [
     "media_type",
     "network_id",
     "networks",
-    "origin_id",
-    "payment_method",
-    "price",
     "route_networks",
     "rule_priority",
     "to_area_id",
     "to_leg_group_id",
     "to_timeframe_group_id",
     "transfer_count",
-    "transfer_duration",
     "transfer_rules",
-    "transfers",
-    "zone_id",
+    # v2 fields on fares.Fare, filled from 3d
+    "product",
+    "timeframe",
 ]
 
 [tool.deptry]
