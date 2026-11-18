@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtfs-zone-timetable-sites VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 09:49+0100\n"
+"POT-Creation-Date: 2026-11-17 10:07+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: nl\n"
@@ -325,11 +325,11 @@ msgstr "Deze feed op list.gtfs.zone"
 
 # Route page
 msgid "route.title"
-msgstr "{mode} {route} dienstregeling - {site}"
+msgstr "Dienstregeling {mode} {route} - {site}"
 
 msgid "route.description"
 msgstr ""
-"{mode} {route} dienstregeling{between}{days}. Tijden bij elke halte, "
+"Dienstregeling {mode} {route}{between}{days}. Tijden bij elke halte, "
 "eerste en laatste rit, van {site}."
 
 msgid "route.between"
@@ -350,14 +350,14 @@ msgstr ""
 
 msgid "route.intro_both"
 msgstr ""
-"{mode} {route} rijdt tussen {first} en {last}, met dienstregelingen voor "
-"{days}."
+"Lijn {route} ({mode}) rijdt tussen {first} en {last}, met "
+"dienstregelingen voor {days}."
 
 msgid "route.intro_ends"
-msgstr "{mode} {route} rijdt tussen {first} en {last}."
+msgstr "Lijn {route} ({mode}) rijdt tussen {first} en {last}."
 
 msgid "route.intro_days"
-msgstr "{mode} {route} heeft dienstregelingen voor {days}."
+msgstr "Lijn {route} ({mode}) heeft dienstregelingen voor {days}."
 
 msgid "route.trips"
 msgid_plural "route.trips"

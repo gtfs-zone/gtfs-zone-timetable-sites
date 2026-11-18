@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtfs-zone-timetable-sites VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 09:49+0100\n"
+"POT-Creation-Date: 2026-11-17 10:07+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sv\n"
@@ -325,11 +325,11 @@ msgstr "Det här flödet på list.gtfs.zone"
 
 # Route page
 msgid "route.title"
-msgstr "{mode} {route} tidtabell - {site}"
+msgstr "Tidtabell: {mode} {route} - {site}"
 
 msgid "route.description"
 msgstr ""
-"{mode} {route} tidtabell{between}{days}. Tider vid varje hållplats, "
+"Tidtabell: {mode} {route}{between}{days}. Tider vid varje hållplats, "
 "första och sista tur, från {site}."
 
 msgid "route.between"
@@ -349,13 +349,15 @@ msgstr ""
 "första."
 
 msgid "route.intro_both"
-msgstr "{mode} {route} går mellan {first} och {last}, med tidtabeller för {days}."
+msgstr ""
+"Linje {route} ({mode}) går mellan {first} och {last}, med tidtabeller för"
+" {days}."
 
 msgid "route.intro_ends"
-msgstr "{mode} {route} går mellan {first} och {last}."
+msgstr "Linje {route} ({mode}) går mellan {first} och {last}."
 
 msgid "route.intro_days"
-msgstr "{mode} {route} har tidtabeller för {days}."
+msgstr "Linje {route} ({mode}) har tidtabeller för {days}."
 
 msgid "route.trips"
 msgid_plural "route.trips"

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtfs-zone-timetable-sites VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 09:49+0100\n"
+"POT-Creation-Date: 2026-11-17 10:07+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -321,11 +321,11 @@ msgstr "Tämä syöte: list.gtfs.zone"
 
 # Route page
 msgid "route.title"
-msgstr "{mode} {route} aikataulu - {site}"
+msgstr "Aikataulu: {mode} {route} - {site}"
 
 msgid "route.description"
 msgstr ""
-"{mode} {route} aikataulu{between}{days}. Ajat jokaisella pysäkillä, "
+"Aikataulu: {mode} {route}{between}{days}. Ajat jokaisella pysäkillä, "
 "ensimmäinen ja viimeinen vuoro, lähde: {site}."
 
 msgid "route.between"
@@ -341,13 +341,15 @@ msgid "route.upcoming"
 msgstr "Linjan liikenne alkaa {date}. Näytetty aikataulu on ensimmäinen."
 
 msgid "route.intro_both"
-msgstr "{mode} {route} liikennöi välillä {first} - {last}. Aikataulut: {days}."
+msgstr ""
+"Linja {route} ({mode}) liikennöi välillä {first} - {last}. Aikataulut: "
+"{days}."
 
 msgid "route.intro_ends"
-msgstr "{mode} {route} liikennöi välillä {first} - {last}."
+msgstr "Linja {route} ({mode}) liikennöi välillä {first} - {last}."
 
 msgid "route.intro_days"
-msgstr "{mode} {route}, aikataulut: {days}."
+msgstr "Linjan {route} ({mode}) aikataulut: {days}."
 
 msgid "route.trips"
 msgid_plural "route.trips"
