@@ -4,14 +4,18 @@ import csv
 import io
 import logging
 import zipfile
+from array import array
 from collections import defaultdict
-from collections.abc import Callable, Collection, Iterator
+from collections.abc import Callable, Collection, Iterator, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import Decimal
 from typing import BinaryIO
 
 type ZipSource = bytes | BinaryIO
+type Point = tuple[float, float]
+# Which of a path's points to keep.
+type PathFilter = Callable[[Sequence[Point]], Sequence[bool]]
 
 REQUIRED_FILES = ("agency", "routes", "trips", "stop_times", "stops")
 log = logging.getLogger(__name__)
@@ -581,24 +585,60 @@ def read_calendar_dates(
 
 
 def read_shapes(
-    archive: Archive, shape_ids: set[str]
-) -> dict[str, tuple[tuple[float, float], ...]]:
-    """shape_id -> (lat, lon) points in sequence order."""
+    archive: Archive, shape_ids: set[str], thin: PathFilter | None = None
+) -> dict[str, tuple[Point, ...]]:
+    """shape_id -> (lat, lon) points in sequence order, each run of a shape's
+    rows passed through `thin` as it ends, and again once all are read when
+    a shape came in several runs."""
     columns = ("shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence")
-    points: dict[str, list[tuple[int, float, float]]] = defaultdict(list)
+    shapes: dict[str, tuple[Point, ...]] = {}
+    # The sequence number of each point kept, for a shape seen again later.
+    sequences: dict[str, array[int]] = {}
+    split: dict[str, list[tuple[int, float, float]]] = {}
+
+    def thinned(rows: list[tuple[int, float, float]]) -> list[tuple[int, float, float]]:
+        rows.sort()
+        if thin is None:
+            return rows
+        keep = thin([(lat, lon) for _, lat, lon in rows])
+        return [row for row, kept in zip(rows, keep, strict=True) if kept]
+
+    def end_run(shape_id: str, run: list[tuple[int, float, float]]) -> None:
+        rows = thinned(run)
+        if shape_id in split:
+            split[shape_id] += rows
+        elif shape_id in shapes:
+            points = shapes.pop(shape_id)
+            seqs = sequences.pop(shape_id)
+            split[shape_id] = [
+                (seq, lat, lon) for seq, (lat, lon) in zip(seqs, points, strict=True)
+            ] + rows
+        else:
+            shapes[shape_id] = tuple((lat, lon) for _, lat, lon in rows)
+            sequences[shape_id] = array("q", (seq for seq, _, _ in rows))
+
+    current, run = "", []
     for row in archive.rows("shapes", columns):
-        if row["shape_id"] in shape_ids:
-            points[row["shape_id"]].append(
-                (
-                    int(row["shape_pt_sequence"]),
-                    float(row["shape_pt_lat"]),
-                    float(row["shape_pt_lon"]),
-                )
+        shape_id = row["shape_id"]
+        if shape_id not in shape_ids:
+            continue
+        if shape_id != current:
+            if run:
+                end_run(current, run)
+            current, run = shape_id, []
+        run.append(
+            (
+                int(row["shape_pt_sequence"]),
+                float(row["shape_pt_lat"]),
+                float(row["shape_pt_lon"]),
             )
-    return {
-        shape_id: tuple((lat, lon) for _, lat, lon in sorted(rows))
-        for shape_id, rows in points.items()
-    }
+        )
+    if run:
+        end_run(current, run)
+    sequences.clear()
+    for shape_id, rows in split.items():
+        shapes[shape_id] = tuple((lat, lon) for _, lat, lon in thinned(rows))
+    return shapes
 
 
 def read_frequencies(
@@ -819,13 +859,15 @@ def read_feed(
     source: ZipSource,
     keep_route: Callable[[Route], bool] | None = None,
     keep_services: Callable[[Feed], Collection[str]] | None = None,
+    thin_shapes: PathFilter | None = None,
 ) -> Feed:
     """Parse a GTFS zip, keeping only routes accepted by `keep_route`.
 
     With `keep_services`, trips are read twice: first each route's
     service_ids, then, from the feed without trips (calendars of every
     service), `keep_services` names the services whose trips, stop_times,
-    frequencies and shapes are read."""
+    frequencies and shapes are read. `thin_shapes` drops shape points as
+    they are read."""
     with open_zip(source) as raw:
         archive = Archive(raw)
         missing = [table for table in REQUIRED_FILES if not archive.has(table)]
@@ -871,6 +913,6 @@ def read_feed(
             feed,
             trips=trips,
             stop_times=read_stop_times(archive, set(trips)),
-            shapes=read_shapes(archive, shape_ids),
+            shapes=read_shapes(archive, shape_ids, thin_shapes),
             frequencies=read_frequencies(archive, set(trips)),
         )

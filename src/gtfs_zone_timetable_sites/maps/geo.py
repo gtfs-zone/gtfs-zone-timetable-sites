@@ -37,10 +37,12 @@ class SystemRoute:
     route_ids: Sequence[str]
 
 
-def simplify(points: Sequence[Point], tolerance: float) -> list[Point]:
-    """Douglas-Peucker, iterative so long rail shapes cannot hit recursion limits."""
+def kept(points: Sequence[Point], tolerance: float) -> list[bool]:
+    """Which points Douglas-Peucker keeps, iterative so long rail shapes
+    cannot hit recursion limits."""
+    keep = [True] * len(points)
     if len(points) < 3:
-        return list(points)
+        return keep
     keep = [False] * len(points)
     keep[0] = keep[-1] = True
     stack = [(0, len(points) - 1)]
@@ -62,7 +64,21 @@ def simplify(points: Sequence[Point], tolerance: float) -> list[Point]:
             keep[index] = True
             stack.append((first, index))
             stack.append((index, last))
-    return [p for p, kept in zip(points, keep, strict=True) if kept]
+    return keep
+
+
+def simplify(points: Sequence[Point], tolerance: float) -> list[Point]:
+    """Douglas-Peucker."""
+    return [p for p, k in zip(points, kept(points, tolerance), strict=True) if k]
+
+
+def shape_points(path: Sequence[Point]) -> list[bool]:
+    """Which (lat, lon) points of a shape to read: Douglas-Peucker at
+    ROUTE_TOLERANCE, the floor of every map's tolerance, on a local plane."""
+    if not path:
+        return []
+    kx = math.cos(math.radians(path[0][0])) * M_PER_DEG
+    return kept([(lon * kx, lat * M_PER_DEG) for lat, lon in path], ROUTE_TOLERANCE)
 
 
 def tolerance(paths: Sequence[Sequence[Point]], floor: float, share: float) -> float:

@@ -54,7 +54,12 @@ from gtfs_zone_timetable_sites.i18n import (
     t,
 )
 from gtfs_zone_timetable_sites.languages import feed_languages, translate
-from gtfs_zone_timetable_sites.maps.geo import SystemRoute, route_data, system_data
+from gtfs_zone_timetable_sites.maps.geo import (
+    SystemRoute,
+    route_data,
+    shape_points,
+    system_data,
+)
 from gtfs_zone_timetable_sites.pages import (
     RouteView,
     breadcrumbs,
@@ -109,6 +114,7 @@ def site_feed(source: ZipSource, site: Site, today: date) -> Feed:
         source,
         keep_route=lambda r: site.routes.accepts(r.route_id, r.route_type),
         keep_services=lambda feed: window_services(feed, today, site.horizon_days),
+        thin_shapes=shape_points,
     )
 
 

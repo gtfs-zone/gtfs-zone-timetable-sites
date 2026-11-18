@@ -16,6 +16,7 @@ from gtfs_zone_timetable_sites.gtfs.reader import (
     parse_time,
     read_feed,
 )
+from gtfs_zone_timetable_sites.maps.geo import shape_points
 
 
 def test_parse_time():
@@ -249,3 +250,29 @@ def test_missing_and_header_only_translations_are_empty():
     feed = read_feed(make_zip(files))
     assert feed.translations == ()
     assert feed.agencies["a"].lang == ""
+
+
+def test_read_shapes_thins_each_shape():
+    files = fixture_files("branching")
+    files["trips.txt"] = (
+        files["trips.txt"]
+        .replace(
+            "trip_id,trip_headsign,direction_id",
+            "trip_id,trip_headsign,direction_id,shape_id",
+        )
+        .replace(",0\n", ",0,S\n")
+        .replace(",1\n", ",1,T\n")
+    )
+    # Shape S: a straight line with a kink at 3, its rows in two runs.
+    files["shapes.txt"] = (
+        "shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence\n"
+        "S,42.0,-72.99,2\nS,42.0,-73.0,1\nS,42.0,-72.98,3\n"
+        "T,40.0,-70.0,1\nU,41.0,-70.0,1\n"
+        "S,42.02,-72.96,5\nS,42.01,-72.97,4\nS,42.03,-72.95,6\n"
+    )
+    whole = read_feed(make_zip(files))
+    assert len(whole.shapes["S"]) == 6 and "U" not in whole.shapes
+    assert whole.shapes["S"][:2] == ((42.0, -73.0), (42.0, -72.99))
+    thinned = read_feed(make_zip(files), thin_shapes=shape_points)
+    assert thinned.shapes["S"] == ((42.0, -73.0), (42.0, -72.98), (42.03, -72.95))
+    assert thinned.shapes["T"] == ((40.0, -70.0),)
