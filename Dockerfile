@@ -31,9 +31,12 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
 COPY sites.yaml ./
 
+# One OpenBLAS thread: per-core buffers would take about 1.2 GB of each
+# worker's address-space cap on a 16-core node.
 ENV PATH="/app/.venv/bin:$PATH" \
     DAGSTER_HOME=/app/dagster_home \
-    TIMETABLE_SITES_CONFIG=/app/sites.yaml
+    TIMETABLE_SITES_CONFIG=/app/sites.yaml \
+    OPENBLAS_NUM_THREADS=1
 
 # DAGSTER_HOME must exist and be writable by the runtime user.
 RUN mkdir -p /app/dagster_home && chown flier:flier /app/dagster_home
