@@ -8,6 +8,8 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     day_types,
     exception_name,
     horizon_start,
+    key_services,
+    service_rule,
     span_label,
     start_day_offset,
     trip_note,
@@ -173,3 +175,15 @@ def test_start_day_offset_can_span_two_days():
         )
     )
     assert start_day_offset(feed, "late", MONDAY) == -2
+
+
+def test_key_services_join_trip_ids_of_one_trip():
+    feed = read_feed(weekday_feed())
+    trips = [t for t in feed.trips if feed.trips[t].route_id == "R"]
+    services = key_services(feed, trips, ["w1", "w2", "old"])
+    assert services == {"w1": ("WK_A", "WK_B"), "w2": ("WK",), "old": ("WK_A",)}
+
+
+def test_service_rule():
+    feed = read_feed(weekday_feed())
+    assert service_rule(feed, "WK_A") == [20454, 20737, "1111100", [], []]

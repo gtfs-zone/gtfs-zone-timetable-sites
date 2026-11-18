@@ -29,7 +29,9 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     day_types,
     first_service_date,
     horizon_start,
+    key_services,
     last_service_date,
+    service_rule,
 )
 from gtfs_zone_timetable_sites.i18n import CATALOGS, Locale, capitalize, join_and, t
 from gtfs_zone_timetable_sites.maps.geo import SystemRoute, route_data, system_data
@@ -306,6 +308,9 @@ def build_site(
             noindex="index.html" in noindex,
         )
     }
+    trips_by_route: dict[str, list[str]] = {}
+    for trip in feed.trips.values():
+        trips_by_route.setdefault(trip.route_id, []).append(trip.trip_id)
     for view, rt in zip(routes, timetables, strict=True):
         numbers = stop_numbers(rt.tables)
         data = (
@@ -324,8 +329,10 @@ def build_site(
             feed, rt.tables, site.time_format, marked, locale, by_route, today
         )
         # Live-times data is fetched only once a timetable is on screen, so
-        # it adds nothing to the page itself
-        if updates:
+        # it adds nothing to the page itself. Without trip updates it still
+        # marks each running trip's next stop from the schedule
+        live = bool(updates) or not rt.state
+        if live:
             files[f"{view.slug}/{LIVE_FILE}"] = compact_json(
                 {
                     "url": updates,
@@ -333,6 +340,11 @@ def build_site(
                     "fmt": site.time_format,
                     "tables": [table.live for day in days for table in day.tables],
                     "parents": stop_parents(feed, rt.tables),
+                    **live_services(
+                        feed,
+                        trips_by_route.get(rt.route.route_id, []),
+                        [table.trip_ids for day in days for table in day.tables],
+                    ),
                 }
             ).encode()
         files[f"{view.slug}/index.html"] = render(
@@ -340,7 +352,7 @@ def build_site(
             **common,
             route=view,
             map=route_map,
-            live=LIVE_FILE if updates else "",
+            live=LIVE_FILE if live else "",
             days=days,
             jsonld=[
                 breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
@@ -454,6 +466,24 @@ def stop_parents(feed: Feed, tables: list[Timetable]) -> dict[str, str]:
         for st in feed.stop_times.get(trip, ())
         if (station := feed.station(st.stop_id)) != st.stop_id
     }
+
+
+def live_services(
+    feed: Feed, trip_ids: list[str], tables: list[tuple[str, ...]]
+) -> dict[str, object]:
+    """For tables given by their columns' trip ids: each column's indexes into
+    "services" (none for frequency columns), and those services as
+    `service_rule`s, the dates the column runs on, unchanged by the build date."""
+    services = key_services(feed, trip_ids, {t for trips in tables for t in trips if t})
+    index: dict[str, int] = {}
+    svc = [
+        [
+            [index.setdefault(sid, len(index)) for sid in services.get(trip, ())]
+            for trip in trips
+        ]
+        for trips in tables
+    ]
+    return {"svc": svc, "services": [service_rule(feed, sid) for sid in index]}
 
 
 def route_ids(feed: Feed, tables: list[Timetable]) -> dict[str, list[str]]:

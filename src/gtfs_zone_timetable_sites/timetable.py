@@ -97,6 +97,8 @@ class Column:
     wheelchair: int = 0
     # The trip this one continues as in its block, else "".
     next_trip: str = ""
+    # Seconds added to the trip's times when it starts on the previous local day.
+    day_shift: int = 0
 
     def first_time(self) -> int | None:
         return next((c.time for c in self.cells if c and c.time is not None), None)
@@ -109,6 +111,8 @@ class Row:
     # The feed calls the times here exact (timepoint=1, or no timepoint values).
     exact: bool
     timezone: str | None = None
+    # Seconds added to the route-zone times to read them in `timezone`.
+    shift: int = 0
     # wheelchair_boarding shared by every stop served here, else 0.
     wheelchair: int = 0
     # stop_code and platform_code shared by every stop served here, else "".
@@ -429,6 +433,7 @@ def build_timetable(
                     bikes=trip.bikes_allowed,
                     wheelchair=trip.wheelchair_accessible,
                     next_trip=next_trip if headway is None else "",
+                    day_shift=day_shift,
                 )
             )
     columns.sort(key=cmp_to_key(compare_columns))
@@ -445,6 +450,7 @@ def build_timetable(
                 name=feed.stops[stop_id].name if stop_id in feed.stops else stop_id,
                 exact=row in flagged or not any_flag,
                 timezone=zones[row],
+                shift=shifts[row],
                 wheelchair=next(iter(boarding[row])) if len(boarding[row]) == 1 else 0,
                 code=stop_code(feed, stop_id, served[row]),
                 platform=shared(

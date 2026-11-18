@@ -36,6 +36,7 @@ def test_site_files():
     assert set(files) == {
         "index.html",
         "4/index.html",
+        "4/live.json",
         "site.json",
         "content.json",
         "style.css",

@@ -70,6 +70,49 @@ def active_services(feed: Feed, day: date) -> set[str]:
     return services
 
 
+EPOCH = date(1970, 1, 1)
+
+
+def gaps(days: Iterable[date]) -> list[int]:
+    """Sorted dates as days since 1970-01-01 for the first, then days since
+    the previous one."""
+    numbers = sorted((day - EPOCH).days for day in days)
+    return [b - a for a, b in zip([0, *numbers], numbers, strict=False)]
+
+
+def service_rule(feed: Feed, service_id: str) -> list[object]:
+    """A service's dates for map.js: [first, last, weekdays, added, removed],
+    first and last as days since 1970-01-01 (last < first without a
+    calendar), weekdays as seven 0/1 digits from Monday, and the added and
+    removed dates as `gaps`."""
+    calendar = feed.calendars.get(service_id)
+    exceptions = feed.calendar_dates.get(service_id, {})
+    return [
+        (calendar.start - EPOCH).days if calendar else 0,
+        (calendar.end - EPOCH).days if calendar else -1,
+        "".join("1" if on else "0" for on in calendar.weekdays)
+        if calendar
+        else "0000000",
+        gaps(day for day, on in exceptions.items() if on),
+        gaps(day for day, on in exceptions.items() if not on),
+    ]
+
+
+def key_services(
+    feed: Feed, trip_ids: Iterable[str], wanted: Iterable[str]
+) -> dict[str, tuple[str, ...]]:
+    """For each wanted trip, the services of every trip among `trip_ids`
+    with its `trip_key`: the dates a day type's representative runs on."""
+    by_key: dict[TripKey, set[str]] = defaultdict(set)
+    for trip_id in trip_ids:
+        by_key[trip_key(feed, trip_id)].add(feed.trips[trip_id].service_id)
+    return {
+        trip_id: tuple(sorted(by_key[trip_key(feed, trip_id)]))
+        for trip_id in wanted
+        if trip_id in feed.trips
+    }
+
+
 def timezone_shift(stop_zone: str, route_zone: str, day: date) -> int:
     """Seconds to add to route-zone times to read them in the stop's zone."""
     noon = datetime.combine(day, time(12), ZoneInfo(route_zone))

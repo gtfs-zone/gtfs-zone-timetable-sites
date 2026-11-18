@@ -187,9 +187,33 @@ def test_live_times_from_the_catalog_when_up():
         assert data["sched"][0] == [8 * 60, 10, 10]
     # The accordion copies the route body, so the icon sprite must be inside it
     assert page.index("data-route-body") < page.index('id="i-wheelchair"')
+    # Without trip updates the schedule still marks each trip's next stop
     plain = build(fixture_files("amenities"))
-    assert 'class="rt-data"' not in plain["7/index.html"]
-    assert "7/live.json" not in plain
+    page = plain["7/index.html"]
+    assert '<div class="rt-data" data-src="live.json" hidden></div>' in page
+    assert json.loads(plain["7/live.json"])["url"] is None
+
+
+def test_live_times_list_each_columns_services():
+    files = build(fixture_files("calendar-dates-only"))
+    route = next(path for path in files if path.endswith("/live.json"))
+    live = json.loads(files[route])
+    assert len(live["svc"]) == len(live["tables"])
+    for svc, table in zip(live["svc"], live["tables"], strict=True):
+        assert len(svc) == len(table["trips"])
+        assert all(len(services) == 1 for services in svc)
+    # Days since 1970-01-01, then the gaps between them
+    sat = [0, -1, "0000000", [20736, 4, 3], []]
+    assert sat in live["services"]
+
+
+def test_live_times_are_route_zone_times_from_the_service_day():
+    live = json.loads(build(fixture_files("overnight"))["1/live.json"])
+    (table,) = live["tables"]
+    late = table["sched"][table["trips"].index("late")]
+    # 23:40, 23:55, then 24:10 shown as 23:10 Central; shifts add the zone back
+    assert late == [23 * 60 + 40, 15, 15]
+    assert table["shifts"] == [0, 0, -60]
 
 
 def test_script_json_cannot_close_the_script():

@@ -20,7 +20,7 @@
 .timetable th, .timetable td { padding: .4rem .6rem; border-bottom: 1px solid var(--color-base-300); }
 .timetable tbody tr:last-child > * { border-bottom: 0; }
 .timetable td { text-align: right; white-space: nowrap; }
-/* Above the positioned live edges of the cells that scroll under it */
+/* Above the cells that scroll under it */
 .timetable :is(th[scope=row], thead td:first-child, tfoot td:first-child) {
   position: sticky; left: 0; z-index: 2;
   min-width: 8rem;
@@ -89,16 +89,12 @@
 .timetable td.dw > span { display: block; font-weight: 400; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
 .timetable td.dw > span.pm { font-weight: 700; }
 
-/* Live times: running trips get a green edge, predictions sit under the
-   scheduled time; colors hold 4.5:1 on base-100 in each theme */
+/* Live times: each running trip's next stop is tinted, predictions sit
+   under the scheduled time; colors hold 4.5:1 on base-100 in each theme */
 :root { --live: #166534; --late: #b91c1c; }
 [data-theme="dark"] { --live: #4ade80; --late: #f87171; }
-/* The edge covers the row borders above and below, like the rail; opaque,
-   so the overlap at each join doesn't show darker */
-.timetable td.live { position: relative; }
-.timetable td.live::before { content: ""; position: absolute; left: 0; top: -1px; bottom: -1px; z-index: 1; width: 3px; background: color-mix(in oklab, var(--live) 60%, var(--color-base-100)); pointer-events: none; }
-.timetable tbody tr:first-child td.live::before { top: 0; }
-.timetable tbody tr:last-child td.live::before { bottom: 0; }
+.timetable td.next, .next-swatch { background: color-mix(in oklab, var(--live) 20%, var(--color-base-100)); box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--live) 75%, var(--color-base-100)); }
+.next-swatch { display: inline-block; width: 1.4em; height: 1em; margin-right: .3em; vertical-align: -.15em; border-radius: 3px; }
 .timetable .rt { display: block; font-size: .75rem; font-weight: 700; color: var(--live); }
 .timetable .rt[data-state="late"] { color: var(--late); }
 .timetable td.canceled { text-decoration: line-through; color: color-mix(in oklab, var(--color-base-content) 65%, transparent); }

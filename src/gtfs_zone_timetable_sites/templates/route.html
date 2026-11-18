@@ -60,7 +60,7 @@
 {% endfor %}
 {% if day.valid %}<p class="text-sm text-base-content/70">{{ day.valid }}</p>{% endif %}
 {% for table in day.tables %}
-<div id="{{ table.anchor }}" class="scroll-mt-4 space-y-2">
+<div id="{{ table.anchor }}" class="scroll-mt-4 space-y-2" data-table>
 <h3 class="font-semibold">{{ table.title }}</h3>
 <div class="max-w-full overflow-x-auto rounded-box border border-base-300" tabindex="0" role="region" aria-label="{{ table.title }}, {{ day.name }}">
 <table class="timetable" style="--gutter:{{ table.gutter }}px{% if route.colors %};--line:#{{ route.colors[0] }};--line-text:#{{ route.colors[1] }}{% endif %};--dot-text:#{{ route.dot_text }}">
@@ -103,11 +103,12 @@
 {% endif %}
 </table>
 </div>
-{% if table.legend %}
-<ul class="text-sm text-base-content/70">
+{% if table.legend or table.runs %}
+<ul class="text-sm text-base-content/70"{% if not table.legend %} hidden{% endif %}>
 {% for key in table.legend %}
 <li>{% if key.icon %}{{ t("legend.icon", icon=icon(key.icon), text=key.text) }}{% else %}{{ key.text }}{% endif %}</li>
 {% endfor %}
+{% if table.runs %}<li class="next-key" hidden><span class="next-swatch" aria-hidden="true"></span>{{ t("legend.next") }}</li>{% endif %}
 </ul>
 {% endif %}
 </div>

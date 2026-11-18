@@ -282,12 +282,20 @@ class TableView:
     trips: int = 0
     gutter: int = 0
     # For live times: each column's trip id ("" for frequency columns), each
-    # row's stop id, and each column's scheduled times (see `minute_steps`).
+    # row's stop id, each column's scheduled times in the route's zone from
+    # the start of its service day (see `minute_steps`), and the minutes each
+    # row's zone adds to them.
     trip_ids: tuple[str, ...] = ()
     stop_ids: tuple[str, ...] = ()
     sched: tuple[tuple[int | None, ...], ...] = ()
+    shifts: tuple[int, ...] = ()
     # Per column, the trip it continues as in its block.
     continues: tuple[Continuation | None, ...] = ()
+
+    @property
+    def runs(self) -> bool:
+        """Some column is a trip whose next stop map.js can mark."""
+        return any(self.trip_ids)
 
     @property
     def show_continues(self) -> bool:
@@ -296,7 +304,14 @@ class TableView:
     @property
     def live(self) -> dict[str, object]:
         """The live-times data map.js reads for this table, in page order."""
-        return {"trips": self.trip_ids, "stops": self.stop_ids, "sched": self.sched}
+        data: dict[str, object] = {
+            "trips": self.trip_ids,
+            "stops": self.stop_ids,
+            "sched": self.sched,
+        }
+        if any(self.shifts):
+            data["shifts"] = self.shifts
+        return data
 
     @property
     def show_amenities(self) -> bool:
@@ -667,9 +682,17 @@ def table_view(
         ),
         stop_ids=tuple(row.stop_id for row in table.rows),
         sched=tuple(
-            minute_steps([cell.time if cell else None for cell in column.cells])
+            minute_steps(
+                [
+                    cell.time - row.shift - column.day_shift
+                    if cell and cell.time is not None
+                    else None
+                    for row, cell in zip(table.rows, column.cells, strict=True)
+                ]
+            )
             for column in table.columns
         ),
+        shifts=tuple(row.shift // 60 for row in table.rows),
         continues=tuple(
             continuation(feed, table.route_id, column, routes or {}, locale)
             for column in table.columns

@@ -1139,15 +1139,56 @@ function liveConfig(body) {
   return config;
 }
 
-// Polls the trip updates feed for the route body's tables: running trips'
-// columns marked, predicted times under the scheduled ones, canceled trips
+// Days since 1970-01-01 of the local date at epoch in tz
+const dayDates = new Map();
+function dayOf(epoch, tz) {
+  let f = dayDates.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { timeZone: tz || undefined, year: "numeric", month: "numeric", day: "numeric" });
+    dayDates.set(tz, f);
+  }
+  const parts = Object.fromEntries(f.formatToParts(new Date(epoch * 1000)).map((p) => [p.type, p.value]));
+  return Date.UTC(+parts.year, +parts.month - 1, +parts.day) / 86400000;
+}
+
+// A test of whether a service runs on a day, from build.service_rule:
+// [first, last, weekdays, added gaps, removed gaps]
+function serviceDays([first, last, weekdays, added, removed]) {
+  const days = (gaps) => {
+    let day = 0;
+    return new Set(gaps.map((gap) => (day += gap)));
+  };
+  const add = days(added);
+  const drop = days(removed);
+  // Day 0 was a Thursday, weekday 3 counting from Monday
+  return (day) => add.has(day) || (!drop.has(day) && first <= day && day <= last && weekdays[(day + 3) % 7] === "1");
+}
+
+// The row of a column's next stop by the schedule, or -1 when the trip is
+// not running: it runs on a service day that started `back` days ago, has
+// left its first stop and not reached its last
+function scheduledNext(sched, runs, today, now) {
+  const timed = sched.flatMap((time, row) => (time == null ? [] : [{ time, row }]));
+  if (!timed.length) return -1;
+  for (let back = 0; back <= Math.floor(timed.at(-1).time / 86400); back++) {
+    const at = now + back * 86400;
+    if (!runs(today - back) || at < timed[0].time || at >= timed.at(-1).time) continue;
+    return timed.find((p) => p.time > at).row;
+  }
+  return -1;
+}
+
+// Marks the next stop of each running trip in the route body's tables, from
+// the trip updates feed when the trip has an update, else from the schedule.
+// Predicted times go under the scheduled ones and canceled trips are
 // struck. The route's live.json is fetched once the body is first on screen
 function initLiveTimes(body) {
   let config;
-  // trip id -> [{ table, col, stops, sched }]
+  // trip id -> [{ table, col, stops, sched, shifts, runs }]
   const byTrip = new Map();
   async function load() {
     config = await liveConfig(body);
+    const services = config.services.map(serviceDays);
     // Tables in page order, as build.py lists them
     const tables = body.querySelectorAll("table.timetable");
     config.tables.forEach((data, i) => {
@@ -1155,16 +1196,26 @@ function initLiveTimes(body) {
       if (!table?.tBodies[0]) return;
       data.trips.forEach((trip, col) => {
         if (!trip) return;
+        const own = config.svc[i][col].map((s) => services[s]);
         if (!byTrip.has(trip)) byTrip.set(trip, []);
-        byTrip.get(trip).push({ table, col, stops: data.stops, sched: fromSteps(data.sched[col]) });
+        byTrip.get(trip).push({
+          table,
+          col,
+          stops: data.stops,
+          sched: fromSteps(data.sched[col]),
+          shifts: data.shifts,
+          runs: (day) => own.some((runs) => runs(day)),
+        });
       });
     });
   }
   const cellAt = (table, row, col) => table.tBodies[0].rows[row]?.cells[col + 1];
+  // The legend entry for the highlight, under its table
+  const keyOf = (table) => table.closest("[data-table]")?.querySelector(".next-key");
   const marked = new Set();
   const clear = () => {
     for (const el of marked) {
-      el.classList.remove("live", "canceled");
+      el.classList.remove("next", "canceled");
       el.removeAttribute("title");
       el.querySelector(".rt")?.remove();
     }
@@ -1175,70 +1226,111 @@ function initLiveTimes(body) {
     marked.add(el);
   };
 
+  // Trip updates by trip id; empty without a feed, or when it fails
+  async function updates() {
+    if (!config.url) return new Map();
+    try {
+      const { TripDescriptor, TripUpdate } = await rt();
+      const feed = await fetchFeed(config.url);
+      const out = new Map();
+      for (const entity of feed.entity ?? []) {
+        const tu = entity.tripUpdate;
+        if (byTrip.has(tu?.trip?.tripId)) out.set(tu.trip.tripId, tu);
+      }
+      out.enums = { TripDescriptor, TripUpdate };
+      return out;
+    } catch (err) {
+      console.warn("realtime", err);
+      return new Map();
+    }
+  }
+
+  // The next stop's row from a trip update, or -1 when the trip has not
+  // started or has ended; predicted times go under their cells
+  function fromUpdate(tu, { TripUpdate }, { table, col, stops, sched, shifts }, now) {
+    const SKIPPED = TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED;
+    const NO_DATA = TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA;
+    // By the stop ids the rows use: platforms under their station
+    const byStop = new Map((tu.stopTimeUpdate ?? []).filter((u) => u.stopId).map((u) => [config.parents[u.stopId] ?? u.stopId, u]));
+    // The last known delay carries forward to later stops
+    let delay = null;
+    const shown = [];
+    sched.forEach((time, row) => {
+      if (time == null) return;
+      const u = byStop.get(stops[row]);
+      let skipped = false;
+      if (u) {
+        if (u.scheduleRelationship === SKIPPED) skipped = true;
+        else if (u.scheduleRelationship === NO_DATA) delay = null;
+        else {
+          const event = u.departure ?? u.arrival;
+          if (event && Object.hasOwn(event, "delay")) delay = event.delay;
+          else if (event && Object.hasOwn(event, "time")) delay = nearDay(secondsOfDay(num(event.time), config.tz), time) - time;
+        }
+      }
+      shown.push({ row, time, skipped, delay });
+    });
+    const ref = (time) => nearDay(now, time);
+    const known = shown.find((p) => p.delay != null);
+    // Left its first stop: a predicted time has passed, or feeds that drop
+    // passed stops put the first stop, at the first known delay, in the past
+    const started =
+      shown.some((p) => p.delay != null && p.time + p.delay <= ref(p.time)) ||
+      (known != null && shown[0].time + known.delay <= ref(shown[0].time));
+    const upcoming = shown.filter((p) => p.skipped || (p.delay != null && p.time + p.delay >= ref(p.time) - 60));
+    for (const p of upcoming) {
+      const el = cellAt(table, p.row, col);
+      if (!el) continue;
+      const tag = document.createElement("small");
+      tag.className = "rt";
+      if (p.skipped) {
+        tag.textContent = t("rt.skipped");
+        tag.dataset.state = "late";
+      } else {
+        const late = Math.round(p.delay / 60);
+        const clock = clockText(p.time + p.delay + (shifts?.[p.row] ?? 0) * 60, config.fmt);
+        tag.textContent = late === 0 ? t("rt.on_time") : `${clock} (${late > 0 ? "+" : ""}${late})`;
+        tag.dataset.state = late > 1 ? "late" : "ontime";
+      }
+      el.append(tag);
+      marked.add(el);
+    }
+    if (!started) return -1;
+    return upcoming.find((p) => !p.skipped && p.time + p.delay >= ref(p.time))?.row ?? -1;
+  }
+
   pollWhileShown(body, async () => {
     if (!config) await load();
     if (!byTrip.size) return;
-    const { TripDescriptor, TripUpdate } = await rt();
-    const feed = await fetchFeed(config.url);
-    const SKIPPED = TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED;
-    const NO_DATA = TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA;
-    const now = secondsOfDay(Date.now() / 1000, config.tz);
+    const live = await updates();
+    const now = Date.now() / 1000;
+    const today = dayOf(now, config.tz);
+    const seconds = secondsOfDay(now, config.tz);
     clear();
-    for (const entity of feed.entity ?? []) {
-      const tu = entity.tripUpdate;
-      const places = byTrip.get(tu?.trip?.tripId);
-      if (!places) continue;
-      // By the stop ids the rows use: platforms under their station
-      const updates = new Map((tu.stopTimeUpdate ?? []).filter((u) => u.stopId).map((u) => [config.parents[u.stopId] ?? u.stopId, u]));
-      for (const { table, col, stops, sched } of places) {
-        const cells = sched.map((_, row) => cellAt(table, row, col));
-        if (tu.trip.scheduleRelationship === TripDescriptor.ScheduleRelationship.CANCELED) {
-          for (const el of cells) {
+    for (const [trip, places] of byTrip) {
+      const tu = live.get(trip);
+      for (const place of places) {
+        const { table, col, sched, runs } = place;
+        let row;
+        if (!tu) row = scheduledNext(sched, runs, today, seconds);
+        else if (tu.trip.scheduleRelationship === live.enums.TripDescriptor.ScheduleRelationship.CANCELED) {
+          for (const el of sched.map((_, r) => cellAt(table, r, col))) {
             if (!el) continue;
             mark(el, "canceled");
             el.title = t("rt.canceled");
           }
           continue;
-        }
-        // The last known delay carries forward to later stops
-        let delay = null;
-        const shown = [];
-        sched.forEach((time, row) => {
-          if (time == null) return;
-          const u = updates.get(stops[row]);
-          let skipped = false;
-          if (u) {
-            if (u.scheduleRelationship === SKIPPED) skipped = true;
-            else if (u.scheduleRelationship === NO_DATA) delay = null;
-            else {
-              const event = u.departure ?? u.arrival;
-              if (event && Object.hasOwn(event, "delay")) delay = event.delay;
-              else if (event && Object.hasOwn(event, "time")) delay = nearDay(secondsOfDay(num(event.time), config.tz), time) - time;
-            }
-          }
-          shown.push({ row, time, skipped, delay });
-        });
-        const ref = (time) => nearDay(now, time);
-        const started = shown.some((p) => p.delay != null && p.time + p.delay <= ref(p.time));
-        const upcoming = shown.filter((p) => p.skipped || (p.delay != null && p.time + p.delay >= ref(p.time) - 60));
-        if (started && upcoming.length) for (const el of cells) if (el) mark(el, "live");
-        for (const p of upcoming) {
-          const el = cells[p.row];
-          if (!el) continue;
-          const tag = document.createElement("small");
-          tag.className = "rt";
-          if (p.skipped) {
-            tag.textContent = t("rt.skipped");
-            tag.dataset.state = "late";
-          } else {
-            const late = Math.round(p.delay / 60);
-            tag.textContent = late === 0 ? t("rt.on_time") : `${clockText(p.time + p.delay, config.fmt)} (${late > 0 ? "+" : ""}${late})`;
-            tag.dataset.state = late > 1 ? "late" : "ontime";
-          }
-          el.append(tag);
-          marked.add(el);
-        }
+        } else row = fromUpdate(tu, live.enums, place, seconds);
+        const el = row >= 0 && cellAt(table, row, col);
+        if (el) mark(el, "next");
       }
+    }
+    for (const table of body.querySelectorAll("table.timetable")) {
+      const key = keyOf(table);
+      if (!key) continue;
+      key.hidden = !table.querySelector("td.next");
+      // A list with only this entry shows with it
+      if (key.parentElement.children.length === 1) key.parentElement.hidden = key.hidden;
     }
   });
 }
