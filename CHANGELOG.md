@@ -1,3 +1,50 @@
+## v0.23.0 (2026-11-18)
+
+### Feat
+
+- **content**: stop location, place and place tags in the content report
+- **reader**: read only trips whose service runs in a route's window
+- **build**: build_site reads the zip from bytes or a binary file
+- **i18n**: Dutch UI catalog
+- **i18n**: Swedish UI catalog
+- **i18n**: Finnish UI catalog
+- **i18n**: German UI catalog
+- **i18n**: Polish UI catalog
+- **i18n**: Spanish UI catalog
+- **i18n**: Italian UI catalog
+- **i18n**: Japanese UI catalog
+- **i18n**: root and country pages in each UI language, picker, hreflang and sitemap alternates
+- **i18n**: translations.txt applied to each page set's feed text, kana readings beside stop names
+- **i18n**: a page set per feed language with picker, hreflang and sitemap alternates
+- **i18n**: root, country and error pages through the catalogs, root.js text as JSON
+- **i18n**: gettext catalogs for en and fr, dates and lists from Babel
+- **i18n**: read feed_lang, agency_lang and translations.txt, feed languages in the content report
+- **fares**: site fares page with every fare by network or agency and transfers in words
+- **fares**: Fares v2 on route pages, by area with media and timeframes
+- **fares**: zone fare charts and zone badges on route pages
+- **fares**: flat Fares v1 card on route pages
+- **reader**: read stop zones and Fares v1 and v2 tables
+- **live**: one white border for vehicle dots and arrows
+- **maps**: route map stops never overlap, insets where they reveal hidden stops
+- **timetable**: block continuations as lettered column notes
+- **live**: mark each running trip's next stop instead of the live edge
+- **timetable**: stop codes, platforms, block continuations and per-day validity
+- **timetable**: show every stop, dim approximate times, one system map line width for all modes
+
+### Fix
+
+- **pages**: service range and table dates from the calendars, feed_info dates shown beside them
+- **i18n**: fi, sv and nl route titles and intros start with a word, not the lowercase mode
+- **i18n**: day labels inside trip notes start lowercase where weekday names do
+- **i18n**: stand-alone weekday names, tests follow the set of UI catalogs
+
+### Perf
+
+- **pipeline**: stream each download to a temporary file
+- **reader**: thin shapes with Douglas-Peucker as they are read
+- **reader**: share repeated stop ids, times and trip strings
+- **service**: index service_ids by date once per feed, drop unused calendars on read
+
 ## v0.22.3 (2026-11-14)
 
 ### Fix
