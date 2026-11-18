@@ -61,8 +61,8 @@ def test_route_map_from_stop_sequences_numbers_stops_like_the_timetable():
     page = build(fixture_files("branching"))["4/index.html"]
     data = route_data(page)
     assert data["lines"] and data["rt"] is None
-    names = {num: name for _, _, num, name, _ in data["stops"]}
-    assert [num for _, _, num, _, _ in data["stops"]] == sorted(names)
+    names = {num: name for _, _, num, name, _, _ in data["stops"]}
+    assert [num for _, _, num, _, _, _ in data["stops"]] == sorted(names)
     rows = re.findall(r'<th scope="row" data-num="(\d+)">.*?>([A-Z][a-z]+)<', page)
     assert rows and all(names[int(num)] == name for num, name in rows)
 
@@ -70,8 +70,15 @@ def test_route_map_from_stop_sequences_numbers_stops_like_the_timetable():
 def test_route_map_marks_trip_ends():
     data = route_data(build(fixture_files("branching"))["4/index.html"])
     # Charlie is where back_short ends; Bravo, Echo and Foxtrot are passed through.
-    ends = {name for *_, name, end in data["stops"] if end}
+    ends = {name for *_, name, end, _ in data["stops"] if end}
     assert ends == {"Alpha", "Charlie", "Delta", "Golf"}
+
+
+def test_route_map_ranks_end_stops_first():
+    data = route_data(build(fixture_files("branching"))["4/index.html"])
+    ranks = [(end, rank) for *_, end, rank in data["stops"]]
+    assert sorted(rank for _, rank in ranks) == list(range(len(ranks)))
+    assert max(r for end, r in ranks if end) < min(r for end, r in ranks if not end)
 
 
 def test_rare_short_turns_are_not_ends():
@@ -86,7 +93,7 @@ def test_rare_short_turns_are_not_ends():
     files["stop_times.txt"] = "\n".join([files["stop_times.txt"].rstrip(), *times])
     files["trips.txt"] = "\n".join([files["trips.txt"].rstrip(), *trips])
     data = route_data(build(files)["4/index.html"])
-    assert "Charlie" not in {name for *_, name, end in data["stops"] if end}
+    assert "Charlie" not in {name for *_, name, end, _ in data["stops"] if end}
 
 
 def with_shape(files: dict[str, str]) -> dict[str, str]:

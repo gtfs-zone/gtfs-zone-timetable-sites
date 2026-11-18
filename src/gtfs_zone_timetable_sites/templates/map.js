@@ -13,9 +13,15 @@ const STYLES = {
 };
 const POLL_MS = 30_000;
 const FONT = ["Noto Sans Bold"];
-const SIZE = { radius: 8, end: 9, text: 10, line: 4, casing: 7 };
+const SIZE = { radius: 8, end: 9, stroke: 2, tick: 2.5, text: 10, line: 4, casing: 7 };
 // Inset maps per route at most; each is its own WebGL map
 const MAX_INSETS = 3;
+// Insets zoom in this far past the main map, so each shows at most 1/16 of its area
+const INSET_ZOOM = 2;
+// Hidden stops an inset must reveal to be shown
+const MIN_REVEAL = 2;
+// Centers of two numbered stops at least this far apart, as their icons collide
+const MARK_GAP = 2 * (SIZE.radius + SIZE.stroke) + 2;
 const TEXT = JSON.parse(document.getElementById("map-text")?.textContent ?? "{}");
 const LANG = document.documentElement.lang;
 // i18n text for key, with _one / _other picked by vars.n as i18n.plural does
@@ -109,7 +115,7 @@ function newMap(L, container, bounds, options = {}) {
   const map = new L.Map({
     container,
     style: styleUrl(),
-    bounds,
+    ...(bounds && { bounds }),
     fitBoundsOptions: { padding: 30, maxZoom: 15 },
     cooperativeGestures: true,
     attributionControl: { compact: true },
@@ -189,10 +195,10 @@ function routeGeojson(data) {
     properties: { kind: "line" },
     geometry: { type: "LineString", coordinates: c.length > 1 ? c : [c[0], c[0]] },
   }));
-  for (const [lon, lat, num, name, end] of data.stops) {
+  for (const [lon, lat, num, name, end, rank] of data.stops) {
     features.push({
       type: "Feature",
-      properties: { kind: "stop", num, name, end },
+      properties: { kind: "stop", num, name, end, rank },
       geometry: { type: "Point", coordinates: [lon, lat] },
     });
   }
@@ -203,6 +209,25 @@ function allCoords(data) {
   return [...data.lines.flat(), ...data.stops.map((s) => [s[0], s[1]])];
 }
 
+// A filled circle with a stroke as a map image, drawn at twice the pixel size
+function circleImage(radius, fill, stroke) {
+  const scale = 2;
+  const size = Math.ceil(2 * (radius + SIZE.stroke)) * scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, (radius + SIZE.stroke / 2) * scale, 0, 2 * Math.PI);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.lineWidth = SIZE.stroke * scale;
+  ctx.strokeStyle = stroke;
+  ctx.stroke();
+  return [ctx.getImageData(0, 0, size, size), { pixelRatio: scale }];
+}
+
+// Every stop is a small white dot; a numbered mark covers it where it does
+// not overlap a mark of lower rank, at every zoom
 function addRouteLayers(map, data) {
   const color = lineColor(data.color);
   const text = onColor(color, data.text);
@@ -210,6 +235,13 @@ function addRouteLayers(map, data) {
   const isStop = ["==", ["get", "kind"], "stop"];
   const isEnd = ["==", ["get", "end"], 1];
   const layout = { "line-join": "round", "line-cap": "round" };
+  for (const [id, image] of [
+    ["stop-mark", circleImage(SIZE.radius, DOT, color)],
+    ["stop-end", circleImage(SIZE.end, color, color)],
+  ]) {
+    if (map.hasImage(id)) map.removeImage(id);
+    map.addImage(id, ...image);
+  }
   map.addSource("route", { type: "geojson", data: routeGeojson(data) });
   map.addLayer({ id: "casing", type: "line", source: "route", filter: isLine, layout, paint: { "line-color": paper(), "line-width": SIZE.casing } });
   map.addLayer({ id: "line", type: "line", source: "route", filter: isLine, layout, paint: { "line-color": color, "line-width": SIZE.line } });
@@ -218,24 +250,21 @@ function addRouteLayers(map, data) {
     type: "circle",
     source: "route",
     filter: isStop,
-    paint: {
-      "circle-radius": ["case", isEnd, SIZE.end, SIZE.radius],
-      "circle-color": ["case", isEnd, color, DOT],
-      "circle-stroke-color": color,
-      "circle-stroke-width": 2,
-    },
+    paint: { "circle-radius": SIZE.tick, "circle-color": DOT, "circle-stroke-color": color, "circle-stroke-width": 1.5 },
   });
   map.addLayer({
-    id: "stop-nums",
+    id: "stop-marks",
     type: "symbol",
     source: "route",
     filter: isStop,
     layout: {
+      "symbol-sort-key": ["get", "rank"],
+      "icon-image": ["case", isEnd, "stop-end", "stop-mark"],
+      "icon-padding": 1,
       "text-field": ["to-string", ["get", "num"]],
       "text-font": FONT,
       "text-size": SIZE.text,
-      "text-allow-overlap": true,
-      "text-ignore-placement": true,
+      "text-padding": 0,
     },
     paint: { "text-color": ["case", isEnd, text, dotText(color)] },
   });
@@ -305,7 +334,7 @@ function stopPopup(map, card, stops) {
 
 function stopHandlers(L, map, card) {
   onClick(L, map, RANK_STOP, (e) => {
-    const found = hits(map, e.point, ["stops"], 4);
+    const found = hits(map, e.point, ["stops"], 8);
     if (!found.length) return null;
     const stops = [...new Map(found.map((f) => [f.properties.num, f.properties])).values()].sort((a, b) => a.num - b.num);
     return { at: found[0].geometry.coordinates, content: stopPopup(map, card, stops) };
@@ -361,57 +390,53 @@ function vehiclePlace(map, card, config, v) {
   return { head, stop: row >= 0 && rows[row]?.cells[0] ? rowStop(rows[row].cells[0]) : null, link };
 }
 
-function stopPoints(map, data) {
-  return data.stops.map(([lon, lat, num]) => ({ num, coords: [lon, lat], p: map.project([lon, lat]) }));
+// Stops whose numbered marks did not fit on the map as placed now
+function hiddenStops(map, data) {
+  const shown = new Set(map.queryRenderedFeatures({ layers: ["stop-marks"] }).map((f) => f.properties.num));
+  return data.stops.filter((s) => !shown.has(s[2]));
 }
 
-function pixelBox(points, pad) {
-  const xs = points.map((s) => s.p.x);
-  const ys = points.map((s) => s.p.y);
-  return { x0: Math.min(...xs) - pad, y0: Math.min(...ys) - pad, x1: Math.max(...xs) + pad, y1: Math.max(...ys) + pad };
-}
-const intersects = (a, b) => a.x0 <= b.x1 && b.x0 <= a.x1 && a.y0 <= b.y1 && b.y0 <= a.y1;
-
-// Groups of stops close enough on screen to hide each other's numbers; groups
-// whose padded boxes touch merge into one
-function findClusters(map, data) {
-  const stops = stopPoints(map, data);
-  const parent = stops.map((_, i) => i);
-  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
-  for (let i = 0; i < stops.length; i++) {
-    for (let j = i + 1; j < stops.length; j++) {
-      if (Math.hypot(stops[i].p.x - stops[j].p.x, stops[i].p.y - stops[j].p.y) < SIZE.radius * 1.1) {
-        parent[find(j)] = find(i);
+// Insets of w x h pixels at INSET_ZOOM past the main map, each placed where it
+// reveals the most hidden stops; inside one, marks are placed by rank and
+// MARK_GAP as on the map. Each is its center and the revealed stops' coords.
+function pickInsets(map, data, hidden, w, h) {
+  const k = 2 ** INSET_ZOOM;
+  const pad = SIZE.radius + SIZE.stroke;
+  const stops = data.stops
+    .map(([lon, lat, num, , , rank]) => {
+      const p = map.project([lon, lat]);
+      return { num, rank, coords: [lon, lat], x: p.x * k, y: p.y * k };
+    })
+    .sort((a, b) => a.rank - b.rank);
+  let left = new Set(hidden.map((s) => s[2]));
+  const picks = [];
+  while (picks.length < MAX_INSETS) {
+    let best = [];
+    for (const c of stops) {
+      if (!left.has(c.num)) continue;
+      const placed = [];
+      for (const s of stops) {
+        if (Math.abs(s.x - c.x) > w / 2 - pad || Math.abs(s.y - c.y) > h / 2 - pad) continue;
+        if (placed.every((p) => Math.hypot(p.x - s.x, p.y - s.y) >= MARK_GAP)) placed.push(s);
       }
+      const revealed = placed.filter((s) => left.has(s.num));
+      if (revealed.length > best.length) best = revealed;
     }
+    if (best.length < MIN_REVEAL) break;
+    left = new Set([...left].filter((num) => !best.some((s) => s.num === num)));
+    const center = map.unproject([
+      (Math.min(...best.map((s) => s.x)) + Math.max(...best.map((s) => s.x))) / 2 / k,
+      (Math.min(...best.map((s) => s.y)) + Math.max(...best.map((s) => s.y))) / 2 / k,
+    ]);
+    picks.push({ center, coords: best.map((s) => s.coords), first: Math.min(...best.map((s) => s.num)) });
   }
-  const byRoot = new Map();
-  stops.forEach((s, i) => {
-    const r = find(i);
-    if (!byRoot.has(r)) byRoot.set(r, []);
-    byRoot.get(r).push(s);
-  });
-  const pad = SIZE.radius * 2;
-  const groups = [...byRoot.values()].filter((g) => g.length > 1);
-  for (let merged = true; merged; ) {
-    merged = false;
-    outer: for (let i = 0; i < groups.length; i++) {
-      for (let j = i + 1; j < groups.length; j++) {
-        if (intersects(pixelBox(groups[i], pad), pixelBox(groups[j], pad))) {
-          groups[i] = groups[i].concat(groups[j]);
-          groups.splice(j, 1);
-          merged = true;
-          break outer;
-        }
-      }
-    }
-  }
-  return groups.map((g) => ({ nums: g.map((s) => s.num), coords: g.map((s) => s.coords), stops: g }));
+  return picks.sort((a, b) => a.first - b.first);
 }
 
 const RANK = { city: 0, town: 1, village: 2, suburb: 3, neighbourhood: 4 };
 
-// The largest place shown near coords, from the basemap's place labels
+// The largest place shown in the map's view, nearest coords first, from the
+// basemap's place labels; "" when none is in view
 function placeName(map, coords) {
   const cx = coords.reduce((a, c) => a + c[0], 0) / coords.length;
   const cy = coords.reduce((a, c) => a + c[1], 0) / coords.length;
@@ -419,25 +444,20 @@ function placeName(map, coords) {
   const view = map.getBounds();
   const places = map
     .querySourceFeatures("openmaptiles", { sourceLayer: "place" })
-    .filter((f) => f.properties.class in RANK && f.geometry.type === "Point")
+    .filter((f) => f.properties.class in RANK && f.geometry.type === "Point" && view.contains(f.geometry.coordinates))
     .map((f) => {
       const [x, y] = f.geometry.coordinates;
       return {
         name: f.properties[`name:${LANG}`] || f.properties.name,
         rank: RANK[f.properties.class],
         dist: Math.hypot((x - cx) * kx, y - cy),
-        inView: view.contains([x, y]),
       };
-    });
-  const inView = places.filter((p) => p.inView).sort((a, b) => a.rank - b.rank || a.dist - b.dist);
-  return (inView[0] ?? places.sort((a, b) => a.dist - b.dist)[0])?.name ?? "";
+    })
+    .sort((a, b) => a.rank - b.rank || a.dist - b.dist);
+  return places[0]?.name ?? "";
 }
 
-// Hides clustered stops' numbers on the main map; their insets show them
-function hideClustered(map, clusters) {
-  const nums = clusters.flatMap((c) => c.nums);
-  map.setFilter("stop-nums", ["all", ["==", ["get", "kind"], "stop"], ["!", ["in", ["get", "num"], ["literal", nums]]]]);
-}
+const letter = (i) => String.fromCharCode(65 + i);
 
 // The area a map shows, as a closed ring
 function viewRing(map) {
@@ -446,41 +466,66 @@ function viewRing(map) {
   return [[w, s], [e, s], [e, n], [w, n], [w, s]];
 }
 
-// Boxes on the main map around what each inset shows; skipped until the
-// route layers are on the current style
+// Boxes on the main map around what each inset shows, lettered as the
+// insets are; skipped until the route layers are on the current style
 function drawBoxes(map, rings) {
-  const data = {
-    type: "FeatureCollection",
-    features: rings.filter(Boolean).map((ring) => ({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: ring } })),
-  };
+  const features = [];
+  rings.forEach((ring, i) => {
+    if (!ring) return;
+    features.push({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: ring } });
+    features.push({ type: "Feature", properties: { letter: letter(i) }, geometry: { type: "Point", coordinates: ring[3] } });
+  });
+  const data = { type: "FeatureCollection", features };
   const source = map.getSource("inset-boxes");
   if (source) return source.setData(data);
   if (!map.getLayer("stops")) return;
   map.addSource("inset-boxes", { type: "geojson", data });
-  map.addLayer({ id: "inset-boxes", type: "line", source: "inset-boxes", paint: { "line-color": ink(), "line-width": 1 } });
+  map.addLayer({ id: "inset-boxes", type: "line", source: "inset-boxes", filter: ["==", ["geometry-type"], "LineString"], paint: { "line-color": ink(), "line-width": 1 } });
+  map.addLayer({
+    id: "inset-letters",
+    type: "symbol",
+    source: "inset-boxes",
+    filter: ["==", ["geometry-type"], "Point"],
+    layout: {
+      "text-field": ["get", "letter"],
+      "text-font": FONT,
+      "text-size": 12,
+      "text-anchor": "top-left",
+      "text-offset": [0.3, 0.2],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: { "text-color": ink(), "text-halo-color": paper(), "text-halo-width": 1.5 },
+  });
 }
 
-// An inset map per cluster; onView gets each inset's index and view ring
-// whenever it settles
-function buildInsets(L, container, card, data, clusters, onView) {
-  // Every figure goes in before any map, so each map fits its bounds at its final size
-  const figs = clusters.map(() => {
+// Empty inset figures, each a letter and a place caption over a map div
+function insetFigures(container, n) {
+  return Array.from({ length: n }, () => {
     const fig = document.createElement("figure");
     fig.className = "route-inset";
     const cap = document.createElement("figcaption");
-    cap.textContent = " ";
+    const name = document.createElement("span");
+    name.textContent = " ";
+    cap.append(name);
     const div = document.createElement("div");
     div.className = "route-inset-map";
     fig.append(cap, div);
     container.append(fig);
-    return { cap, div };
+    return { fig, cap, name, div };
   });
-  clusters.forEach((c, i) => {
-    const { cap, div } = figs[i];
-    const map = newMap(L, div, boundsOf(L, c.coords), {
-      fitBoundsOptions: { padding: SIZE.radius * 3, maxZoom: 17 },
-      attributionControl: false,
-    });
+}
+
+// An inset map per pick in its figure; onView gets each inset's index and
+// view ring whenever it settles
+function buildInsets(L, figs, card, data, picks, zoom, onView) {
+  picks.forEach((pick, i) => {
+    const { cap, name, div } = figs[i];
+    const tag = document.createElement("span");
+    tag.className = "route-inset-letter";
+    tag.textContent = letter(i);
+    cap.prepend(tag);
+    const map = newMap(L, div, null, { center: pick.center, zoom: Math.min(17, zoom + INSET_ZOOM), attributionControl: false });
     const draw = () => {
       quietBasemap(map);
       addRouteLayers(map, data);
@@ -488,7 +533,7 @@ function buildInsets(L, container, card, data, clusters, onView) {
     map.once("load", () => {
       draw();
       stopHandlers(L, map, card);
-      map.once("idle", () => (cap.textContent = placeName(map, c.coords) || " "));
+      map.once("idle", () => (name.textContent = placeName(map, pick.coords) || " "));
       onView(i, viewRing(map));
     });
     map.on("moveend", () => onView(i, viewRing(map)));
@@ -505,61 +550,41 @@ async function initRouteMap(card) {
   const fit = () => map.fitBounds(bounds, { padding: 30, maxZoom: 15, duration: 0 });
   const map = newMap(L, holder.querySelector(".route-map"), bounds);
   map.addControl(new L.NavigationControl({ showCompass: false }), "top-right");
-  let clusters = [];
-  let crowded = false;
   let vehicles;
   const rings = [];
-  // Crowded stops: numbers hidden on collision, or left to the insets
-  const showClusters = () => {
-    if (crowded) {
-      map.setLayoutProperty("stop-nums", "text-allow-overlap", false);
-      map.setLayoutProperty("stop-nums", "text-ignore-placement", false);
-    }
-    if (clusters.length) {
-      hideClustered(map, clusters);
-      drawBoxes(map, rings);
-    }
-  };
   const draw = () => {
     quietBasemap(map);
     addRouteLayers(map, data);
-    showClusters();
+    if (rings.length) drawBoxes(map, rings);
     vehicles?.draw();
+  };
+  // Insets where stops are hidden on the main map; the insets column narrows
+  // it, so hidden stops are found again with the column in place
+  const addInsets = () => {
+    if (hiddenStops(map, data).length < MIN_REVEAL) return;
+    const container = holder.querySelector(".route-insets");
+    const figs = insetFigures(container, MAX_INSETS);
+    holder.classList.add("has-insets");
+    map.resize();
+    fit();
+    map.once("idle", () => {
+      const { clientWidth: w, clientHeight: h } = figs[0].div;
+      const picks = pickInsets(map, data, hiddenStops(map, data), w, h);
+      const zoom = map.getZoom();
+      for (const f of figs.slice(picks.length)) f.fig.remove();
+      if (!picks.length) holder.classList.remove("has-insets");
+      map.resize();
+      fit();
+      buildInsets(L, figs, card, data, picks, zoom, (i, ring) => {
+        rings[i] = ring;
+        drawBoxes(map, rings);
+      });
+    });
   };
   map.once("load", () => {
     draw();
     stopHandlers(L, map, card);
-    map.once("idle", () => {
-      let found = findClusters(map, data);
-      if (found.length && found.length <= MAX_INSETS) {
-        // The insets column narrows the map, so stops crowd differently
-        holder.classList.add("has-insets");
-        map.resize();
-        fit();
-        found = findClusters(map, data);
-        if (!found.length || found.length > MAX_INSETS) {
-          holder.classList.remove("has-insets");
-          map.resize();
-          fit();
-        }
-      }
-      if (found.length > MAX_INSETS) {
-        // Too many crowded spots for insets: numbers that collide hide until zoomed in
-        crowded = true;
-      } else {
-        clusters = found;
-      }
-      showClusters();
-      if (clusters.length) {
-        buildInsets(L, holder.querySelector(".route-insets"), card, data, clusters, (i, ring) => {
-          rings[i] = ring;
-          drawBoxes(map, rings);
-        });
-        // The main map stretches to a taller insets column
-        map.resize();
-        fit();
-      }
-    });
+    map.once("idle", addInsets);
     if (data.rt) {
       const routes = new Set(data.rt.routes);
       const trips = new Set(data.rt.trips);

@@ -216,15 +216,31 @@ def route_data(
     numbers: Mapping[str, int],
     colors: tuple[str, str] | None,
     vehicles: dict | None = None,
+    served: Mapping[str, int] | None = None,
 ) -> dict:
-    """A route map's data: lines, and stops as [lon, lat, number, name, end]
-    in number order, end 1 where enough trips start or end."""
+    """A route map's data: lines, and stops as [lon, lat, number, name, end,
+    rank] in number order, end 1 where enough trips start or end. Rank 0 is
+    drawn first where stops overlap: end stops, then stops with exact times,
+    then stops on more routes (`served`), then number order."""
     _, ends = table_stops(tables)
+    exact = {row.stop_id for table in tables for row in table.rows if row.exact}
     paths = route_paths(feed, tables)
     stops = []
     for stop_id, num in sorted(numbers.items(), key=lambda item: item[1]):
         if point := stop_point(feed, stop_id):
             stops.append([*point, num, stop_name(feed, stop_id), int(stop_id in ends)])
+    ids = {num: stop_id for stop_id, num in numbers.items()}
+    order = sorted(
+        range(len(stops)),
+        key=lambda i: (
+            not stops[i][4],
+            ids[stops[i][2]] not in exact,
+            -(served or {}).get(ids[stops[i][2]], 1),
+            stops[i][2],
+        ),
+    )
+    for rank, i in enumerate(order):
+        stops[i].append(rank)
     return {
         "color": hex_color(colors[0]) if colors else None,
         "text": hex_color(colors[1]) if colors else None,

@@ -5,6 +5,7 @@ import io
 import json
 import re
 import zipfile
+from collections import Counter
 from dataclasses import replace
 from datetime import date, timedelta
 from importlib.metadata import version
@@ -311,6 +312,11 @@ def build_site(
     trips_by_route: dict[str, list[str]] = {}
     for trip in feed.trips.values():
         trips_by_route.setdefault(trip.route_id, []).append(trip.trip_id)
+    served = Counter(
+        stop_id
+        for rt in timetables
+        for stop_id in {row.stop_id for table in rt.tables for row in table.rows}
+    )
     for view, rt in zip(routes, timetables, strict=True):
         numbers = stop_numbers(rt.tables)
         data = (
@@ -320,6 +326,7 @@ def build_site(
                 numbers,
                 view.colors,
                 {"url": vehicles, **route_ids(read, rt.tables)} if vehicles else None,
+                served,
             )
             if maps
             else None
