@@ -26,7 +26,7 @@ def test_weekday_names():
     assert weekday_name(range(7)) == "Daily"
     assert weekday_name([0, 1, 2, 3]) == "Monday to Thursday"
     assert weekday_name([1, 4]) == "Tuesday and Friday"
-    assert weekday_name([0, 2, 4]) == "Monday, Wednesday and Friday"
+    assert weekday_name([0, 2, 4]) == "Monday, Wednesday, and Friday"
 
 
 def test_calendar_dates_only_day_types():
@@ -44,7 +44,7 @@ def test_calendar_dates_only_day_types():
     assert saturday.missing == ()
     assert not special.regular
     assert special.dates == (date(2026, 10, 12),)
-    assert special.name == "Mon Oct 12"
+    assert special.name == "Mon, Oct 12"
     assert special.trip_ids == {"special"}
 
 
@@ -166,16 +166,16 @@ def test_date_ranges():
     horizon = [MONDAY + timedelta(days=n) for n in range(21)]
     week2 = horizon[7:12]
     assert exception_name(week2, horizon) == "Weekday, Oct 12 to Oct 16"
-    assert exception_name([horizon[5]], horizon) == "Sat Oct 10"
+    assert exception_name([horizon[5]], horizon) == "Sat, Oct 10"
     assert exception_name([horizon[5], horizon[19]], horizon) == (
-        "Sat Oct 10, Sat Oct 24"
+        "Sat, Oct 10, Sat, Oct 24"
     )
     weekdays = [day for day in horizon if day.weekday() < 5]
     skipped = [*horizon[7:12], horizon[16]]
-    assert span_label(skipped, weekdays) == "Oct 12 to Oct 16, Wed Oct 21"
+    assert span_label(skipped, weekdays) == "Oct 12 to Oct 16, Wed, Oct 21"
     sundays = [horizon[6], horizon[13], horizon[20]]
     assert exception_name(sundays, horizon) == "Sundays, Oct 11 to Oct 25"
-    assert exception_name(horizon[5:7], horizon) == "Sat Oct 10, Sun Oct 11"
+    assert exception_name(horizon[5:7], horizon) == "Sat, Oct 10, Sun, Oct 11"
 
 
 def test_trip_starting_before_local_midnight_moves_to_previous_day():

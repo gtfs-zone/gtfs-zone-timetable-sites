@@ -34,7 +34,14 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     key_services,
     service_rule,
 )
-from gtfs_zone_timetable_sites.i18n import CATALOGS, Locale, capitalize, join_and, t
+from gtfs_zone_timetable_sites.i18n import (
+    Locale,
+    capitalize,
+    join_and,
+    message,
+    plural_forms,
+    t,
+)
 from gtfs_zone_timetable_sites.maps.geo import SystemRoute, route_data, system_data
 from gtfs_zone_timetable_sites.pages import (
     breadcrumbs,
@@ -396,11 +403,10 @@ def build_site(
             fares=fare_lines(fares, locale, read.fares.timeframes, site.time_format),
             fare_charts=fare_charts(fares, locale),
             fares_page=bool(all_fares),
-            fares_by=t(
-                locale,
-                "fare.by_zone"
+            fares_by=(
+                t(locale, "fare.by_zone")
                 if isinstance(fares, ZoneFares) and fares.zones
-                else "fare.by_stop",
+                else t(locale, "fare.by_stop")
             ),
             map=route_map,
             live=LIVE_FILE if live else "",
@@ -470,6 +476,8 @@ script_json = compact_json
 # A route's live-times data, next to its page.
 LIVE_FILE = "live.json"
 
+# Plural text map.js shows, by i18n key: forms by CLDR category.
+MAP_PLURALS = ("map.live",)
 # Text map.js shows, by i18n key.
 MAP_TEXT = (
     "map.in_timetable",
@@ -480,8 +488,6 @@ MAP_TEXT = (
     "map.next_stop",
     "map.position_ago",
     "map.open_timetable",
-    "map.live_one",
-    "map.live_other",
     "map.updated",
     "rt.on_time",
     "rt.skipped",
@@ -492,10 +498,10 @@ MAP_TEXT = (
 
 def map_text(locale: Locale, modes: list[str]) -> Markup:
     """map.js's strings and mode names, as JSON for a <script> element."""
-    catalog = CATALOGS[locale]
     return script_json(
         {
-            **{key: catalog[key] for key in MAP_TEXT},
+            **{key: message(locale, key) for key in MAP_TEXT},
+            **{key: plural_forms(locale, key) for key in MAP_PLURALS},
             "modes": {
                 m: capitalize(mode_label(m, locale)) for m in dict.fromkeys(modes)
             },

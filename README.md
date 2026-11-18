@@ -36,6 +36,24 @@ uv run timetable-sites serve                                 # serve dist/ on th
 uv run timetable-sites sizes                                 # largest built pages, gzip and raw
 ```
 
+### Page text
+
+UI strings are gettext catalogs, one per language, in
+`src/gtfs_zone_timetable_sites/locales/<lang>/LC_MESSAGES/messages.po`. Msgids
+are the keys passed to `t()`; msgstrs use `{var}` placeholders, and a string
+that depends on a count is a plural message picked by `n`. The `.mo` files are
+not committed: the CLI and the tests compile stale ones, the Docker image
+compiles them at build.
+
+```bash
+pnpm run build:mo                                            # compile every messages.po to messages.mo
+uv run pybabel extract -F babel.cfg -k t:2 --no-default-keywords -o messages.pot .   # every key t() is called with
+uv run pytest tests/test_i18n.py                             # fails on a key missing from a catalog, or untranslated
+```
+
+Keys built at runtime (`mode.{mode}`, `legend.{key}`, ...) are not extracted;
+add them to every `.po` by hand.
+
 `build` resolves a site's `feed:` id to its download URL through
 `data.gtfs.zone/feeds.json` at build time, or uses the site's `url:` directly.
 With `--cache`, feeds.json and the slugs and aliases assigned to catalog feeds
@@ -72,7 +90,7 @@ built whatever the catalog filter says:
 | `map` | `maplibre`, `none` | `maplibre` |
 | `horizon_days` | days used to derive day types | `28` |
 | `time_format` | `12h`, `24h` | `12h` |
-| `locale` | `en`, `fr`: the language of the site's pages (the root and country pages stay English) | `en` |
+| `locale` | a directory under `locales/` (`en`, `fr`): the language of the site's pages (the root and country pages stay English) | `en` |
 | `index` | `true`, `false`: whether search engines may index the site's pages; `false` adds a robots `noindex` to every page and leaves them out of the sitemap, as for expired routes | `true` |
 
 `title` names the site, and `routes` filters routes by `route_types`,

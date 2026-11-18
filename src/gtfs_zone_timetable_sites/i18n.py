@@ -1,491 +1,105 @@
-"""Per-site page language: string catalogs, `t()` and date formats.
+"""Per-site page language: gettext catalogs, `t()` and date formats.
 
-Catalogs map keys to text with `{var}` placeholders. A key whose text
-depends on a count has `_one` and `_other` variants, picked by `n`. A key
-missing from a locale's catalog falls back to English.
+Catalogs live in `locales/<lang>/LC_MESSAGES/messages.po`, compiled to `.mo`.
+Msgids are keys, msgstrs have `{var}` placeholders, and a key whose text
+depends on a count is a plural message, picked by `n`. A key missing from a
+locale's catalog falls back to English.
 """
 
 import re
 from collections.abc import Mapping, Sequence
 from datetime import date
 from decimal import Decimal
-from typing import Literal
+from functools import cache
+from gettext import GNUTranslations
+from pathlib import Path
+from typing import Annotated
 
+from babel import Locale as BabelLocale
+from babel.dates import format_date, get_day_names, match_skeleton
+from babel.lists import format_list
 from babel.numbers import format_currency
+from pydantic import AfterValidator
 
-Locale = Literal["en", "fr"]
+LOCALES_DIR = Path(__file__).parent / "locales"
+DOMAIN = "messages"
+FALLBACK = "en"
 
-EN: dict[str, str] = {
-    # Lists and dates
-    "and": "{rest} and {last}",
-    "others_one": "{n} other",
-    "others_other": "{n} others",
-    "date.long": "{month} {day}, {year}",
-    "date.short": "{month} {day}",
-    "date.weekday": "{weekday} {month} {day}",
-    "range.both": "{start} to {end}",
-    "range.from": "from {start}",
-    "range.to": "to {end}",
-    "range.valid": "from {start} to {end}",
-    # Day types and trip notes
-    "days.weekday": "Weekday",
-    "days.weekday_other": "Weekdays",
-    "days.weekend": "Weekend",
-    "days.weekend_other": "Weekends",
-    "days.daily": "Daily",
-    "days.range": "{first} to {last}",
-    "days.plural": "{day}s",
-    "note.only_days": "{days} only",
-    "note.until": "Until {date}",
-    "note.from": "From {date}",
-    "note.not": "Not {dates}",
-    "note.only": "Only {dates}",
-    "day.runs_only": "Runs only on {dates}.",
-    "day.no_service": "No service {dates}.",
-    "day.also_runs": "Also runs {dates}.",
-    "day.valid": "Valid {range}.",
-    "day.valid_until": "Valid until {date}.",
-    # Modes
-    "mode.light rail": "light rail",
-    "mode.subway": "subway",
-    "mode.train": "train",
-    "mode.bus": "bus",
-    "mode.ferry": "ferry",
-    "mode.cable car": "cable car",
-    "mode.gondola": "gondola",
-    "mode.funicular": "funicular",
-    "mode.trolleybus": "trolleybus",
-    "mode.monorail": "monorail",
-    "mode.coach": "coach",
-    "mode.air": "flight",
-    "mode.taxi": "taxi",
-    "mode.misc": "service",
-    "mode.transit": "transit",
-    # Timetables
-    "table.to": "To {places}",
-    "table.from_to": "{first} to {last}",
-    "table.every": "then every {minutes} min until {until}",
-    "legend.note": "{letter}: {note}.",
-    "legend.icon": "{icon}: {text}",
-    "legend.pm": "PM times are in bold.",
-    "legend.next_day": "+1: after midnight, the next day.",
-    "legend.later_days": "+n: after midnight, n days later.",
-    "legend.evening_before": "-1: the evening before.",
-    "legend.untimed": "|: stops here, no scheduled time.",
-    "legend.drop_off": "d: drop off only.",
-    "legend.pick_up": "p: pick up only.",
-    "legend.flag": "f: flag stop, stops only on request.",
-    "legend.dwell": "Two times: arrives, then departs.",
-    "legend.approx": "Times in grey are approximate.",
-    "legend.next": "Next stop of each trip running now.",
-    "amenity.bikes": "Bikes allowed",
-    "amenity.bikes_all": "Bikes allowed on all trips.",
-    "amenity.bikes_none": "No bikes on any trip.",
-    "amenity.trips": "Wheelchair accessible trip",
-    "amenity.trips_all": "All trips are wheelchair accessible.",
-    "amenity.trips_none": "No trips are wheelchair accessible.",
-    "amenity.stops": "Wheelchair accessible stop",
-    "amenity.stops_all": "All stops are wheelchair accessible.",
-    "amenity.stops_none": "No stops are wheelchair accessible.",
-    "amenity.wheelchair": "Wheelchair accessible",
-    # Maps
-    "map.title": "Map of {title}",
-    "map.system": "Map of every {site} route",
-    "map.modes": "Modes shown on the map",
-    "map.in_timetable": "Show in the timetable",
-    "map.vehicle": "Vehicle {label}",
-    "map.to": "To {headsign}",
-    "map.stopped_at": "Stopped at {stop}",
-    "map.arriving_at": "Arriving at {stop}",
-    "map.next_stop": "Next stop: {stop}",
-    "map.position_ago": "Position {ago}",
-    "map.open_timetable": "Open the timetable",
-    "map.live_one": "Live: {n} vehicle on the map",
-    "map.live_other": "Live: {n} vehicles on the map",
-    "map.updated": "{live}, updated {ago}",
-    "rt.on_time": "on time",
-    "rt.skipped": "skipped",
-    "rt.canceled": "Canceled",
-    # Site index
-    "index.title": "{site} schedules and timetables",
-    "index.title_place": "{site} schedules and timetables - {place}",
-    "index.serves": "{modes} timetables in {place}.",
-    "index.description_one": "{modes} schedules for {site}: timetables for {n}"
-    " route, with times at each stop.",
-    "index.description_other": "{modes} schedules for {site}: timetables for {n}"
-    " routes, with times at each stop.",
-    "index.expired": "Expired",
-    "index.expired_badge": "Expired",
-    "index.ended": "Ended {date}",
-    "index.starts": "Starts {date}",
-    "index.map": "Map",
-    "index.route_page": "Open the route page",
-    "index.route_page_label": "Open the route page: {route}",
-    "index.loading": "Loading the timetable",
-    "index.load_error": "The timetable could not be loaded here. Open its page"
-    " instead.",
-    "index.about": "About",
-    "index.website": "Website",
-    "index.valid": "Timetables valid {range}.",
-    "index.feed_link": "About this feed on list.gtfs.zone",
-    # Route page
-    "route.title": "{route} {mode} schedule - {site}",
-    "route.description": "{route} {mode} schedule{between}{days}. Times at each"
-    " stop and first and last trips, from {site}.",
-    "route.between": " between {first} and {last}",
-    "route.days": ": {days}",
-    "route.expired": "This route's service ended on {date}. The timetable shown"
-    " is its last schedule.",
-    "route.upcoming": "This route's service starts on {date}. The timetable shown"
-    " is its first schedule.",
-    "route.intro_both": "The {route} {mode} route runs between {first} and"
-    " {last}, with {days} timetables.",
-    "route.intro_ends": "The {route} {mode} route runs between {first} and {last}.",
-    "route.intro_days": "The {route} {mode} route has {days} timetables.",
-    "route.trips_one": "{n} trip",
-    "route.trips_other": "{n} trips",
-    "route.trips_start": "Trips start at {time}.",
-    "route.first_last": "First trip starts at {first}, last at {last}.",
-    "route.zone_time": "{zone} time",
-    "route.platform": "Platform {platform}",
-    "route.continues_as": "Continues as {route} to {headsign}",
-    "route.all_routes": "All routes",
-    "route.agency_page": "Route page on the agency's site",
-    "fare.one": "Fare: {fare}.",
-    "fare.several": "Fares:",
-    "fare.on_board": "{price} paid on board",
-    "fare.before_boarding": "{price} paid before boarding",
-    "fare.with": "{fare}, {transfers}",
-    "fare.no_transfers": "no free transfers",
-    "fare.valid_for": "valid for {duration}",
-    "fare.transfers_one": "{n} free transfer",
-    "fare.transfers_other": "{n} free transfers",
-    "fare.unlimited": "unlimited free transfers",
-    "fare.within": "{transfers} within {duration}",
-    "fare.minutes": "{n} min",
-    "fare.zone": "Zone {zone}",
-    "fare.media": "{price} with {media}",
-    "fare.product": "{price} ({product})",
-    "fare.during": "{fare}, {times}",
-    "fare.times": "{start} to {end}",
-    "fare.other_stops": "Other stops",
-    "fare.by_stop": "Fares by stop",
-    "fare.by_zone": "Fares by zone",
-    "fare.between_stops": "Fare between two stops: one in the left column, the"
-    " other along the top.",
-    "fare.between_zones": "Fare between two zones: one in the left column, the"
-    " other along the top.",
-    "fare.from_stops": "Fare from the stop in the left column to the stop along"
-    " the top.",
-    "fare.from_zones": "Fare from the zone in the left column to the zone along"
-    " the top.",
-    "fare.paid_on_board": "Paid on board",
-    "fare.paid_before": "Paid before boarding",
-    "fares.title": "Fares - {site}",
-    "fares.heading": "Fares",
-    "fares.description": "Fares and transfers for {site}.",
-    "fares.link": "Fares",
-    "fares.all": "All fares",
-    "fares.transfers": "Transfers",
-    "fares.any_routes": "All routes",
-    "fare.any_leg": "any fare",
-    "fare.legs": "{products} ({networks})",
-    "fare.from_area": "from {area}",
-    "fare.transfer": "{from_legs} to {to_legs}: {terms}",
-    "fare.transfer_free": "free",
-    "fare.transfer_fee": "{fee} extra",
-    "fare.both_fares": "both fares",
-    "fare.both_fares_fee": "both fares plus {fee}",
-    "fare.fee_only": "{fee} for both",
-    "fare.transfer_up_to_one": "up to {n} transfer",
-    "fare.transfer_up_to_other": "up to {n} transfers",
-    "fare.transfer_any": "any number of transfers",
-    "fare.transfer_within": "within {duration}",
-    # Footer
-    "footer.generated": "Generated {date} from the agency's GTFS feed. Check with"
-    " the agency before you travel.",
-    "footer.source": "Schedule data from {publisher}{feed}{terms}.",
-    "footer.feed": "GTFS feed",
-    "footer.licensed": ", licensed under {licenses}",
-    "footer.license_n": "license {n}",
-    "footer.publisher_license": "the publisher's license",
-    "footer.publisher_terms": ", on the publisher's terms",
-    "footer.listed": "Listed in {catalogs}.",
-    "footer.mobility_database": "the Mobility Database",
-    "footer.more": "More GTFS tools at {link}",
-    "nav.github": "Source code on GitHub",
-    "nav.theme": "Light or dark theme",
-}
-
-FR: dict[str, str] = {
-    "and": "{rest} et {last}",
-    "others_one": "{n} autre",
-    "others_other": "{n} autres",
-    "date.long": "{day} {month} {year}",
-    "date.short": "{day} {month}",
-    "date.weekday": "{weekday} {day} {month}",
-    "range.both": "du {start} au {end}",
-    "range.from": "à partir du {start}",
-    "range.to": "jusqu'au {end}",
-    "range.valid": "du {start} au {end}",
-    "days.weekday": "Semaine",
-    "days.weekday_other": "Semaine",
-    "days.weekend": "Fin de semaine",
-    "days.weekend_other": "Fin de semaine",
-    "days.daily": "Tous les jours",
-    "days.range": "{first} au {last}",
-    "days.plural": "{day}s",
-    "note.only_days": "{days} seulement",
-    "note.until": "Jusqu'au {date}",
-    "note.from": "À partir du {date}",
-    "note.not": "Sauf {dates}",
-    "note.only": "Seulement {dates}",
-    "day.runs_only": "En service seulement : {dates}.",
-    "day.no_service": "Aucun service : {dates}.",
-    "day.also_runs": "Aussi en service : {dates}.",
-    "day.valid": "Valide {range}.",
-    "day.valid_until": "Valide jusqu'au {date}.",
-    "mode.light rail": "tramway",
-    "mode.subway": "métro",
-    "mode.train": "train",
-    "mode.bus": "bus",
-    "mode.ferry": "traversier",
-    "mode.cable car": "tramway à câble",
-    "mode.gondola": "téléphérique",
-    "mode.funicular": "funiculaire",
-    "mode.trolleybus": "trolleybus",
-    "mode.monorail": "monorail",
-    "mode.coach": "car",
-    "mode.air": "vol",
-    "mode.taxi": "taxi",
-    "mode.misc": "service",
-    "mode.transit": "transport en commun",
-    "table.to": "Vers {places}",
-    "table.from_to": "De {first} à {last}",
-    "table.every": "puis toutes les {minutes} min jusqu'à {until}",
-    "legend.note": "{letter} : {note}.",
-    "legend.icon": "{icon} : {text}",
-    "legend.pm": "Les heures de l'après-midi sont en gras.",
-    "legend.next_day": "+1 : après minuit, le lendemain.",
-    "legend.later_days": "+n : après minuit, n jours plus tard.",
-    "legend.evening_before": "-1 : la veille au soir.",
-    "legend.untimed": "| : s'arrête ici, sans heure prévue.",
-    "legend.drop_off": "d : descente seulement.",
-    "legend.pick_up": "p : montée seulement.",
-    "legend.flag": "f : arrêt sur demande seulement.",
-    "legend.dwell": "Deux heures : arrivée, puis départ.",
-    "legend.approx": "Les heures en gris sont approximatives.",
-    "legend.next": "Prochain arrêt de chaque course en cours.",
-    "amenity.bikes": "Vélos permis",
-    "amenity.bikes_all": "Vélos permis sur tous les départs.",
-    "amenity.bikes_none": "Vélos interdits sur tous les départs.",
-    "amenity.trips": "Départ accessible en fauteuil roulant",
-    "amenity.trips_all": "Tous les départs sont accessibles en fauteuil roulant.",
-    "amenity.trips_none": "Aucun départ n'est accessible en fauteuil roulant.",
-    "amenity.stops": "Arrêt accessible en fauteuil roulant",
-    "amenity.stops_all": "Tous les arrêts sont accessibles en fauteuil roulant.",
-    "amenity.stops_none": "Aucun arrêt n'est accessible en fauteuil roulant.",
-    "amenity.wheelchair": "Accessible en fauteuil roulant",
-    "map.title": "Carte : {title}",
-    "map.system": "Carte de toutes les lignes : {site}",
-    "map.modes": "Modes affichés sur la carte",
-    "map.in_timetable": "Voir dans l'horaire",
-    "map.vehicle": "Véhicule {label}",
-    "map.to": "Vers {headsign}",
-    "map.stopped_at": "À l'arrêt {stop}",
-    "map.arriving_at": "Arrive à {stop}",
-    "map.next_stop": "Prochain arrêt : {stop}",
-    "map.position_ago": "Position {ago}",
-    "map.open_timetable": "Ouvrir l'horaire",
-    "map.live_one": "En direct : {n} véhicule sur la carte",
-    "map.live_other": "En direct : {n} véhicules sur la carte",
-    "map.updated": "{live}, mis à jour {ago}",
-    "rt.on_time": "à l'heure",
-    "rt.skipped": "non desservi",
-    "rt.canceled": "Annulé",
-    "index.title": "Horaires de {site}",
-    "index.title_place": "Horaires de {site} - {place}",
-    "index.serves": "Horaires ({modes_lower}) à {place}.",
-    "index.description_one": "Horaires de {site} ({modes_lower}) : horaires de"
-    " {n} ligne, avec les heures à chaque arrêt.",
-    "index.description_other": "Horaires de {site} ({modes_lower}) : horaires de"
-    " {n} lignes, avec les heures à chaque arrêt.",
-    "index.expired": "Lignes expirées",
-    "index.expired_badge": "Expirée",
-    "index.ended": "Terminée le {date}",
-    "index.starts": "Débute le {date}",
-    "index.map": "Carte",
-    "index.route_page": "Ouvrir la page de la ligne",
-    "index.route_page_label": "Ouvrir la page de la ligne : {route}",
-    "index.loading": "Chargement de l'horaire",
-    "index.load_error": "L'horaire n'a pas pu être chargé ici. Ouvrez plutôt sa page.",
-    "index.about": "À propos",
-    "index.website": "Site web",
-    "index.valid": "Horaires valides {range}.",
-    "index.feed_link": "À propos de ce flux sur list.gtfs.zone",
-    "route.title": "Horaires du {mode} {route} - {site}",
-    "route.description": "Horaires du {mode} {route}{between}{days}. Heures à"
-    " chaque arrêt, premiers et derniers départs, par {site}.",
-    "route.between": " entre {first} et {last}",
-    "route.days": " : {days}",
-    "route.expired": "Le service de cette ligne a pris fin le {date}. L'horaire"
-    " affiché est son dernier.",
-    "route.upcoming": "Le service de cette ligne débute le {date}. L'horaire"
-    " affiché est son premier.",
-    "route.intro_both": "La ligne {route} ({mode}) relie {first} et {last}."
-    " Horaires : {days}.",
-    "route.intro_ends": "La ligne {route} ({mode}) relie {first} et {last}.",
-    "route.intro_days": "Horaires de la ligne {route} ({mode}) : {days}.",
-    "route.trips_one": "{n} départ",
-    "route.trips_other": "{n} départs",
-    "route.trips_start": "Départs à {time}.",
-    "route.first_last": "Premier départ à {first}, dernier à {last}.",
-    "route.zone_time": "heure {zone}",
-    "route.platform": "Quai {platform}",
-    "route.continues_as": "Continue comme {route} vers {headsign}",
-    "route.all_routes": "Toutes les lignes",
-    "route.agency_page": "Page de la ligne sur le site de l'organisme",
-    "fare.one": "Tarif : {fare}.",
-    "fare.several": "Tarifs :",
-    "fare.on_board": "{price} payé à bord",
-    "fare.before_boarding": "{price} payé avant de monter",
-    "fare.with": "{fare}, {transfers}",
-    "fare.no_transfers": "aucune correspondance gratuite",
-    "fare.valid_for": "valable {duration}",
-    "fare.transfers_one": "{n} correspondance gratuite",
-    "fare.transfers_other": "{n} correspondances gratuites",
-    "fare.unlimited": "correspondances gratuites illimitées",
-    "fare.within": "{transfers} pendant {duration}",
-    "fare.minutes": "{n} min",
-    "fare.zone": "Zone {zone}",
-    "fare.media": "{price} avec {media}",
-    "fare.product": "{price} ({product})",
-    "fare.during": "{fare}, {times}",
-    "fare.times": "de {start} à {end}",
-    "fare.other_stops": "Autres arrêts",
-    "fare.by_stop": "Tarifs par arrêt",
-    "fare.by_zone": "Tarifs par zone",
-    "fare.between_stops": "Tarif entre deux arrêts : l'un dans la colonne de"
-    " gauche, l'autre en haut.",
-    "fare.between_zones": "Tarif entre deux zones : l'une dans la colonne de"
-    " gauche, l'autre en haut.",
-    "fare.from_stops": "Tarif de l'arrêt de la colonne de gauche à l'arrêt du haut.",
-    "fare.from_zones": "Tarif de la zone de la colonne de gauche à la zone du haut.",
-    "fare.paid_on_board": "Payé à bord",
-    "fare.paid_before": "Payé avant de monter",
-    "fares.title": "Tarifs - {site}",
-    "fares.heading": "Tarifs",
-    "fares.description": "Tarifs et correspondances de {site}.",
-    "fares.link": "Tarifs",
-    "fares.all": "Tous les tarifs",
-    "fares.transfers": "Correspondances",
-    "fares.any_routes": "Toutes les lignes",
-    "fare.any_leg": "tout tarif",
-    "fare.legs": "{products} ({networks})",
-    "fare.from_area": "depuis {area}",
-    "fare.transfer": "{from_legs} vers {to_legs} : {terms}",
-    "fare.transfer_free": "gratuite",
-    "fare.transfer_fee": "{fee} de plus",
-    "fare.both_fares": "les deux tarifs",
-    "fare.both_fares_fee": "les deux tarifs plus {fee}",
-    "fare.fee_only": "{fee} pour les deux",
-    "fare.transfer_up_to_one": "jusqu'à {n} correspondance",
-    "fare.transfer_up_to_other": "jusqu'à {n} correspondances",
-    "fare.transfer_any": "correspondances illimitées",
-    "fare.transfer_within": "pendant {duration}",
-    "footer.generated": "Généré le {date} à partir du flux GTFS de l'organisme."
-    " Vérifiez auprès de l'organisme avant de partir.",
-    "footer.source": "Données d'horaires : {publisher}{feed}{terms}.",
-    "footer.feed": "flux GTFS",
-    "footer.licensed": ", sous {licenses}",
-    "footer.license_n": "licence {n}",
-    "footer.publisher_license": "la licence de l'éditeur",
-    "footer.publisher_terms": ", selon les conditions de l'éditeur",
-    "footer.listed": "Répertorié dans {catalogs}.",
-    "footer.mobility_database": "la Mobility Database",
-    "footer.more": "Plus d'outils GTFS sur {link}",
-    "nav.github": "Code source sur GitHub",
-    "nav.theme": "Thème clair ou sombre",
-}
-
-CATALOGS: dict[Locale, dict[str, str]] = {"en": EN, "fr": FR}
-
-WEEKDAYS: dict[Locale, tuple[str, ...]] = {
-    "en": (
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ),
-    "fr": ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"),
-}
-WEEKDAYS_SHORT: dict[Locale, tuple[str, ...]] = {
-    "en": ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-    "fr": ("lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."),
-}
-MONTHS_SHORT: dict[Locale, tuple[str, ...]] = {
-    "en": (
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ),
-    "fr": (
-        "janv.",
-        "févr.",
-        "mars",
-        "avr.",
-        "mai",
-        "juin",
-        "juil.",
-        "août",
-        "sept.",
-        "oct.",
-        "nov.",
-        "déc.",
-    ),
-}
+# The UI languages: one directory per catalog under locales/.
+UI_LOCALES = frozenset(p.name for p in LOCALES_DIR.iterdir() if p.is_dir())
 
 
-def plural(locale: Locale, n: int) -> str:
-    """'one' or 'other': French counts 0 and 1 as one."""
-    if locale == "fr":
-        return "one" if 0 <= n < 2 else "other"
-    return "one" if n == 1 else "other"
+def ui_locale(value: str) -> str:
+    if value not in UI_LOCALES:
+        raise ValueError(f"no UI catalog for {value!r}")
+    return value
+
+
+Locale = Annotated[str, AfterValidator(ui_locale)]
+
+
+@cache
+def translations(locale: str) -> GNUTranslations:
+    """The compiled catalog for `locale`, falling back to English."""
+    path = LOCALES_DIR / locale / "LC_MESSAGES" / f"{DOMAIN}.mo"
+    try:
+        with path.open("rb") as file:
+            catalog = GNUTranslations(file)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"{path} missing: run `pnpm run build:mo` to compile the catalogs"
+        ) from None
+    if locale != FALLBACK:
+        catalog.add_fallback(translations(FALLBACK))
+    return catalog
+
+
+def message(locale: str, key: str, n: int | None = None) -> str:
+    """The raw text for `key`, the plural form for `n` when the key has
+    plurals. Unknown keys raise KeyError."""
+    catalog = translations(locale)
+    if n is not None:
+        text = catalog.ngettext(key, key, n)
+        if text != key:
+            return text
+    text = catalog.gettext(key)
+    if text == key:
+        raise KeyError(key)
+    return text
 
 
 # A placeholder followed by a period, dropped when the value ends in one.
 END_PERIOD = re.compile(r"\{(\w+)\}\.")
 
 
-def text(locale: Locale, key: str, values: Mapping[str, object]) -> str:
-    """The unfilled text for `key`: a value `n` picks the `_one` or `_other`
-    variant, and a period after a value ending in one ('oct.') is dropped.
-    Unknown keys raise KeyError."""
+def text(locale: str, key: str, values: Mapping[str, object]) -> str:
+    """The unfilled text for `key`: a value `n` picks the plural form, and a
+    period after a value ending in one ('oct.') is dropped."""
     n = values.get("n")
-    if n is not None and f"{key}_one" in EN:
-        key = f"{key}_{plural(locale, int(n))}"
-    raw = CATALOGS[locale].get(key) or EN[key]
+    raw = message(locale, key, None if n is None else int(str(n)))
     return END_PERIOD.sub(
         lambda m: m[0][:-1] if str(values.get(m[1], "")).endswith(".") else m[0],
         raw,
     )
 
 
-def t(locale: Locale, key: str, /, **values: object) -> str:
+def t(locale: str, key: str, /, **values: object) -> str:
     """The text for `key` with `{var}` filled from `values`."""
     return text(locale, key, values).format(**values)
+
+
+# Counts that reach every CLDR plural category of the UI languages.
+PLURAL_SAMPLES = (*range(200), 1000, 1_000_000)
+
+
+def plural_forms(locale: str, key: str) -> dict[str, str]:
+    """A plural key's text by CLDR category ('one', 'other', ...), as
+    `Intl.PluralRules` names them."""
+    rule = BabelLocale.parse(locale).plural_form
+    forms: dict[str, str] = {}
+    for n in PLURAL_SAMPLES:
+        forms.setdefault(rule(n), message(locale, key, n))
+    return forms
 
 
 def capitalize(text: str) -> str:
@@ -493,43 +107,47 @@ def capitalize(text: str) -> str:
     return text[:1].upper() + text[1:]
 
 
-def join_and(items: Sequence[str], locale: Locale = "en") -> str:
-    """'A', 'A and B', 'A, B and C'."""
-    if len(items) < 2:
-        return "".join(items)
-    return t(locale, "and", rest=", ".join(items[:-1]), last=items[-1])
+def weekday_names(locale: str) -> tuple[str, ...]:
+    """'Monday' to 'Sunday' in `locale`."""
+    names = get_day_names("wide", locale=locale)
+    return tuple(names[day] for day in range(7))
 
 
-def day_number(day: date, locale: Locale) -> str:
-    """The day of the month, '1er' for the first in French."""
-    return "1er" if locale == "fr" and day.day == 1 else str(day.day)
+def join_and(items: Sequence[str], locale: str = "en") -> str:
+    """'A', 'A and B', 'A, B, and C'."""
+    return format_list(list(items), locale=locale)
 
 
-def long_date(day: date, locale: Locale = "en") -> str:
+# A day field in a CLDR date pattern, outside quoted literals.
+DAY_FIELD = re.compile(r"(?<![d'])d(?!d)")
+
+
+def date_text(day: date, skeleton: str, locale: str) -> str:
+    """`day` in the CLDR pattern for `skeleton`. CLDR has no ordinal day, so
+    French writes the first of the month as '1er' here."""
+    babel_locale = BabelLocale.parse(locale)
+    patterns = babel_locale.datetime_skeletons
+    pattern = patterns[match_skeleton(skeleton, patterns)].pattern
+    if babel_locale.language == "fr" and day.day == 1:
+        pattern = DAY_FIELD.sub("'1er'", pattern)
+    return format_date(day, pattern, locale=babel_locale)
+
+
+def long_date(day: date, locale: str = "en") -> str:
     """'Jan 2, 2026', '2 janv. 2026'."""
-    month = MONTHS_SHORT[locale][day.month - 1]
-    return t(
-        locale, "date.long", month=month, day=day_number(day, locale), year=day.year
-    )
+    return date_text(day, "yMMMd", locale)
 
 
-def short_date(day: date, locale: Locale = "en") -> str:
+def short_date(day: date, locale: str = "en") -> str:
     """'Oct 12', '12 oct.'."""
-    month = MONTHS_SHORT[locale][day.month - 1]
-    return t(locale, "date.short", month=month, day=day_number(day, locale))
+    return date_text(day, "MMMd", locale)
 
 
-def weekday_date(day: date, locale: Locale = "en") -> str:
-    """'Sat Oct 31', 'sam. 31 oct.'."""
-    return t(
-        locale,
-        "date.weekday",
-        weekday=WEEKDAYS_SHORT[locale][day.weekday()],
-        month=MONTHS_SHORT[locale][day.month - 1],
-        day=day_number(day, locale),
-    )
+def weekday_date(day: date, locale: str = "en") -> str:
+    """'Sat, Oct 31', 'sam. 31 oct.'."""
+    return date_text(day, "MMMEd", locale)
 
 
-def price(amount: Decimal, currency: str, locale: Locale = "en") -> str:
+def price(amount: Decimal, currency: str, locale: str = "en") -> str:
     """'$1.25', '1,25 $US'."""
     return format_currency(amount, currency, locale=locale)

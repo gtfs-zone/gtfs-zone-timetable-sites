@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -i src/gtfs_zone_timetable_sites/templates/input.css -o src/gtfs_zone_timetable_sites/templates/style.css --minify && sed -i 's|/\\*! 🌼 daisyUI|/*! daisyUI|' src/gtfs_zone_timetable_sites/templates/style.css",
+    "build:mo": "uv run pybabel compile -d src/gtfs_zone_timetable_sites/locales",
     "vuln": "sh scripts/vuln-gate.sh"
   },
   "devDependencies": {

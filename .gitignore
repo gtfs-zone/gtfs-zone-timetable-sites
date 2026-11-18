@@ -16,3 +16,7 @@ dagster_home/
 
 node_modules/
 .cache/
+
+# Compiled from locales/*/LC_MESSAGES/*.po
+*.mo
+messages.pot

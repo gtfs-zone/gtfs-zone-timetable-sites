@@ -93,6 +93,10 @@ ignore_names = [
     # Fare fields on Feed, read only by the tests so far
     "duration_limit_type",
     "media_type",
+    # Catalog tooling, used by babel.cfg and the tests
+    "KEYWORDS",
+    "extract_jinja",
+    "extract_js",
     # translations.txt fields on Feed, read only by the tests until 4e
     "field_name",
     "field_value",

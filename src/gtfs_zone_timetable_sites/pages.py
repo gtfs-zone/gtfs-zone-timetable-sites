@@ -1165,7 +1165,11 @@ def fare_charts(fares: RouteFares, locale: Locale = "en") -> tuple[FareChart, ..
             note = t(locale, f"fare.from_{places}")
         caption = ""
         if method is not None:
-            caption = t(locale, "fare.paid_before" if method else "fare.paid_on_board")
+            caption = (
+                t(locale, "fare.paid_before")
+                if method
+                else t(locale, "fare.paid_on_board")
+            )
         charts.append(FareChart(caption, note, heads, rows))
     return tuple(charts)
 

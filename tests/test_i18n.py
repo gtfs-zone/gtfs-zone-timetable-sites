@@ -1,25 +1,80 @@
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
+from babel.messages.extract import extract_from_dir
+from babel.messages.frontend import parse_mapping_cfg
+from babel.messages.pofile import read_po
 
+from gtfs_zone_timetable_sites import i18n
 from gtfs_zone_timetable_sites.gtfs.service import exception_name, weekday_name
-from gtfs_zone_timetable_sites.i18n import EN, FR, join_and, long_date, short_date, t
+from gtfs_zone_timetable_sites.i18n import (
+    UI_LOCALES,
+    join_and,
+    long_date,
+    short_date,
+    t,
+    weekday_date,
+)
+from gtfs_zone_timetable_sites.messages import KEYWORDS, po_paths
 from gtfs_zone_timetable_sites.pages import date_range, modes_label
 
 MONDAY = date(2026, 10, 5)
+REPO = Path(__file__).parent.parent
 
 
-def test_french_catalog_has_every_english_key():
-    assert set(FR) == set(EN)
+def catalog(locale: str) -> dict[str, tuple[str, ...]]:
+    """A locale's .po as msgid -> its forms (one, or one per plural form)."""
+    path = i18n.LOCALES_DIR / locale / "LC_MESSAGES" / "messages.po"
+    with path.open("rb") as file:
+        messages = read_po(file)
+    return {
+        m.id if isinstance(m.id, str) else m.id[0]: (
+            (m.string,) if isinstance(m.string, str) else tuple(m.string)
+        )
+        for m in messages
+        if m.id
+    }
+
+
+def test_every_locale_has_a_catalog():
+    assert {p.parent.parent.name for p in po_paths()} == UI_LOCALES >= {"en", "fr"}
+
+
+def test_every_msgid_is_in_every_catalog_and_translated():
+    en = catalog("en")
+    for locale in UI_LOCALES:
+        messages = catalog(locale)
+        assert set(messages) == set(en), locale
+        for key, forms in messages.items():
+            assert all(forms), (locale, key)
+            assert (len(forms) > 1) == (len(en[key]) > 1), (locale, key)
+
+
+def test_every_extracted_key_is_in_the_catalog():
+    with (REPO / "babel.cfg").open() as file:
+        method_map, options_map = parse_mapping_cfg(file)
+    keys = {
+        message
+        for _, _, message, _, _ in extract_from_dir(
+            REPO, method_map, options_map, keywords=KEYWORDS
+        )
+    }
+    assert len(keys) > 100
+    assert keys <= set(catalog("en"))
 
 
 def test_placeholders_match_across_catalogs():
     def names(text: str) -> set[str]:
         return {part.split("}")[0] for part in text.split("{")[1:]}
 
-    for key, text in FR.items():
-        # French may leave out a value English uses, never add one.
-        assert names(text) <= names(EN[key]) | {"modes_lower"}, key
+    en = catalog("en")
+    for locale in UI_LOCALES:
+        for key, forms in catalog(locale).items():
+            # A translation may leave out a value English uses, never add one.
+            allowed = set().union(*map(names, en[key])) | {"modes_lower"}
+            for text in forms:
+                assert names(text) <= allowed, (locale, key)
 
 
 def test_plural_pick():
@@ -30,8 +85,20 @@ def test_plural_pick():
 
 
 def test_missing_french_key_falls_back_to_english(monkeypatch):
-    monkeypatch.delitem(FR, "route.all_routes")
+    french = i18n.translations("fr")
+    monkeypatch.setattr(french, "_catalog", {})
     assert t("fr", "route.all_routes") == "All routes"
+    assert t("fr", "route.trips", n=0) == "0 trips"
+
+
+def test_plural_forms_by_cldr_category():
+    assert i18n.plural_forms("en", "map.live") == {
+        "one": "Live: {n} vehicle on the map",
+        "other": "Live: {n} vehicles on the map",
+    }
+    assert i18n.plural_forms("fr", "map.live")["one"] == (
+        "En direct : {n} véhicule sur la carte"
+    )
 
 
 def test_unknown_key_raises():
@@ -67,6 +134,15 @@ def test_french_day_types():
     assert exception_name(sundays, horizon, "fr") == (
         "Dimanches, du 11 oct. au 25 oct."
     )
+
+
+def test_dates_and_lists_from_cldr():
+    assert long_date(date(2026, 1, 2)) == "Jan 2, 2026"
+    assert short_date(date(2026, 10, 12)) == "Oct 12"
+    assert weekday_date(date(2026, 10, 31)) == "Sat, Oct 31"
+    assert weekday_date(date(2026, 10, 1), "fr") == "jeu. 1er oct."
+    assert join_and(["A", "B"]) == "A and B"
+    assert join_and(["A"]) == "A"
 
 
 def test_french_lists_and_modes():

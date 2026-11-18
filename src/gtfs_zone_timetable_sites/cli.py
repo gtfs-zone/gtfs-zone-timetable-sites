@@ -25,6 +25,7 @@ from gtfs_zone_timetable_sites.build import (
 )
 from gtfs_zone_timetable_sites.catalog import resolve_sites
 from gtfs_zone_timetable_sites.config import FEEDS_URL, USER_AGENT, Site, load_config
+from gtfs_zone_timetable_sites.messages import compile_catalogs
 from gtfs_zone_timetable_sites.pool import run_all
 from gtfs_zone_timetable_sites.timetable import to_text
 
@@ -375,6 +376,8 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = parser().parse_args(argv)
+    for mo in compile_catalogs(stale_only=True):
+        log.info("compiled %s", mo.relative_to(PACKAGE))
     args.func(args)
 
 

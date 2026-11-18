@@ -24,10 +24,12 @@ const MIN_REVEAL = 2;
 const MARK_GAP = 2 * (SIZE.radius + SIZE.stroke) + 2;
 const TEXT = JSON.parse(document.getElementById("map-text")?.textContent ?? "{}");
 const LANG = document.documentElement.lang;
-// i18n text for key, with _one / _other picked by vars.n as i18n.plural does
+const PLURALS = new Intl.PluralRules(LANG);
+// i18n text for key; a plural key's form is picked by vars.n
 function t(key, vars = {}) {
-  if (vars.n != null) key += vars.n === 1 || (LANG === "fr" && vars.n === 0) ? "_one" : "_other";
-  return (TEXT[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+  let text = TEXT[key] ?? key;
+  if (typeof text === "object") text = text[PLURALS.select(vars.n)] ?? text.other;
+  return text.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
 }
 
 // The page's theme, set by base.html, or the system's

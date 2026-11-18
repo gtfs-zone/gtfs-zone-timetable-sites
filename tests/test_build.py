@@ -564,7 +564,7 @@ def test_title_names_up_to_three_agencies():
     site = Site(slug="t", url="https://example.org/g.zip")
     assert (
         site_title(read_feed(make_zip(files)), site)
-        == "A Lines, B Lines, C Lines and 2 others"
+        == "A Lines, B Lines, C Lines, and 2 others"
     )
 
 

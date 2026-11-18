@@ -6,7 +6,7 @@ from gtfs_zone_vocab.route_types import ROUTE_TYPES
 from gtfs_zone_timetable_sites.build import site_feed, site_timetables
 from gtfs_zone_timetable_sites.config import Site
 from gtfs_zone_timetable_sites.gtfs.reader import Route, read_feed
-from gtfs_zone_timetable_sites.i18n import CATALOGS
+from gtfs_zone_timetable_sites.i18n import UI_LOCALES, t
 from gtfs_zone_timetable_sites.pages import (
     MODE_ORDER,
     ColumnHead,
@@ -210,14 +210,15 @@ def test_mode_names():
     ]
     assert modes_label(["bus", "train", "bus"]) == "Bus and train"
     assert modes_label([]) == "Transit"
-    assert join_and(["A", "B", "C"]) == "A, B and C"
+    assert join_and(["A", "B", "C"]) == "A, B, and C"
 
 
 def test_every_mode_is_ordered_and_named():
     modes = {mode_name(rt.code) for rt in ROUTE_TYPES} | {"transit"}
     assert modes <= set(MODE_ORDER)
-    for catalog in CATALOGS.values():
-        assert {f"mode.{mode}" for mode in MODE_ORDER} <= catalog.keys()
+    for locale in UI_LOCALES:
+        for mode in MODE_ORDER:
+            t(locale, f"mode.{mode}")
 
 
 def test_endpoints_and_first_and_last_trips():

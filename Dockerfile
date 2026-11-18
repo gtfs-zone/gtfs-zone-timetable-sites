@@ -16,6 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY src/ ./src/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --extra pipeline
+RUN .venv/bin/pybabel compile -d src/gtfs_zone_timetable_sites/locales
 
 # ---
 

@@ -1,0 +1,559 @@
+# French translations for gtfs-zone-timetable-sites.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the
+# gtfs-zone-timetable-sites project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gtfs-zone-timetable-sites VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-11-16 20:51+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "others"
+msgid_plural "others"
+msgstr[0] "{n} autre"
+msgstr[1] "{n} autres"
+
+msgid "range.both"
+msgstr "du {start} au {end}"
+
+msgid "range.from"
+msgstr "à partir du {start}"
+
+msgid "range.to"
+msgstr "jusqu'au {end}"
+
+msgid "range.valid"
+msgstr "du {start} au {end}"
+
+# Day types and trip notes
+msgid "days.weekday"
+msgstr "Semaine"
+
+msgid "days.weekdays"
+msgstr "Semaine"
+
+msgid "days.weekend"
+msgstr "Fin de semaine"
+
+msgid "days.weekends"
+msgstr "Fin de semaine"
+
+msgid "days.daily"
+msgstr "Tous les jours"
+
+msgid "days.range"
+msgstr "{first} au {last}"
+
+msgid "days.plural"
+msgstr "{day}s"
+
+msgid "note.only_days"
+msgstr "{days} seulement"
+
+msgid "note.until"
+msgstr "Jusqu'au {date}"
+
+msgid "note.from"
+msgstr "À partir du {date}"
+
+msgid "note.not"
+msgstr "Sauf {dates}"
+
+msgid "note.only"
+msgstr "Seulement {dates}"
+
+msgid "day.runs_only"
+msgstr "En service seulement : {dates}."
+
+msgid "day.no_service"
+msgstr "Aucun service : {dates}."
+
+msgid "day.also_runs"
+msgstr "Aussi en service : {dates}."
+
+msgid "day.valid"
+msgstr "Valide {range}."
+
+msgid "day.valid_until"
+msgstr "Valide jusqu'au {date}."
+
+# Modes
+msgid "mode.light rail"
+msgstr "tramway"
+
+msgid "mode.subway"
+msgstr "métro"
+
+msgid "mode.train"
+msgstr "train"
+
+msgid "mode.bus"
+msgstr "bus"
+
+msgid "mode.ferry"
+msgstr "traversier"
+
+msgid "mode.cable car"
+msgstr "tramway à câble"
+
+msgid "mode.gondola"
+msgstr "téléphérique"
+
+msgid "mode.funicular"
+msgstr "funiculaire"
+
+msgid "mode.trolleybus"
+msgstr "trolleybus"
+
+msgid "mode.monorail"
+msgstr "monorail"
+
+msgid "mode.coach"
+msgstr "car"
+
+msgid "mode.air"
+msgstr "vol"
+
+msgid "mode.taxi"
+msgstr "taxi"
+
+msgid "mode.misc"
+msgstr "service"
+
+msgid "mode.transit"
+msgstr "transport en commun"
+
+# Timetables
+msgid "table.to"
+msgstr "Vers {places}"
+
+msgid "table.from_to"
+msgstr "De {first} à {last}"
+
+msgid "table.every"
+msgstr "puis toutes les {minutes} min jusqu'à {until}"
+
+msgid "legend.note"
+msgstr "{letter} : {note}."
+
+msgid "legend.icon"
+msgstr "{icon} : {text}"
+
+msgid "legend.pm"
+msgstr "Les heures de l'après-midi sont en gras."
+
+msgid "legend.next_day"
+msgstr "+1 : après minuit, le lendemain."
+
+msgid "legend.later_days"
+msgstr "+n : après minuit, n jours plus tard."
+
+msgid "legend.evening_before"
+msgstr "-1 : la veille au soir."
+
+msgid "legend.untimed"
+msgstr "| : s'arrête ici, sans heure prévue."
+
+msgid "legend.drop_off"
+msgstr "d : descente seulement."
+
+msgid "legend.pick_up"
+msgstr "p : montée seulement."
+
+msgid "legend.flag"
+msgstr "f : arrêt sur demande seulement."
+
+msgid "legend.dwell"
+msgstr "Deux heures : arrivée, puis départ."
+
+msgid "legend.approx"
+msgstr "Les heures en gris sont approximatives."
+
+msgid "legend.next"
+msgstr "Prochain arrêt de chaque course en cours."
+
+msgid "amenity.bikes"
+msgstr "Vélos permis"
+
+msgid "amenity.bikes_all"
+msgstr "Vélos permis sur tous les départs."
+
+msgid "amenity.bikes_none"
+msgstr "Vélos interdits sur tous les départs."
+
+msgid "amenity.trips"
+msgstr "Départ accessible en fauteuil roulant"
+
+msgid "amenity.trips_all"
+msgstr "Tous les départs sont accessibles en fauteuil roulant."
+
+msgid "amenity.trips_none"
+msgstr "Aucun départ n'est accessible en fauteuil roulant."
+
+msgid "amenity.stops"
+msgstr "Arrêt accessible en fauteuil roulant"
+
+msgid "amenity.stops_all"
+msgstr "Tous les arrêts sont accessibles en fauteuil roulant."
+
+msgid "amenity.stops_none"
+msgstr "Aucun arrêt n'est accessible en fauteuil roulant."
+
+msgid "amenity.wheelchair"
+msgstr "Accessible en fauteuil roulant"
+
+# Maps
+msgid "map.title"
+msgstr "Carte : {title}"
+
+msgid "map.system"
+msgstr "Carte de toutes les lignes : {site}"
+
+msgid "map.modes"
+msgstr "Modes affichés sur la carte"
+
+msgid "map.in_timetable"
+msgstr "Voir dans l'horaire"
+
+msgid "map.vehicle"
+msgstr "Véhicule {label}"
+
+msgid "map.to"
+msgstr "Vers {headsign}"
+
+msgid "map.stopped_at"
+msgstr "À l'arrêt {stop}"
+
+msgid "map.arriving_at"
+msgstr "Arrive à {stop}"
+
+msgid "map.next_stop"
+msgstr "Prochain arrêt : {stop}"
+
+msgid "map.position_ago"
+msgstr "Position {ago}"
+
+msgid "map.open_timetable"
+msgstr "Ouvrir l'horaire"
+
+msgid "map.live"
+msgid_plural "map.live"
+msgstr[0] "En direct : {n} véhicule sur la carte"
+msgstr[1] "En direct : {n} véhicules sur la carte"
+
+msgid "map.updated"
+msgstr "{live}, mis à jour {ago}"
+
+msgid "rt.on_time"
+msgstr "à l'heure"
+
+msgid "rt.skipped"
+msgstr "non desservi"
+
+msgid "rt.canceled"
+msgstr "Annulé"
+
+# Site index
+msgid "index.title"
+msgstr "Horaires de {site}"
+
+msgid "index.title_place"
+msgstr "Horaires de {site} - {place}"
+
+msgid "index.serves"
+msgstr "Horaires ({modes_lower}) à {place}."
+
+msgid "index.description"
+msgid_plural "index.description"
+msgstr[0] ""
+"Horaires de {site} ({modes_lower}) : horaires de {n} ligne, avec les "
+"heures à chaque arrêt."
+msgstr[1] ""
+"Horaires de {site} ({modes_lower}) : horaires de {n} lignes, avec les "
+"heures à chaque arrêt."
+
+msgid "index.expired"
+msgstr "Lignes expirées"
+
+msgid "index.expired_badge"
+msgstr "Expirée"
+
+msgid "index.ended"
+msgstr "Terminée le {date}"
+
+msgid "index.starts"
+msgstr "Débute le {date}"
+
+msgid "index.map"
+msgstr "Carte"
+
+msgid "index.route_page"
+msgstr "Ouvrir la page de la ligne"
+
+msgid "index.route_page_label"
+msgstr "Ouvrir la page de la ligne : {route}"
+
+msgid "index.loading"
+msgstr "Chargement de l'horaire"
+
+msgid "index.load_error"
+msgstr "L'horaire n'a pas pu être chargé ici. Ouvrez plutôt sa page."
+
+msgid "index.about"
+msgstr "À propos"
+
+msgid "index.website"
+msgstr "Site web"
+
+msgid "index.valid"
+msgstr "Horaires valides {range}."
+
+msgid "index.feed_link"
+msgstr "À propos de ce flux sur list.gtfs.zone"
+
+# Route page
+msgid "route.title"
+msgstr "Horaires du {mode} {route} - {site}"
+
+msgid "route.description"
+msgstr ""
+"Horaires du {mode} {route}{between}{days}. Heures à chaque arrêt, "
+"premiers et derniers départs, par {site}."
+
+msgid "route.between"
+msgstr " entre {first} et {last}"
+
+msgid "route.days"
+msgstr " : {days}"
+
+msgid "route.expired"
+msgstr ""
+"Le service de cette ligne a pris fin le {date}. L'horaire affiché est son"
+" dernier."
+
+msgid "route.upcoming"
+msgstr ""
+"Le service de cette ligne débute le {date}. L'horaire affiché est son "
+"premier."
+
+msgid "route.intro_both"
+msgstr "La ligne {route} ({mode}) relie {first} et {last}. Horaires : {days}."
+
+msgid "route.intro_ends"
+msgstr "La ligne {route} ({mode}) relie {first} et {last}."
+
+msgid "route.intro_days"
+msgstr "Horaires de la ligne {route} ({mode}) : {days}."
+
+msgid "route.trips"
+msgid_plural "route.trips"
+msgstr[0] "{n} départ"
+msgstr[1] "{n} départs"
+
+msgid "route.trips_start"
+msgstr "Départs à {time}."
+
+msgid "route.first_last"
+msgstr "Premier départ à {first}, dernier à {last}."
+
+msgid "route.zone_time"
+msgstr "heure {zone}"
+
+msgid "route.platform"
+msgstr "Quai {platform}"
+
+msgid "route.continues_as"
+msgstr "Continue comme {route} vers {headsign}"
+
+msgid "route.all_routes"
+msgstr "Toutes les lignes"
+
+msgid "route.agency_page"
+msgstr "Page de la ligne sur le site de l'organisme"
+
+msgid "fare.one"
+msgstr "Tarif : {fare}."
+
+msgid "fare.several"
+msgstr "Tarifs :"
+
+msgid "fare.on_board"
+msgstr "{price} payé à bord"
+
+msgid "fare.before_boarding"
+msgstr "{price} payé avant de monter"
+
+msgid "fare.with"
+msgstr "{fare}, {transfers}"
+
+msgid "fare.no_transfers"
+msgstr "aucune correspondance gratuite"
+
+msgid "fare.valid_for"
+msgstr "valable {duration}"
+
+msgid "fare.transfers"
+msgid_plural "fare.transfers"
+msgstr[0] "{n} correspondance gratuite"
+msgstr[1] "{n} correspondances gratuites"
+
+msgid "fare.unlimited"
+msgstr "correspondances gratuites illimitées"
+
+msgid "fare.within"
+msgstr "{transfers} pendant {duration}"
+
+msgid "fare.minutes"
+msgstr "{n} min"
+
+msgid "fare.zone"
+msgstr "Zone {zone}"
+
+msgid "fare.media"
+msgstr "{price} avec {media}"
+
+msgid "fare.product"
+msgstr "{price} ({product})"
+
+msgid "fare.during"
+msgstr "{fare}, {times}"
+
+msgid "fare.times"
+msgstr "de {start} à {end}"
+
+msgid "fare.other_stops"
+msgstr "Autres arrêts"
+
+msgid "fare.by_stop"
+msgstr "Tarifs par arrêt"
+
+msgid "fare.by_zone"
+msgstr "Tarifs par zone"
+
+msgid "fare.between_stops"
+msgstr "Tarif entre deux arrêts : l'un dans la colonne de gauche, l'autre en haut."
+
+msgid "fare.between_zones"
+msgstr "Tarif entre deux zones : l'une dans la colonne de gauche, l'autre en haut."
+
+msgid "fare.from_stops"
+msgstr "Tarif de l'arrêt de la colonne de gauche à l'arrêt du haut."
+
+msgid "fare.from_zones"
+msgstr "Tarif de la zone de la colonne de gauche à la zone du haut."
+
+msgid "fare.paid_on_board"
+msgstr "Payé à bord"
+
+msgid "fare.paid_before"
+msgstr "Payé avant de monter"
+
+msgid "fares.title"
+msgstr "Tarifs - {site}"
+
+msgid "fares.heading"
+msgstr "Tarifs"
+
+msgid "fares.description"
+msgstr "Tarifs et correspondances de {site}."
+
+msgid "fares.link"
+msgstr "Tarifs"
+
+msgid "fares.all"
+msgstr "Tous les tarifs"
+
+msgid "fares.transfers"
+msgstr "Correspondances"
+
+msgid "fares.any_routes"
+msgstr "Toutes les lignes"
+
+msgid "fare.any_leg"
+msgstr "tout tarif"
+
+msgid "fare.legs"
+msgstr "{products} ({networks})"
+
+msgid "fare.from_area"
+msgstr "depuis {area}"
+
+msgid "fare.transfer"
+msgstr "{from_legs} vers {to_legs} : {terms}"
+
+msgid "fare.transfer_free"
+msgstr "gratuite"
+
+msgid "fare.transfer_fee"
+msgstr "{fee} de plus"
+
+msgid "fare.both_fares"
+msgstr "les deux tarifs"
+
+msgid "fare.both_fares_fee"
+msgstr "les deux tarifs plus {fee}"
+
+msgid "fare.fee_only"
+msgstr "{fee} pour les deux"
+
+msgid "fare.transfer_up_to"
+msgid_plural "fare.transfer_up_to"
+msgstr[0] "jusqu'à {n} correspondance"
+msgstr[1] "jusqu'à {n} correspondances"
+
+msgid "fare.transfer_any"
+msgstr "correspondances illimitées"
+
+msgid "fare.transfer_within"
+msgstr "pendant {duration}"
+
+# Footer
+msgid "footer.generated"
+msgstr ""
+"Généré le {date} à partir du flux GTFS de l'organisme. Vérifiez auprès de"
+" l'organisme avant de partir."
+
+msgid "footer.source"
+msgstr "Données d'horaires : {publisher}{feed}{terms}."
+
+msgid "footer.feed"
+msgstr "flux GTFS"
+
+msgid "footer.licensed"
+msgstr ", sous {licenses}"
+
+msgid "footer.license_n"
+msgstr "licence {n}"
+
+msgid "footer.publisher_license"
+msgstr "la licence de l'éditeur"
+
+msgid "footer.publisher_terms"
+msgstr ", selon les conditions de l'éditeur"
+
+msgid "footer.listed"
+msgstr "Répertorié dans {catalogs}."
+
+msgid "footer.mobility_database"
+msgstr "la Mobility Database"
+
+msgid "footer.more"
+msgstr "Plus d'outils GTFS sur {link}"
+
+msgid "nav.github"
+msgstr "Code source sur GitHub"
+
+msgid "nav.theme"
+msgstr "Thème clair ou sombre"
+

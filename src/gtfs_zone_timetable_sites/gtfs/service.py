@@ -9,13 +9,13 @@ from zoneinfo import ZoneInfo
 
 from gtfs_zone_timetable_sites.gtfs.reader import Calendar, Feed
 from gtfs_zone_timetable_sites.i18n import (
-    WEEKDAYS,
     Locale,
     capitalize,
     join_and,
     short_date,
     t,
     weekday_date,
+    weekday_names,
 )
 
 DAY_SECONDS = 24 * 3600
@@ -216,15 +216,14 @@ def weekday_name(
     """'Weekday', 'Monday to Thursday', 'Tuesday and Friday'; with `plural`,
     'Weekdays', 'Tuesdays and Fridays'."""
     days = sorted(set(weekdays))
-    suffix = "_other" if plural else ""
     special = {
-        (0, 1, 2, 3, 4): f"days.weekday{suffix}",
-        (5, 6): f"days.weekend{suffix}",
+        (0, 1, 2, 3, 4): "days.weekdays" if plural else "days.weekday",
+        (5, 6): "days.weekends" if plural else "days.weekend",
         (0, 1, 2, 3, 4, 5, 6): "days.daily",
     }
     if tuple(days) in special:
         return t(locale, special[tuple(days)])
-    names = [WEEKDAYS[locale][day] for day in days]
+    names = [weekday_names(locale)[day] for day in days]
     if len(days) >= 3 and days == list(range(days[0], days[-1] + 1)):
         return capitalize(t(locale, "days.range", first=names[0], last=names[-1]))
     if plural:
@@ -255,7 +254,7 @@ def date_runs(dates: Iterable[date], within: Sequence[date]) -> list[list[date]]
 def span_label(
     dates: Iterable[date], within: Sequence[date], locale: Locale = "en"
 ) -> str:
-    """Dates as ranges over `within`, e.g. 'Oct 12 to Oct 23, Sat Oct 31';
+    """Dates as ranges over `within`, e.g. 'Oct 12 to Oct 23, Sat, Oct 31';
     runs of two are listed."""
     return ", ".join(
         dates_label(run, locale)

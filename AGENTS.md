@@ -13,6 +13,7 @@ pipeline's env vars are in [README.md](README.md).
 ```bash
 uv sync --all-extras          # include the Dagster pipeline
 pnpm run build:css            # rebuild templates/style.css (committed) after template changes
+pnpm run build:mo             # compile locales/*/LC_MESSAGES/messages.po (the CLI and tests also do)
 ```
 
 ## Architecture
@@ -34,7 +35,8 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 | `maps/geo.py` | Route and system map data for `map.js`: shapes (or stop sequences) simplified by Douglas-Peucker at a share of the map's extent, parts that retrace a line dropped, numbered stops, lines shared by routes stored once |
 | `templates/map.js` | MapLibre route maps (numbered stops, insets for crowded stops), the system map (mode toggles, hover, click to open a route), the index's route accordion, live vehicles and live times in the timetables (from `<slug>/live.json`); MapLibre and the GTFS-RT decoder come from jsdelivr |
 | `templates/root.js` | The root and country pages: MapLibre choropleths of countries and regions by site count, agency search over `sites.json` with uFuzzy (as gtfs-zone-web-common), both from jsdelivr |
-| `i18n.py` | `en` and `fr` string catalogs, `t()` with `_one` / `_other` plurals, weekday and month names for dates |
+| `i18n.py` | `t()` over the gettext catalogs in `locales/` (`ngettext` plurals, English fallback), Babel dates, weekday names, lists and prices |
+| `messages.py` | Catalog tooling: `.po` to `.mo`, and the Babel extractors for templates and JS (`babel.cfg`) |
 | `render.py` | Jinja environment over `templates/`, with `t()` as a global in the page's `locale` |
 | `templates/` | Page templates and CSS (Tailwind + daisyUI, `style.css` built by `pnpm run build:css` and committed) |
 | `tests/fixtures/<name>/` | Synthetic GTFS feeds as text files, zipped by `fixture_zip` |
@@ -43,8 +45,10 @@ pnpm run build:css            # rebuild templates/style.css (committed) after te
 
 - The core is pure: nothing outside `cli.py` and `pipeline/` does network or
   disk I/O, so `build_site` can later run in Pyodide or on the fly.
-- Page text comes from the catalogs in `i18n.py`: templates call `t(key, ...)`,
-  Python takes a `locale` argument. A new string goes in both `EN` and `FR`.
+- Page text comes from the gettext catalogs under `locales/`: templates call `t(key, ...)`,
+  Python takes a `locale` argument. A new string goes in every
+  `locales/<lang>/LC_MESSAGES/messages.po`; `tests/test_i18n.py` extracts the
+  keys and fails on one missing or untranslated.
   GTFS field names and values stay literal.
 - `timetable.py`, `strip.py` and `colors.py` port gtfs-zone-web-common logic.
   Keep them in step with the TypeScript (`colors.py` is hex-exact).

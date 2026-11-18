@@ -2,6 +2,8 @@ import io
 import zipfile
 from pathlib import Path
 
+from gtfs_zone_timetable_sites.messages import compile_catalogs
+
 
 def make_zip(files: dict[str, str]) -> bytes:
     buffer = io.BytesIO()
@@ -21,3 +23,7 @@ def fixture_files(name: str) -> dict[str, str]:
 
 def fixture_zip(name: str) -> bytes:
     return make_zip(fixture_files(name))
+
+
+def pytest_sessionstart() -> None:
+    compile_catalogs()
