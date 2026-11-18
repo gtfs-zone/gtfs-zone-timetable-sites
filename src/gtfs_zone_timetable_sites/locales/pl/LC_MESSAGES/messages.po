@@ -328,6 +328,9 @@ msgstr "Strona internetowa"
 msgid "index.valid"
 msgstr "Rozkłady ważne {range}."
 
+msgid "index.feed_info_valid"
+msgstr "Według pliku danych ważny {range}."
+
 msgid "index.feed_link"
 msgstr "Ten feed w list.gtfs.zone"
 

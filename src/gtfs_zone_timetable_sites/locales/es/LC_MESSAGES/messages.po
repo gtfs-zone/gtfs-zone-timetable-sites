@@ -321,6 +321,9 @@ msgstr "Sitio web"
 msgid "index.valid"
 msgstr "Horarios válidos {range}."
 
+msgid "index.feed_info_valid"
+msgstr "El feed se declara válido {range}."
+
 msgid "index.feed_link"
 msgstr "Este feed en list.gtfs.zone"
 

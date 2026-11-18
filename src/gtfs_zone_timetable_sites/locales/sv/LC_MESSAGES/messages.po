@@ -320,6 +320,9 @@ msgstr "Webbplats"
 msgid "index.valid"
 msgstr "Tidtabellerna gäller {range}."
 
+msgid "index.feed_info_valid"
+msgstr "Enligt flödet gäller det {range}."
+
 msgid "index.feed_link"
 msgstr "Det här flödet på list.gtfs.zone"
 

@@ -316,6 +316,9 @@ msgstr "Verkkosivusto"
 msgid "index.valid"
 msgstr "Aikataulut voimassa {range}."
 
+msgid "index.feed_info_valid"
+msgstr "Syötteen mukaan voimassa {range}."
+
 msgid "index.feed_link"
 msgstr "Tämä syöte: list.gtfs.zone"
 

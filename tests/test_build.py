@@ -832,6 +832,34 @@ def test_validity_names_a_start_after_today():
     assert "Valid from Jan 1, 2026 to Dec 31, 2026." in page
 
 
+def test_feed_info_dates_shown_beside_the_calendars():
+    files = fixture_files("blocks")
+    files["feed_info.txt"] = (
+        "feed_publisher_name,feed_publisher_url,feed_lang,"
+        "feed_start_date,feed_end_date\n"
+        "Example,https://example.org,en,20260101,20261016\n"
+    )
+    site = Site(slug="test", url="https://example.org/g.zip")
+    built = build_site(make_zip(files), site, today=MONDAY)
+    index = built["index.html"].decode()
+    assert "Timetables valid from Jan 1, 2026 to Dec 31, 2026." in index
+    assert "The feed says it is valid from Jan 1, 2026 to Oct 16, 2026." in index
+    assert "Valid until Dec 31, 2026." in built["1/index.html"].decode()
+    summary = json.loads(built["site.json"])
+    assert summary["valid_through"] == "2026-12-31"
+
+
+def test_feed_info_dates_matching_the_calendars_add_no_line():
+    files = fixture_files("blocks")
+    files["feed_info.txt"] = (
+        "feed_publisher_name,feed_publisher_url,feed_lang,feed_end_date\n"
+        "Example,https://example.org,en,20261231\n"
+    )
+    site = Site(slug="test", url="https://example.org/g.zip")
+    index = build_site(make_zip(files), site, today=MONDAY)["index.html"].decode()
+    assert "The feed says" not in index
+
+
 def test_route_page_fare_card():
     files = build("fares-flat-v1")
     assert "<p>Fare: $1.25, no free transfers.</p>" in files["1/index.html"]

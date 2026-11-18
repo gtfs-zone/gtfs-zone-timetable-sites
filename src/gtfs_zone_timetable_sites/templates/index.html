@@ -63,6 +63,9 @@
 {% if valid %}
 <p>{{ t("index.valid", range=valid) }}</p>
 {% endif %}
+{% if feed_info_valid %}
+<p>{{ feed_info_valid }}</p>
+{% endif %}
 {% for note in feed_notes %}
 <p>{{ note }}</p>
 {% endfor %}

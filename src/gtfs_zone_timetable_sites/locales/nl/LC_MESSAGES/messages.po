@@ -320,6 +320,9 @@ msgstr "Website"
 msgid "index.valid"
 msgstr "Dienstregeling geldig {range}."
 
+msgid "index.feed_info_valid"
+msgstr "Volgens de feed geldig {range}."
+
 msgid "index.feed_link"
 msgstr "Deze feed op list.gtfs.zone"
 

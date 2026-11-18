@@ -325,6 +325,9 @@ msgstr "Website"
 msgid "index.valid"
 msgstr "Fahrpläne gültig {range}."
 
+msgid "index.feed_info_valid"
+msgstr "Laut Feed gültig {range}."
+
 msgid "index.feed_link"
 msgstr "Dieser Feed auf list.gtfs.zone"
 

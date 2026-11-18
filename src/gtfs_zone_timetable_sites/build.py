@@ -70,6 +70,7 @@ from gtfs_zone_timetable_sites.pages import (
     fare_lines,
     fare_sections,
     feed_amenities,
+    feed_info_range,
     mode_groups,
     mode_label,
     modes_label,
@@ -493,6 +494,7 @@ def build_site(
             modes_lower=modes_text([view.mode for view in set_routes], locale),
             system_map=maps and any(group.routes for group in groups),
             valid=date_range(start, end, locale, "valid"),
+            feed_info_valid=feed_info_range(feed, locale),
             feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
             fares_page=bool(all_fares),
             jsonld=[

@@ -907,9 +907,8 @@ def valid_label(
     locale: Locale = "en",
 ) -> str:
     """'Valid until Dec 31, 2026.', or 'Valid from Jan 5, 2027 to ...' when
-    service starts after `today`, from the calendars of the tables' trips and
-    the feed's end when sooner. Empty for exception days, which list their
-    own dates."""
+    service starts after `today`, from the calendars of the tables' trips.
+    Empty for exception days, which list their own dates."""
     if not tables or not tables[0].day_type.regular:
         return ""
     services = {
@@ -926,8 +925,6 @@ def valid_label(
     if not ends:
         return ""
     first, last = min(starts), max(ends)
-    if feed.feed_info and feed.feed_info.end:
-        last = min(last, feed.feed_info.end)
     if today and first > today:
         return t(locale, "day.valid", range=date_range(first, last, locale, "valid"))
     return t(locale, "day.valid_until", date=long_date(last, locale))
@@ -1002,12 +999,24 @@ def route_slugs(
 
 
 def service_range(feed: Feed) -> tuple[date | None, date | None]:
-    """The feed's first and last dates, each from feed_info when set, else
-    from the calendars."""
+    """The first and last dates of the feed's calendars."""
+    return first_service_date(feed), last_service_date(feed)
+
+
+def feed_info_range(feed: Feed, locale: Locale = "en") -> str:
+    """'The feed says it is valid from ... to ...', when feed_info has dates
+    and either differs from the calendars'; else empty."""
     info = feed.feed_info
-    start = (info and info.start) or first_service_date(feed)
-    end = (info and info.end) or last_service_date(feed)
-    return start, end
+    if not info or not (info.start or info.end):
+        return ""
+    start, end = service_range(feed)
+    if (info.start or start) == start and (info.end or end) == end:
+        return ""
+    return t(
+        locale,
+        "index.feed_info_valid",
+        range=date_range(info.start, info.end, locale, "valid"),
+    )
 
 
 def date_range(

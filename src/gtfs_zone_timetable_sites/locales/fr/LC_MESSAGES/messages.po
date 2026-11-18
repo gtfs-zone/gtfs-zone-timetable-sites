@@ -319,6 +319,9 @@ msgstr "Site web"
 msgid "index.valid"
 msgstr "Horaires valides {range}."
 
+msgid "index.feed_info_valid"
+msgstr "Le flux se dit valide {range}."
+
 msgid "index.feed_link"
 msgstr "À propos de ce flux sur list.gtfs.zone"
 

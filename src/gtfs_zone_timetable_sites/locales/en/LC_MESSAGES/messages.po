@@ -319,6 +319,9 @@ msgstr "Website"
 msgid "index.valid"
 msgstr "Timetables valid {range}."
 
+msgid "index.feed_info_valid"
+msgstr "The feed says it is valid {range}."
+
 msgid "index.feed_link"
 msgstr "About this feed on list.gtfs.zone"
 

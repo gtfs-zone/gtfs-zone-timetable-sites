@@ -316,6 +316,9 @@ msgstr "ウェブサイト"
 msgid "index.valid"
 msgstr "時刻表は{range}有効です。"
 
+msgid "index.feed_info_valid"
+msgstr "フィード上の有効期間は{range}です。"
+
 msgid "index.feed_link"
 msgstr "このフィードについて（list.gtfs.zone）"
 
