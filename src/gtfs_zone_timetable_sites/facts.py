@@ -6,6 +6,12 @@ import io
 from gtfs_zone_timetable_sites.gtfs.reader import Feed, ZipSource
 from gtfs_zone_timetable_sites.gtfs.service import first_service_date, last_service_date
 from gtfs_zone_timetable_sites.languages import feed_languages
+from gtfs_zone_timetable_sites.places import (
+    Located,
+    feed_location,
+    feed_place,
+    place_tags,
+)
 
 
 def zip_digest(source: ZipSource) -> tuple[int, str]:
@@ -17,9 +23,12 @@ def zip_digest(source: ZipSource) -> tuple[int, str]:
     return source.seek(0, io.SEEK_END), digest
 
 
-def feed_facts(source: ZipSource, feed: Feed, filtered: bool) -> dict:
-    """Size, hash, feed_info, service range, agencies, counts and languages of
-    a parsed feed. `filtered` marks counts taken after a site's route filter."""
+def feed_facts(
+    source: ZipSource, feed: Feed, filtered: bool, stations: list[Located]
+) -> dict:
+    """Size, hash, feed_info, service range, agencies, counts, languages and
+    location of a parsed feed, with `stations` its located stations.
+    `filtered` marks counts taken after a site's route filter."""
     start = first_service_date(feed)
     end = last_service_date(feed)
     languages = feed_languages(feed)
@@ -55,6 +64,15 @@ def feed_facts(source: ZipSource, feed: Feed, filtered: bool) -> dict:
             "version": info.version,
             "start": info.start and info.start.isoformat(),
             "end": info.end and info.end.isoformat(),
+        }
+    if location := feed_location(stations):
+        facts["location"] = location
+        facts["placeTags"] = place_tags(stations)
+    if place := feed_place(stations):
+        facts["place"] = {
+            "countryCode": place.country_code,
+            "country": place.country,
+            "region": place.region,
         }
     return facts
 

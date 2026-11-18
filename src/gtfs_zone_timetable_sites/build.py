@@ -83,7 +83,7 @@ from gtfs_zone_timetable_sites.pages import (
     tidy,
     transfer_text,
 )
-from gtfs_zone_timetable_sites.places import feed_place, place_label
+from gtfs_zone_timetable_sites.places import feed_place, locate, place_label
 from gtfs_zone_timetable_sites.render import asset, compact_json, render
 from gtfs_zone_timetable_sites.timetable import (
     Blocks,
@@ -365,7 +365,8 @@ def build_site(
     reserved = {"fares", *(s.prefix.rstrip("/") for s in sets if s.prefix)}
     slugs = route_slugs([rt.route for rt in timetables], labels, reserved)
     site_url = f"{BASE_URL}/{site.slug}/"
-    place = feed_place(feed)
+    stations = locate(feed)
+    place = feed_place(stations)
     all_tables = [table for rt in timetables for table in rt.tables]
     start, end = service_range(feed)
     maps = site.map == "maplibre"
@@ -672,7 +673,7 @@ def build_site(
         noindex=sorted(noindex),
     )
     files["content.json"] = summary_json(
-        **feed_facts(source, read, site.routes != RouteFilter())
+        **feed_facts(source, read, site.routes != RouteFilter(), stations)
     )
     files["style.css"] = asset("style.css")
     files["map.js"] = asset("map.js")

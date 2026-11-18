@@ -31,7 +31,7 @@ MONDAY = date(2026, 10, 5)
 # The root page in each UI language.
 ROOT_PAGES = {"index.html"} | {f"lang/{lang}/index.html" for lang in ROOT_LOCALES[1:]}
 NOINDEX = '<meta name="robots" content="noindex">'
-GEO = re.compile(rb'"geo": ?\{[^}]*\}')
+GEO = re.compile(rb'"geo": ?\{[^}]*\}|"center": ?\[[^\]]*\]')
 
 
 def build(name: str, **options) -> dict[str, str]:
@@ -1172,7 +1172,8 @@ def test_date_filter_builds_the_same_files(monkeypatch):
             source, keep_route=lambda r: site.routes.accepts(r.route_id, r.route_type)
         )
 
-    # The place's center is weighted by the stop_times read, so it moves.
+    # The place's and the content report's centers are weighted by the
+    # stop_times read, so they move.
     def without_center(files: dict[str, bytes]) -> dict[str, bytes]:
         return {path: GEO.sub(b"", body) for path, body in files.items()}
 

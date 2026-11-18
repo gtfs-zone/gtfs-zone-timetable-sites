@@ -1,9 +1,12 @@
-"""Where a feed runs: the state, province or country holding its stop times.
+"""Where a feed runs, from one offline reverse-geocoding pass over its stations.
 
-Each station is reverse-geocoded offline with `reverse_geocode`'s bundled
-GeoNames places and weighted by its stop times. A region with at least
-`SHARE` of them names the feed; otherwise a country with that share does;
-otherwise nothing does.
+Each station with stop times is matched to its nearest place in
+`reverse_geocode`'s bundled GeoNames data, for its ADM1 region and country,
+and weighted by its stop times. From that pass:
+- `feed_place`: a region with at least `SHARE` of the stop times names the
+  feed; otherwise a country with that share does; otherwise nothing does.
+- `feed_location`: the stations' bbox, stop-time weighted center and count.
+- `place_tags`: every country and region the stations are in, for search.
 """
 
 from collections import Counter
@@ -27,6 +30,20 @@ class Place:
     lon: float
 
 
+@dataclass(frozen=True, slots=True)
+class Located:
+    """A station with stop times and the region and country it is in."""
+
+    lat: float
+    lon: float
+    # Stop times at the station.
+    weight: int
+    # ADM1; empty where GeoNames has none.
+    region: str
+    country: str
+    country_code: str
+
+
 def station_weights(feed: Feed) -> dict[tuple[float, float], int]:
     """Stop times per located station, by its coordinates."""
     counts = Counter(
@@ -40,18 +57,43 @@ def station_weights(feed: Feed) -> dict[tuple[float, float], int]:
     return weights
 
 
-def feed_place(feed: Feed) -> Place | None:
-    """The feed's region, else its country, else None."""
+def locate(feed: Feed) -> list[Located]:
+    """Every located station with stop times, reverse-geocoded."""
     weights = station_weights(feed)
-    if not weights:
-        return None
     points = list(weights)
+    if not points:
+        return []
     found = reverse_geocode.search(points)
-    total = sum(weights.values())
+    return [
+        Located(
+            lat=lat,
+            lon=lon,
+            weight=weights[lat, lon],
+            region=place.get("state", ""),
+            country=place["country"],
+            country_code=place["country_code"],
+        )
+        for (lat, lon), place in zip(points, found, strict=True)
+    ]
+
+
+def center(stations: list[Located]) -> tuple[float, float]:
+    """The stop-time weighted center, as lat, lon."""
+    weight = sum(s.weight for s in stations)
+    return (
+        round(sum(s.lat * s.weight for s in stations) / weight, 5),
+        round(sum(s.lon * s.weight for s in stations) / weight, 5),
+    )
+
+
+def feed_place(stations: list[Located]) -> Place | None:
+    """The feed's region, else its country, else None."""
+    if not stations:
+        return None
+    total = sum(s.weight for s in stations)
     regions: Counter[tuple[str, str, str]] = Counter()
-    for point, place in zip(points, found, strict=True):
-        key = (place["country_code"], place["country"], place.get("state", ""))
-        regions[key] += weights[point]
+    for s in stations:
+        regions[s.country_code, s.country, s.region] += s.weight
     countries: Counter[tuple[str, str]] = Counter()
     for (code, country, _), n in regions.items():
         countries[code, country] += n
@@ -62,20 +104,50 @@ def feed_place(feed: Feed) -> Place | None:
         region = ""
         if n < SHARE * total:
             return None
-    inside = [
-        (point, weights[point])
-        for point, place in zip(points, found, strict=True)
-        if place["country_code"] == code
-        and (not region or place.get("state", "") == region)
-    ]
-    weight = sum(w for _, w in inside)
-    return Place(
-        region=region,
-        country=country,
-        country_code=code,
-        lat=round(sum(p[0] * w for p, w in inside) / weight, 5),
-        lon=round(sum(p[1] * w for p, w in inside) / weight, 5),
+    lat, lon = center(
+        [
+            s
+            for s in stations
+            if s.country_code == code and (not region or s.region == region)
+        ]
     )
+    return Place(region=region, country=country, country_code=code, lat=lat, lon=lon)
+
+
+def feed_location(stations: list[Located]) -> dict | None:
+    """The stations' bbox (min lon, min lat, max lon, max lat), weighted center
+    (lat, lon) and count, for the content report."""
+    if not stations:
+        return None
+    lats = [s.lat for s in stations]
+    lons = [s.lon for s in stations]
+    return {
+        "bbox": [
+            round(min(lons), 5),
+            round(min(lats), 5),
+            round(max(lons), 5),
+            round(max(lats), 5),
+        ],
+        "center": list(center(stations)),
+        "stations": len(stations),
+    }
+
+
+def ranked(weights: Counter[str]) -> list[str]:
+    """Names by stop times, most first, then by name."""
+    return [name for name, _ in sorted(weights.items(), key=lambda i: (-i[1], i[0]))]
+
+
+def place_tags(stations: list[Located]) -> dict[str, list[str]]:
+    """The countries and regions the stations are in, each by stop times, most
+    first."""
+    countries: Counter[str] = Counter()
+    regions: Counter[str] = Counter()
+    for s in stations:
+        countries[s.country] += s.weight
+        if s.region:
+            regions[s.region] += s.weight
+    return {"countries": ranked(countries), "regions": ranked(regions)}
 
 
 def place_label(

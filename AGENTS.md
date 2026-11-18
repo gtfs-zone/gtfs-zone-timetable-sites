@@ -30,9 +30,9 @@ pnpm run build:mo             # compile locales/*/LC_MESSAGES/messages.po (the C
 | `colors.py` | Hashed color for a route without `route_color`, a hex-exact port of gtfs-zone-web-common's `route-colors.ts` |
 | `languages.py` | A feed's languages (`feed_lang`, `agency_lang`, translations.txt) as normalized codes: the default, the offered ones, kana readings apart; `translate` gives the feed with its text in one language |
 | `build.py` | `build_site(zip_bytes, site) -> {path: bytes}`, the only entry point; a page set per offered language, the default at the site root, others under `<lang>/`; `build_root` writes the root and country pages in each UI language |
-| `places.py` | A feed's state, province or country from its stop times, reverse-geocoded offline with `reverse_geocode`, for page titles and JSON-LD |
+| `places.py` | One offline `reverse_geocode` pass over a feed's stations: its state, province or country for page titles and JSON-LD, and its location and place tags for the content report |
 | `boundaries.py` | Bundled country (Natural Earth) and ADM1 region (geoBoundaries) GeoJSON in `boundaries/`, written by `scripts/boundaries.py`, and the region a point is in, for the root pages' maps and sections |
-| `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts) for the content report |
+| `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts, location, place tags) for the content report |
 | `maps/geo.py` | Route and system map data for `map.js`: shapes (or stop sequences) simplified by Douglas-Peucker at a share of the map's extent, parts that retrace a line dropped, numbered stops, lines shared by routes stored once |
 | `templates/map.js` | MapLibre route maps (numbered stops, insets for crowded stops), the system map (mode toggles, hover, click to open a route), the index's route accordion, live vehicles and live times in the timetables (from `<slug>/live.json`); MapLibre and the GTFS-RT decoder come from jsdelivr |
 | `templates/root.js` | The root and country pages: MapLibre choropleths of countries and regions by site count, agency search over `sites.json` with uFuzzy (as gtfs-zone-web-common), both from jsdelivr |
