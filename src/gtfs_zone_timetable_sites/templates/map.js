@@ -878,14 +878,15 @@ function metres(a, b) {
 // Movement below this between polls gives no bearing
 const MIN_MOVE_M = 15;
 
-// Vehicle layers as rt-viewer draws them: a route-colored dot on a dark
-// casing, or a route-colored arrow with a dark halo for vehicles with a bearing. Sizes grow with
-// zoom from a floor of about 8px, which stays visible zoomed out over whole
-// systems, to rt-viewer's size close in
-const VEHICLE_CASING = "#0f172a";
-const VEHICLE_LAYERS = ["vehicles-halo", "vehicles-casing", "vehicles-dot", "vehicles-arrow", "vehicles-hit"];
+// Vehicle layers: a route-colored dot, or a route-colored arrow for vehicles
+// with a bearing, both with the same white border, wider when focused. Sizes
+// grow with zoom from a floor of about 8px, which stays visible zoomed out
+// over whole systems, to rt-viewer's size close in
+const VEHICLE_LAYERS = ["vehicles-halo", "vehicles-dot", "vehicles-arrow", "vehicles-hit"];
 const byZoom = (...stops) => ["interpolate", ["linear"], ["zoom"], ...stops];
 const FOCUSED = ["boolean", ["feature-state", "focused"], false];
+const VEHICLE_BORDER = "#ffffff";
+const VEHICLE_BORDER_WIDTH = byZoom(10, ["case", FOCUSED, 2, 1.25], 15, ["case", FOCUSED, 3, 2]);
 
 // A north-pointing arrow as an SDF, so icon-color tints it; blurred so the
 // edge has a ramp for the distance field
@@ -910,7 +911,6 @@ function addArrowImage(map) {
 function addVehicleLayers(map, data) {
   addArrowImage(map);
   map.addSource("vehicles", { type: "geojson", data, promoteId: "id" });
-  const noBearing = ["==", ["get", "has_bearing"], false];
   map.addLayer({
     id: "vehicles-halo",
     type: "circle",
@@ -924,22 +924,15 @@ function addVehicleLayers(map, data) {
     },
   });
   map.addLayer({
-    id: "vehicles-casing",
-    type: "circle",
-    source: "vehicles",
-    filter: noBearing,
-    paint: { "circle-radius": byZoom(10, 4, 12, 4.5, 15, 7, 18, 12), "circle-color": VEHICLE_CASING },
-  });
-  map.addLayer({
     id: "vehicles-dot",
     type: "circle",
     source: "vehicles",
-    filter: noBearing,
+    filter: ["==", ["get", "has_bearing"], false],
     paint: {
       "circle-radius": byZoom(10, 3, 12, 3.5, 15, 5.5, 18, 10),
       "circle-color": ["get", "color"],
-      "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": byZoom(10, ["case", FOCUSED, 2, 1], 15, ["case", FOCUSED, 3, 1.5]),
+      "circle-stroke-color": VEHICLE_BORDER,
+      "circle-stroke-width": VEHICLE_BORDER_WIDTH,
     },
   });
   map.addLayer({
@@ -957,8 +950,8 @@ function addVehicleLayers(map, data) {
     },
     paint: {
       "icon-color": ["get", "color"],
-      "icon-halo-color": VEHICLE_CASING,
-      "icon-halo-width": byZoom(10, ["case", FOCUSED, 2, 1.25], 15, ["case", FOCUSED, 3, 2]),
+      "icon-halo-color": VEHICLE_BORDER,
+      "icon-halo-width": VEHICLE_BORDER_WIDTH,
     },
   });
   // The only layer clicks and hovers query, never smaller than a drawn vehicle
