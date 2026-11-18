@@ -13,7 +13,7 @@
 {%- if row.google %}<a class="link link-hover" href="{{ row.google }}" target="_blank" rel="noopener">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}
 {%- if row.code %} <small class="code">{{ row.code }}</small>{% endif %}
 {%- if row.platform %} <small class="code">{{ t("route.platform", platform=row.platform) }}</small>{% endif %}
-{%- if row.fare_zone %} <small class="code fare-zone">{{ t("fare.zone", zone=row.fare_zone) }}</small>{% endif %}
+{%- if row.fare_zone %} <small class="code fare-zone">{{ row.fare_zone }}</small>{% endif %}
 {%- endmacro %}
 {% block main %}
 <div class="space-y-2">

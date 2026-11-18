@@ -164,6 +164,11 @@ EN: dict[str, str] = {
     "fare.within": "{transfers} within {duration}",
     "fare.minutes": "{n} min",
     "fare.zone": "Zone {zone}",
+    "fare.media": "{price} with {media}",
+    "fare.product": "{price} ({product})",
+    "fare.during": "{fare}, {times}",
+    "fare.times": "{start} to {end}",
+    "fare.other_stops": "Other stops",
     "fare.by_stop": "Fares by stop",
     "fare.by_zone": "Fares by zone",
     "fare.between_stops": "Fare between two stops: one in the left column, the"
@@ -333,6 +338,11 @@ FR: dict[str, str] = {
     "fare.within": "{transfers} pendant {duration}",
     "fare.minutes": "{n} min",
     "fare.zone": "Zone {zone}",
+    "fare.media": "{price} avec {media}",
+    "fare.product": "{price} ({product})",
+    "fare.during": "{fare}, {times}",
+    "fare.times": "de {start} à {end}",
+    "fare.other_stops": "Autres arrêts",
     "fare.by_stop": "Tarifs par arrêt",
     "fare.by_zone": "Tarifs par zone",
     "fare.between_stops": "Tarif entre deux arrêts : l'un dans la colonne de"

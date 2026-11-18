@@ -187,8 +187,10 @@ def test_v2_fares():
         to_timeframe_group_id="",
         fare_product_id="bus",
         rule_priority=None,
+        transfer_only=False,
     )
     assert fares.leg_rules[3].rule_priority == 1
+    assert fares.leg_rules[4].transfer_only
     assert fares.transfer_rules == (
         FareTransferRule("leg_bus", "leg_rail", None, 7200, 1, 0, ""),
         FareTransferRule("leg_bus", "leg_bus", -1, None, None, 1, "bus"),

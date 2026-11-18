@@ -25,7 +25,7 @@ from gtfs_zone_timetable_sites.boundaries import (
 from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import RouteFilter, Site
 from gtfs_zone_timetable_sites.facts import feed_facts
-from gtfs_zone_timetable_sites.fares import route_fares
+from gtfs_zone_timetable_sites.fares import ZoneFares, route_fares
 from gtfs_zone_timetable_sites.gtfs.reader import Agency, Feed, Route, read_feed
 from gtfs_zone_timetable_sites.gtfs.service import (
     Services,
@@ -346,7 +346,7 @@ def build_site(
             locale,
             by_route,
             today,
-            fare_badges(fares),
+            fare_badges(fares, locale),
         )
         # Live-times data is fetched only once a timetable is on screen, so
         # it adds nothing to the page itself. Without trip updates it still
@@ -371,10 +371,13 @@ def build_site(
             "route.html",
             **common,
             route=view,
-            fares=fare_lines(fares, locale),
+            fares=fare_lines(fares, locale, read.fares.timeframes, site.time_format),
             fare_charts=fare_charts(fares, locale),
             fares_by=t(
-                locale, "fare.by_zone" if fare_badges(fares) else "fare.by_stop"
+                locale,
+                "fare.by_zone"
+                if isinstance(fares, ZoneFares) and fares.zones
+                else "fare.by_stop",
             ),
             map=route_map,
             live=LIVE_FILE if live else "",

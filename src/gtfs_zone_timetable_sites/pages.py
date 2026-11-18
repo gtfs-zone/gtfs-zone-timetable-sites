@@ -17,7 +17,7 @@ from gtfs_zone_timetable_sites.fares import (
     Transfers,
     ZoneFares,
 )
-from gtfs_zone_timetable_sites.gtfs.reader import Feed, Route
+from gtfs_zone_timetable_sites.gtfs.reader import Feed, Route, Timeframe
 from gtfs_zone_timetable_sites.gtfs.service import (
     DayType,
     dates_label,
@@ -258,7 +258,7 @@ class RowView:
     approx: bool = False
     code: str = ""
     platform: str = ""
-    # Fare zone badge, shown when the route's fares are by zone.
+    # Fare zone badge text, shown when the route's fares are by zone.
     fare_zone: str = ""
 
 
@@ -649,7 +649,7 @@ def table_view(
             approx=not row.exact,
             code=tidy(row.code),
             platform=tidy(row.platform),
-            fare_zone=(fare_zones or {}).get(row.fare_zone, ""),
+            fare_zone=(fare_zones or {}).get(row.stop_id, ""),
         )
         for k, row in enumerate(table.rows)
     )
@@ -849,7 +849,7 @@ def day_views(
 ) -> list[DayView]:
     """A view per day type in page order (see `ordered_days`), stops numbered
     by `stop_numbers`; `routes` links block continuations to other routes,
-    `fare_zones` labels the stops' fare zone badges by zone id."""
+    `fare_zones` is the fare zone badge text by stop id."""
     numbers = stop_numbers(tables)
     views = []
     anchors: set[str] = set()
@@ -1044,10 +1044,42 @@ def transfers_text(transfers: Transfers, locale: Locale = "en") -> str:
     return text
 
 
-def fare_text(fare: Fare, several: bool, locale: Locale = "en") -> str:
+def timeframe_text(
+    frames: Sequence[Timeframe], time_format: TimeFormat, locale: Locale = "en"
+) -> str:
+    """'7:00 AM to 9:00 AM', each window of a timeframe group."""
+    return ", ".join(
+        t(
+            locale,
+            "fare.times",
+            start=clock_label(frame.start or 0, time_format),
+            end=clock_label(
+                frame.end if frame.end is not None else DAY_SECONDS, time_format
+            ),
+        )
+        for frame in frames
+    )
+
+
+def fare_text(
+    fare: Fare,
+    several: bool,
+    locale: Locale = "en",
+    timeframes: Mapping[str, Sequence[Timeframe]] | None = None,
+    time_format: TimeFormat = "24h",
+) -> str:
     """'$1.25, 1 free transfer within 60 min'; with `several`, the payment
-    method too ('$1.25 paid on board')."""
+    method too ('$1.25 paid on board'). A v2 fare: '$1.70 with Smart card
+    (Bus fare)', and its timeframe's hours when it has one."""
     text = price(fare.price, fare.currency, locale)
+    if fare.media:
+        text = t(locale, "fare.media", price=text, media=", ".join(fare.media))
+    if fare.product:
+        text = t(locale, "fare.product", price=text, product=fare.product)
+    if fare.timeframe:
+        frames = (timeframes or {})[fare.timeframe]
+        times = timeframe_text(frames, time_format, locale)
+        return t(locale, "fare.during", fare=text, times=times)
     if several and fare.payment_method is not None:
         key = "fare.before_boarding" if fare.payment_method else "fare.on_board"
         text = t(locale, key, price=text)
@@ -1055,13 +1087,21 @@ def fare_text(fare: Fare, several: bool, locale: Locale = "en") -> str:
     return t(locale, "fare.with", fare=text, transfers=extra) if extra else text
 
 
-def fare_lines(fares: RouteFares, locale: Locale = "en") -> tuple[str, ...]:
+def fare_lines(
+    fares: RouteFares,
+    locale: Locale = "en",
+    timeframes: Mapping[str, Sequence[Timeframe]] | None = None,
+    time_format: TimeFormat = "24h",
+) -> tuple[str, ...]:
     """A line per flat fare for the route page's fares card; empty without
     fares."""
     if not isinstance(fares, FlatFare):
         return ()
     several = len(fares.fares) > 1
-    return tuple(fare_text(fare, several, locale) for fare in fares.fares)
+    return tuple(
+        fare_text(fare, several, locale, timeframes, time_format)
+        for fare in fares.fares
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1081,11 +1121,7 @@ def fare_charts(fares: RouteFares, locale: Locale = "en") -> tuple[FareChart, ..
     ways. Empty for flat fares."""
     if not isinstance(fares, ZoneFares):
         return ()
-    labels = (
-        tuple(t(locale, "fare.zone", zone=label) for label in fares.labels)
-        if fares.zones
-        else fares.labels
-    )
+    labels = zone_labels(fares, locale)
     methods = sorted(
         {f.payment_method for row in fares.cells for cell in row for f in cell} - {None}
     )
@@ -1095,9 +1131,11 @@ def fare_charts(fares: RouteFares, locale: Locale = "en") -> tuple[FareChart, ..
         texts = [
             [
                 " / ".join(
-                    price(f.price, f.currency, locale)
-                    for f in cell
-                    if method is None or f.payment_method in (method, None)
+                    dict.fromkeys(
+                        price(f.price, f.currency, locale)
+                        for f in cell
+                        if method is None or f.payment_method in (method, None)
+                    )
                 )
                 for cell in row
             ]
@@ -1129,8 +1167,23 @@ def fare_charts(fares: RouteFares, locale: Locale = "en") -> tuple[FareChart, ..
     return tuple(charts)
 
 
-def fare_badges(fares: RouteFares) -> dict[str, str]:
-    """Badge label by zone id for stops in a zone fare table, else empty."""
+def zone_labels(fares: ZoneFares, locale: Locale = "en") -> tuple[str, ...]:
+    """Each place's label: 'Zone 1' for a v1 zone, the area name for v2,
+    the stop name when places are stops."""
+    if fares.named:
+        return tuple(label or t(locale, "fare.other_stops") for label in fares.labels)
+    if fares.zones:
+        return tuple(t(locale, "fare.zone", zone=label) for label in fares.labels)
+    return fares.labels
+
+
+def fare_badges(fares: RouteFares, locale: Locale = "en") -> dict[str, str]:
+    """Badge text by station for stops in a zone fare table, else empty."""
     if not isinstance(fares, ZoneFares) or not fares.zones:
         return {}
-    return dict(zip(fares.zones, fares.labels, strict=True))
+    labels = dict(zip(fares.zones, zone_labels(fares, locale), strict=True))
+    return {
+        station: labels[zone]
+        for station, zone in fares.stations.items()
+        if zone in labels
+    }

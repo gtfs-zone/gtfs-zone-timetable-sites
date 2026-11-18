@@ -74,6 +74,7 @@ ignore_names = [
     # Read only by the Jinja templates
     "days_label",
     "dot_x",
+    "fare_zone",
     "google",
     "gutter",
     "heading",
@@ -90,32 +91,16 @@ ignore_names = [
     "state_label",
     "valid",
     # Fare fields on Feed, read only by the tests so far
-    "amount",
-    "areas",
     "duration_limit",
     "duration_limit_type",
-    "fare_media_id",
-    "fare_product_id",
     "fare_transfer_type",
-    "from_area_id",
     "from_leg_group_id",
-    "from_timeframe_group_id",
     "leg_group_id",
-    "leg_rules",
-    "media",
     "media_type",
-    "network_id",
     "networks",
-    "route_networks",
-    "rule_priority",
-    "to_area_id",
     "to_leg_group_id",
-    "to_timeframe_group_id",
     "transfer_count",
     "transfer_rules",
-    # v2 fields on fares.Fare, filled from 3d
-    "product",
-    "timeframe",
 ]
 
 [tool.deptry]

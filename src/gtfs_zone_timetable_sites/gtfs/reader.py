@@ -163,6 +163,8 @@ class FareLegRule:
     to_timeframe_group_id: str
     fare_product_id: str
     rule_priority: int | None
+    # The rule prices only a leg reached by a transfer.
+    transfer_only: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -679,6 +681,7 @@ def read_fares(archive: Archive) -> Fares:
                 to_timeframe_group_id=row["to_timeframe_group_id"],
                 fare_product_id=row["fare_product_id"],
                 rule_priority=parse_int(row["rule_priority"]),
+                transfer_only=row["transfer_only"] == "1",
             )
             for row in archive.rows(
                 "fare_leg_rules",
@@ -691,6 +694,7 @@ def read_fares(archive: Archive) -> Fares:
                     "to_timeframe_group_id",
                     "fare_product_id",
                     "rule_priority",
+                    "transfer_only",
                 ),
             )
         ),

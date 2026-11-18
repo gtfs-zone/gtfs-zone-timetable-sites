@@ -16,6 +16,7 @@ from gtfs_zone_timetable_sites.pages import (
     fare_badges,
     fare_charts,
     fare_lines,
+    fare_text,
     transfers_text,
 )
 
@@ -212,7 +213,7 @@ def test_fare_charts_triangle_per_payment_method():
         ("Zone 2", ("¥300", "¥200")),
     )
     assert on_board.note.startswith("Fare between two zones")
-    assert fare_badges(fares) == {"1": "1", "2": "2"}
+    assert fare_badges(fares) == {"A": "Zone 1", "B": "Zone 1", "C": "Zone 2"}
 
 
 def test_fare_charts_per_stop_without_diagonal():
@@ -230,3 +231,114 @@ def test_fare_charts_one_way_prices_are_a_square():
     assert chart.rows[2] == ("Charlie", ("¥200", "¥200", ""))
     assert chart.note.startswith("Fare from the stop")
     assert fare_charts(FlatFare(())) == ()
+
+
+def test_v2_flat_fare_lists_media_when_prices_differ():
+    feed = read_feed(fixture_zip("fares-v2"))
+    fares = route_fares(feed, ["b1"])
+    # The transfer-only rule (rail_1) is left out.
+    assert fares == FlatFare(
+        (
+            Fare(Decimal("1.70"), "USD", product="Bus fare", media=("Smart card",)),
+            Fare(Decimal("2.00"), "USD", product="Bus fare", media=("Cash",)),
+        )
+    )
+    assert fare_lines(fares) == (
+        "$1.70 with Smart card (Bus fare)",
+        "$2.00 with Cash (Bus fare)",
+    )
+
+
+def test_v2_one_price_per_product_drops_media():
+    files = fixture_files("fares-v2")
+    files["fare_products.txt"] = files["fare_products.txt"].replace(
+        "card,1.70", "card,2.00"
+    )
+    fares = fares_of(files, ["b1"])
+    assert fares == FlatFare((Fare(Decimal("2.00"), "USD", product="Bus fare"),))
+    assert fare_lines(fares) == ("$2.00 (Bus fare)",)
+
+
+def test_v2_zone_fares_by_area_with_priority_and_timeframe():
+    feed = read_feed(fixture_zip("fares-v2"))
+    fares = route_fares(feed, ["cr1"])
+    assert isinstance(fares, ZoneFares)
+    assert fares.named
+    assert fares.labels == ("Zone 1", "z2")
+    rail_1 = Fare(Decimal("2.40"), "USD", product="Zone 1 rail fare")
+    rail_2 = Fare(Decimal("3.70"), "USD", product="Zone 2 rail fare")
+    peak = Fare(Decimal("4.25"), "USD", product="Peak rail fare", timeframe="peak")
+    assert fares.cells == (((rail_1, peak), (rail_2, peak)), ((), ()))
+    assert fare_badges(fares) == {"A": "Zone 1", "B": "Zone 1", "C": "z2"}
+    [chart] = fare_charts(fares)
+    assert chart.heads == ("Zone 1", "z2")
+    assert chart.rows == (
+        ("Zone 1", ("$2.40 / $4.25", "$3.70 / $4.25")),
+        ("z2", ("", "")),
+    )
+    line = fare_text(peak, False, "en", feed.fares.timeframes, "12h")
+    assert line == "$4.25 (Peak rail fare), 7:00 AM to 9:00 AM"
+
+
+def test_v2_empty_area_matches_only_without_an_exact_rule():
+    files = fixture_files("fares-v2")
+    # Without rule_priority an empty area is a fallback, not a wildcard.
+    files["fare_leg_rules.txt"] = (
+        "leg_group_id,network_id,from_area_id,to_area_id,fare_product_id\n"
+        "leg_rail,rail,z1,z1,rail_1\n"
+        "leg_rail,rail,z1,,rail_2\n"
+        "leg_rail,rail,,,rail_peak\n"
+    )
+    fares = fares_of(files, ["cr1"])
+    assert isinstance(fares, ZoneFares)
+    assert [
+        [[int(f.price * 100) for f in cell] for cell in row] for row in fares.cells
+    ] == [
+        [[240], [370]],
+        [[425], [425]],
+    ]
+
+
+def test_v2_same_prices_from_different_products_are_flat():
+    files = fixture_files("fares-v2")
+    files["fare_products.txt"] = (
+        "fare_product_id,fare_product_name,fare_media_id,amount,currency\n"
+        "rail_1,Rail fare,card,2.40,USD\n"
+        "rail_2,Rail ticket,card,2.40,USD\n"
+        "rail_peak,Rail fare,card,2.40,USD\n"
+        "bus,Bus fare,cash,2.00,USD\n"
+    )
+    files["fare_leg_rules.txt"] = (
+        "leg_group_id,network_id,from_area_id,to_area_id,fare_product_id\n"
+        "leg_rail,rail,z1,,rail_1\n"
+        "leg_rail,rail,,,rail_2\n"
+    )
+    fares = fares_of(files, ["cr1"])
+    assert fares == FlatFare(
+        (
+            Fare(Decimal("2.40"), "USD", product="Rail fare"),
+            Fare(Decimal("2.40"), "USD", product="Rail ticket"),
+        )
+    )
+
+
+def test_v2_places_in_no_area_are_other_stops():
+    files = fixture_files("fares-v2")
+    files["stop_areas.txt"] = "area_id,stop_id\nz2,C\n"
+    files["fare_leg_rules.txt"] = (
+        "leg_group_id,network_id,from_area_id,to_area_id,fare_product_id\n"
+        "leg_rail,rail,z2,,rail_2\n"
+        "leg_rail,rail,,,rail_1\n"
+    )
+    fares = fares_of(files, ["cr1"])
+    assert isinstance(fares, ZoneFares)
+    assert fares.labels == ("", "z2")
+    assert fare_charts(fares)[0].heads == ("Other stops", "z2")
+    assert fare_badges(fares) == {"C": "z2"}
+
+
+def test_v2_unknown_product_raises():
+    files = fixture_files("fares-v2")
+    files["fare_leg_rules.txt"] += "leg_bus,bus,,,missing,,,,\n"
+    with pytest.raises(KeyError, match="missing"):
+        fares_of(files, ["b1"])
