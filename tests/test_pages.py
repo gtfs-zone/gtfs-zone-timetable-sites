@@ -22,6 +22,7 @@ from gtfs_zone_timetable_sites.pages import (
     join_and,
     mode_name,
     modes_label,
+    note_letter,
     route_labels,
     route_slugs,
     route_view,
@@ -300,3 +301,14 @@ def test_feed_amenities():
         ("All stops are wheelchair accessible.",),
         frozenset({"bikes", "trips"}),
     )
+
+
+def test_note_letters_go_past_z():
+    assert [note_letter(i) for i in (0, 25, 26, 27, 701, 702)] == [
+        "A",
+        "Z",
+        "AA",
+        "AB",
+        "ZZ",
+        "AAA",
+    ]

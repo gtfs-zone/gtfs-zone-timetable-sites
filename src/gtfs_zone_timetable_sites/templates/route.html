@@ -95,10 +95,9 @@
 {% endfor %}
 </tbody>
 {% set every = table.heads | selectattr("every") | list %}
-{% if every or table.show_continues %}
+{% if every %}
 <tfoot>
-{% if every %}<tr><td></td>{% for head in table.heads %}<td class="every">{{ head.every }}</td>{% endfor %}</tr>{% endif %}
-{% if table.show_continues %}<tr><td></td>{% for c in table.continues %}<td class="every">{% if c %}{% if c.href %}<a class="link link-hover" href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}{% endif %}</td>{% endfor %}</tr>{% endif %}
+<tr><td></td>{% for head in table.heads %}<td class="every">{{ head.every }}</td>{% endfor %}</tr>
 </tfoot>
 {% endif %}
 </table>
@@ -106,7 +105,8 @@
 {% if table.legend or table.runs %}
 <ul class="text-sm text-base-content/70"{% if not table.legend %} hidden{% endif %}>
 {% for key in table.legend %}
-<li>{% if key.icon %}{{ t("legend.icon", icon=icon(key.icon), text=key.text) }}{% else %}{{ key.text }}{% endif %}</li>
+{% set text %}{% if key.href %}<a class="link link-hover" href="{{ key.href }}">{{ key.text }}</a>{% else %}{{ key.text }}{% endif %}{% endset %}
+<li>{% if key.icon %}{{ t("legend.icon", icon=icon(key.icon), text=text) }}{% elif key.letter %}{{ t("legend.note", letter=key.letter, note=text) }}{% else %}{{ text }}{% endif %}</li>
 {% endfor %}
 {% if table.runs %}<li class="next-key" hidden><span class="next-swatch" aria-hidden="true"></span>{{ t("legend.next") }}</li>{% endif %}
 </ul>

@@ -145,8 +145,7 @@ EN: dict[str, str] = {
     "route.first_last": "First trip starts at {first}, last at {last}.",
     "route.zone_time": "{zone} time",
     "route.platform": "Platform {platform}",
-    "route.continues": "continues to {headsign}",
-    "route.continues_as": "continues as {route} to {headsign}",
+    "route.continues_as": "Continues as {route} to {headsign}",
     "route.all_routes": "All routes",
     "route.agency_page": "Route page on the agency's site",
     # Footer
@@ -290,8 +289,7 @@ FR: dict[str, str] = {
     "route.first_last": "Premier départ à {first}, dernier à {last}.",
     "route.zone_time": "heure {zone}",
     "route.platform": "Quai {platform}",
-    "route.continues": "continue vers {headsign}",
-    "route.continues_as": "continue comme {route} vers {headsign}",
+    "route.continues_as": "Continue comme {route} vers {headsign}",
     "route.all_routes": "Toutes les lignes",
     "route.agency_page": "Page de la ligne sur le site de l'organisme",
     "footer.generated": "Généré le {date} à partir du flux GTFS de l'organisme."

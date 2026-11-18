@@ -752,11 +752,15 @@ def test_root_groups_by_region_and_writes_maps():
 def test_block_continuations_stop_codes_and_platforms():
     files = build("blocks")
     page = files["1/index.html"]
-    link = '<a class="link link-hover" href="../2/">continues as 2 to Charlie</a>'
-    assert link in page
-    assert "continues to Alpha" in page
-    # q2 starts 70 minutes after r4 ends: no continuation
-    assert page.count("continues as") == 1
+    # A lettered note on the column, linked in the legend
+    link = '<a class="link link-hover" href="../2/">Continues as 2 to Charlie</a>'
+    assert f"<li>A: {link}.</li>" in page
+    assert '<tr><td></td><th scope="col">A</th>' in page
+    # Turning back on the same route is the next column, not a note; q2
+    # starts 70 minutes after r4 ends: no continuation
+    assert "Continues to" not in page
+    assert page.count("Continues as") == 1
+    assert "<tfoot>" not in page
     assert '<small class="code">101</small>' in page
     assert "Central</a> <small" in page
     assert '<small class="code">Platform 1</small>' in page

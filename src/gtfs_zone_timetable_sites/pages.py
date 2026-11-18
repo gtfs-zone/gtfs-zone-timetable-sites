@@ -253,8 +253,8 @@ class RowView:
 
 
 @dataclass(frozen=True, slots=True)
-class Continuation:
-    """The trip a column continues as: text, and a link when on another route."""
+class Note:
+    """A lettered column note: text, and a link when it names another route."""
 
     text: str
     href: str = ""
@@ -262,10 +262,13 @@ class Continuation:
 
 @dataclass(frozen=True, slots=True)
 class Key:
-    """A legend entry, led by an icon when `icon` is set."""
+    """A legend entry, led by an icon when `icon` is set, or by a column note
+    letter when `letter` is; `href` links the text."""
 
     icon: str
     text: str
+    letter: str = ""
+    href: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -289,17 +292,11 @@ class TableView:
     stop_ids: tuple[str, ...] = ()
     sched: tuple[tuple[int | None, ...], ...] = ()
     shifts: tuple[int, ...] = ()
-    # Per column, the trip it continues as in its block.
-    continues: tuple[Continuation | None, ...] = ()
 
     @property
     def runs(self) -> bool:
         """Some column is a trip whose next stop map.js can mark."""
         return any(self.trip_ids)
-
-    @property
-    def show_continues(self) -> bool:
-        return any(self.continues)
 
     @property
     def live(self) -> dict[str, object]:
@@ -566,6 +563,16 @@ def minute_steps(times: Sequence[int | None]) -> tuple[int | None, ...]:
     return tuple(steps)
 
 
+def note_letter(index: int) -> str:
+    """A to Z, then AA, AB and on, like spreadsheet columns."""
+    letters = ""
+    index += 1
+    while index:
+        index, rest = divmod(index - 1, 26)
+        letters = chr(ord("A") + rest) + letters
+    return letters
+
+
 def table_view(
     feed: Feed,
     table: Timetable,
@@ -576,17 +583,27 @@ def table_view(
     numbers: Mapping[str, int] | None = None,
     routes: Mapping[str, "RouteView"] | None = None,
 ) -> TableView:
+    # Per column, its date note and the trip on another route it continues
+    # as, each lettered by its first column.
     notes = [
-        trip_note(table.day_type, column.trip_id, locale) for column in table.columns
+        [
+            note
+            for note in (
+                Note(trip_note(table.day_type, column.trip_id, locale)),
+                continuation(feed, table.route_id, column, routes or {}, locale),
+            )
+            if note and note.text
+        ]
+        for column in table.columns
     ]
     letters = {
-        note: chr(ord("A") + i)
-        for i, note in enumerate(dict.fromkeys(note for note in notes if note))
+        note: note_letter(i)
+        for i, note in enumerate(dict.fromkeys(n for col in notes for n in col))
     }
     heads = tuple(
         replace(
             column_head(column, time_format, shaded, locale),
-            note=letters.get(note, ""),
+            note=" ".join(letters[n] for n in note),
             bikes="bikes" in marked and column.bikes == 1,
             wheelchair="trips" in marked and column.wheelchair == 1,
         )
@@ -625,10 +642,6 @@ def table_view(
         for k, row in enumerate(table.rows)
     )
     cells = [cell for row in rows for cell in row.cells]
-    legend = [
-        t(locale, "legend.note", letter=letter, note=note)
-        for note, letter in letters.items()
-    ]
     keys = []
     if time_format == "12h" and any(c.time and c.time.pm for c in cells):
         keys.append("pm")
@@ -652,7 +665,10 @@ def table_view(
         keys.append("dwell")
     if any(row.approx and any(c.time for c in row.cells) for row in rows):
         keys.append("approx")
-    legend += [t(locale, f"legend.{key}") for key in keys]
+    legend = [
+        *(Key("", n.text, letter=letter, href=n.href) for n, letter in letters.items()),
+        *(Key("", t(locale, f"legend.{key}")) for key in keys),
+    ]
     shown_icons = {
         "bikes": any(head.bikes for head in heads),
         "trips": any(head.wheelchair for head in heads),
@@ -673,7 +689,7 @@ def table_view(
         show_headsigns=len({head.headsign for head in heads}) > 1,
         show_notes=bool(letters),
         rows=rows,
-        legend=(*icons, *(Key("", text) for text in legend)),
+        legend=(*icons, *legend),
         anchor=anchor,
         trips=len(table.columns),
         gutter=gutter_width(graph.lane_count),
@@ -693,10 +709,6 @@ def table_view(
             for column in table.columns
         ),
         shifts=tuple(row.shift // 60 for row in table.rows),
-        continues=tuple(
-            continuation(feed, table.route_id, column, routes or {}, locale)
-            for column in table.columns
-        ),
     )
 
 
@@ -706,19 +718,18 @@ def continuation(
     column: Column,
     routes: Mapping[str, "RouteView"],
     locale: Locale = "en",
-) -> Continuation | None:
-    """'continues to <headsign>' on the same route, else 'continues as
-    <route> to <headsign>' linked to that route's page when the site has it."""
+) -> Note | None:
+    """'Continues as <route> to <headsign>' when the column's block goes on
+    on another route, else None: on its own route that is the next column
+    back."""
     trip = feed.trips.get(column.next_trip)
-    if trip is None:
+    if trip is None or trip.route_id == route_id:
         return None
     to = tidy(headsign(feed, trip))
-    if trip.route_id == route_id:
-        return Continuation(t(locale, "route.continues", headsign=to))
     view = routes.get(trip.route_id)
     route = view.badge if view else tidy(feed.routes[trip.route_id].name)
     text = t(locale, "route.continues_as", route=route, headsign=to)
-    return Continuation(text, f"../{view.slug}/" if view else "")
+    return Note(text, f"../{view.slug}/" if view else "")
 
 
 def day_notes(day: DayType, locale: Locale = "en") -> tuple[str, ...]:
