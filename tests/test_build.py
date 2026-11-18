@@ -8,6 +8,7 @@ from conftest import fixture_files, fixture_zip, make_zip
 from gtfs_zone_timetable_sites.build import (
     build_root,
     build_site,
+    country_languages,
     merge_routes,
     page_digest,
     site_status,
@@ -418,6 +419,7 @@ def test_build_root():
     shard = f"sitemaps/{shard_of('a'):02d}.xml"
     assert set(files) == {
         "index.html",
+        "lang/fr/index.html",
         "countries/us/index.html",
         "countries/ca/index.html",
         "countries/other/index.html",
@@ -452,7 +454,10 @@ def test_build_root():
     assert country.index('id="US-ME">Maine</h2>') < country.index(
         'id="US-OR">Oregon</h2>'
     )
-    assert 'data-src="regions.json"' in country and "geoBoundaries" in country
+    assert (
+        'data-src="../../countries/us/regions.json"' in country
+        and "geoBoundaries" in country
+    )
     assert "United States Census Bureau" in country
     assert json.loads(files["countries/us/regions.json"])["license"] == "Public Domain"
     assert country.index('href="../../a/"') < country.index('href="../../b/"')
@@ -473,7 +478,14 @@ def test_build_root():
         in index
     )
     root_map = files["sitemaps/root.xml"]
-    assert "<url><loc>https://sites.gtfs.zone/</loc></url>" in root_map
+    assert (
+        "<url><loc>https://sites.gtfs.zone/</loc>"
+        '<xhtml:link rel="alternate" hreflang="en" href="https://sites.gtfs.zone/"/>'
+        '<xhtml:link rel="alternate" hreflang="fr" href="https://sites.gtfs.zone/lang/fr/"/>'
+        '<xhtml:link rel="alternate" hreflang="x-default" href="https://sites.gtfs.zone/"/>'
+        "</url>"
+    ) in root_map
+    assert "<url><loc>https://sites.gtfs.zone/lang/fr/</loc>" in root_map
     assert "<loc>https://sites.gtfs.zone/countries/us/</loc>" in root_map
     sitemap = files[shard]
     assert (
@@ -984,3 +996,101 @@ def test_sitemap_lists_language_alternates():
         in sitemap
     )
     assert "a/en/old/" not in sitemap
+
+
+def test_root_and_country_pages_per_ui_language():
+    ca = {
+        "country_code": "CA",
+        "country": "Canada",
+        "routes": 1,
+        "valid_through": "2026-12-01",
+    }
+    summaries = [
+        {"slug": "a", "title": "Alpha", "languages": ["en"]} | ca,
+        {"slug": "b", "title": "Bravo", "languages": ["en", "fr"]} | ca,
+        {
+            "slug": "c",
+            "title": "Charlie",
+            "languages": ["fr", "en"],
+            "titles": {"en": "Charles"},
+        }
+        | ca,
+        {"slug": "d", "title": "Delta", "languages": ["fr"], "country_code": "FR"},
+        {"slug": "e", "title": "Echo", "languages": ["ja"], "country_code": "JP"},
+    ]
+    files = {k: v.decode() for k, v in build_root(summaries, MONDAY).items()}
+    pages = {k for k in files if k.endswith("index.html")}
+    # Canada: en on 3 sites, fr on 2; France: fr only; Japan: no catalog, en.
+    assert pages == {
+        "index.html",
+        "lang/fr/index.html",
+        "countries/ca/index.html",
+        "countries/ca/fr/index.html",
+        "countries/fr/index.html",
+        "countries/jp/index.html",
+    }
+
+    ca_en = files["countries/ca/index.html"]
+    assert '<html lang="en">' in ca_en
+    assert 'hreflang="fr" href="https://sites.gtfs.zone/countries/ca/fr/"' in ca_en
+    assert 'hreflang="x-default" href="https://sites.gtfs.zone/countries/ca/"' in ca_en
+    # Each site in its en set, by its en title.
+    assert 'href="../../b/"' in ca_en and 'href="../../c/en/"' in ca_en
+    assert ">Charles<" in ca_en and ">Charlie<" not in ca_en
+    assert 'href="../../countries/ca/fr/" lang="fr" hreflang="fr"' in ca_en
+
+    ca_fr = files["countries/ca/fr/index.html"]
+    assert '<html lang="fr">' in ca_fr and "<h1" in ca_fr
+    assert ">Canada</h1>" in ca_fr
+    assert 'href="../../../b/fr/"' in ca_fr and 'href="../../../c/"' in ca_fr
+    assert 'href="../../../a/"' in ca_fr and ">Charlie<" in ca_fr
+    assert 'data-src="../../../countries/ca/regions.json"' in ca_fr
+    assert 'href="../../../lang/fr/"' in ca_fr
+    assert '<link rel="stylesheet" href="../../../style.css">' in ca_fr
+
+    # One language: no picker or alternates; France defaults to fr.
+    fr = files["countries/fr/index.html"]
+    assert '<html lang="fr">' in fr and "hreflang" not in fr
+    assert '<html lang="en">' in files["countries/jp/index.html"]
+
+    root_fr = files["lang/fr/index.html"]
+    assert '<html lang="fr">' in root_fr
+    assert 'src="../../root.js"' in root_fr and 'data-src="../../sites.json"' in root_fr
+    assert 'href="../../countries/ca/fr/" data-key="ca"' in root_fr
+    assert 'href="../../countries/fr/" data-key="fr"' in root_fr
+    assert 'href="../../countries/jp/" data-key="jp"' in root_fr
+    # Country names from CLDR in the page's language.
+    assert ">Japon</span>" in root_fr and ">Japan</span>" in files["index.html"]
+    assert 'href="./" lang="en"' not in root_fr
+    assert 'href="../../" lang="en" hreflang="en"' in root_fr
+    assert 'href="lang/fr/" lang="fr" hreflang="fr"' in files["index.html"]
+
+    rows = {row[0]: row for row in json.loads(files["sites.json"])}
+    assert rows["c"][1] == "Charlie" and rows["c"][5] == ["en"]
+    assert len(rows["a"]) == 5
+
+    root_map = files["sitemaps/root.xml"]
+    assert (
+        "<url><loc>https://sites.gtfs.zone/countries/ca/fr/</loc>"
+        '<xhtml:link rel="alternate" hreflang="en" href="https://sites.gtfs.zone/countries/ca/"/>'
+        '<xhtml:link rel="alternate" hreflang="fr" href="https://sites.gtfs.zone/countries/ca/fr/"/>'
+        '<xhtml:link rel="alternate" hreflang="x-default" href="https://sites.gtfs.zone/countries/ca/"/>'
+        "</url>"
+    ) in root_map
+    assert "<url><loc>https://sites.gtfs.zone/countries/fr/</loc></url>" in root_map
+
+
+def test_country_languages_most_offered_first():
+    assert country_languages([]) == ["en"]
+    assert country_languages([{"languages": ["ja"]}]) == ["en"]
+    assert country_languages(
+        [{"languages": ["fr", "nl"]}, {"languages": ["nl", "fr"]}, {}]
+    ) == ["fr"]
+    assert country_languages([{"languages": ["fr"]}, {"languages": ["en", "fr"]}]) == [
+        "fr",
+        "en",
+    ]
+    assert country_languages([{"languages": ["fr"]}, {"languages": ["en"]}]) == [
+        "en",
+        "fr",
+    ]

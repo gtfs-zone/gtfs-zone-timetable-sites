@@ -602,11 +602,20 @@ def build_site(
             ensure_ascii=False,
         ).encode()
     download_url = commons[sets[0].lang]["source"]["download_url"]
+    titles = {
+        s.lang: with_locality(commons[s.lang]["site_title"], site.locality)
+        for s in sets
+    }
+    other_titles = {
+        lang: title for lang, title in titles.items() if title != titles[sets[0].lang]
+    }
     files["site.json"] = summary_json(
         slug=site.slug,
-        title=with_locality(commons[sets[0].lang]["site_title"], site.locality),
+        title=titles[sets[0].lang],
         # The page sets' languages, the default first.
         languages=[s.lang for s in sets],
+        # The title in each other language whose text differs, when any does.
+        **({"titles": other_titles} if other_titles else {}),
         source=source_label(download_url) if download_url else "",
         routes=len(routes),
         expired_routes=len(expired),
@@ -899,6 +908,15 @@ def subdivision_groups(key: str, members: list[dict]) -> list[dict]:
     return sorted(groups.values(), key=lambda g: (not g["name"], g["name"].casefold()))
 
 
+def country_name(key: str, catalog_name: str | None, locale: Locale) -> str:
+    """Country `key` named in `locale` (CLDR), else the catalog's name, else
+    its code."""
+    if key == OTHER:
+        return t(locale, "country.other")
+    names = BabelLocale.parse(locale).territories
+    return names.get(key.upper()) or catalog_name or key.upper()
+
+
 def country_groups(sites: list[dict], locale: Locale = "en") -> list[dict]:
     """Countries by name, each with its sites grouped by subdivision."""
     countries: dict[str, list[dict]] = {}
@@ -906,11 +924,10 @@ def country_groups(sites: list[dict], locale: Locale = "en") -> list[dict]:
         countries.setdefault(country_key(site), []).append(site)
     groups = []
     for key, members in countries.items():
-        fallback = t(locale, "country.other") if key == OTHER else key.upper()
         groups.append(
             {
                 "key": key,
-                "name": members[0].get("country") or fallback,
+                "name": country_name(key, members[0].get("country"), locale),
                 "sites": members,
                 "subdivisions": subdivision_groups(key, members),
             }
@@ -999,20 +1016,95 @@ def with_counts(doc: dict, key: str, counts: dict[str, int]) -> bytes:
 
 def search_index(countries: list[dict]) -> bytes:
     """sites.json for root.js's search: [slug, title, source, where, status] per
-    site, where being its region and country."""
+    site, where being its region and country, plus its other page sets'
+    languages when it has any. The title is in the feed's own language."""
     rows = [
         [
             site["slug"],
-            site["title"],
+            site.get("feed_title", site["title"]),
             site.get("source") or "",
             ", ".join(n for n in (group["name"], place["name"]) if n),
             site["status"],
+            *([codes[1:]] if len(codes := site.get("languages") or []) > 1 else []),
         ]
         for place in countries
         for group in place["subdivisions"]
         for site in group["sites"]
     ]
     return json.dumps(rows, separators=(",", ":"), ensure_ascii=False).encode()
+
+
+# The root's languages, the default first: every UI catalog.
+ROOT_LOCALES = (FALLBACK, *sorted(UI_LOCALES - {FALLBACK}))
+
+
+def root_path(locale: str) -> str:
+    """The root page's directory in `locale`, from the bucket root."""
+    return "" if locale == FALLBACK else f"lang/{locale}/"
+
+
+def country_languages(sites: list[dict]) -> list[str]:
+    """The UI languages of a country's sites, the one most sites offer first;
+    English when none has a catalog."""
+    counts = Counter(
+        code
+        for site in sites
+        for code in site.get("languages") or ()
+        if code in UI_LOCALES
+    )
+    ranked = sorted(counts, key=lambda code: (-counts[code], code != FALLBACK, code))
+    return ranked or [FALLBACK]
+
+
+def country_path(key: str, locale: str, codes: list[str]) -> str:
+    """Country `key`'s page directory in `locale` (from the bucket root), its
+    default when it has no page in `locale`."""
+    base = f"countries/{key}/"
+    return f"{base}{locale}/" if locale in codes[1:] else base
+
+
+def site_path(site: dict, locale: str) -> str:
+    """A site's page set in `locale` (from the bucket root), its default set
+    when it has none in `locale`."""
+    codes = site.get("languages") or []
+    return f"{site['slug']}/" + (f"{locale.lower()}/" if locale in codes[1:] else "")
+
+
+def localized(site: dict, locale: str) -> dict:
+    """A site row with its title and link in `locale` when it has that page
+    set."""
+    return site | {
+        "feed_title": site["title"],
+        "title": (site.get("titles") or {}).get(locale, site["title"]),
+        "href": site_path(site, locale),
+    }
+
+
+def picker(paths: dict[str, str], root: str, locale: str) -> list[dict]:
+    """The picker and hreflang links of a page at `paths` ({language: path from
+    the bucket root}), `href` relative from the page by `root`. Empty for one
+    language."""
+    if len(paths) < 2:
+        return []
+    return [
+        {
+            "code": code,
+            "name": language_name(code),
+            "href": f"{root}{path}" or "./",
+            "url": f"{BASE_URL}/{path}",
+            "current": code == locale,
+        }
+        for code, path in paths.items()
+    ]
+
+
+def sitemap_alternates(paths: dict[str, str]) -> list[tuple[str, str]]:
+    """(hreflang, url) for each of `paths` plus x-default (the first), when
+    there are several."""
+    if len(paths) < 2:
+        return []
+    urls = [(code, f"{BASE_URL}/{path}") for code, path in paths.items()]
+    return [*urls, ("x-default", urls[0][1])]
 
 
 def build_root(
@@ -1022,28 +1114,32 @@ def build_root(
     indexnow_key: str | None = None,
     outcomes: dict[str, dict] | None = None,
 ) -> dict[str, bytes]:
-    """The bucket root: an index of countries, a page per country listing its
-    sites, a sitemap index over one sitemap per shard, robots.txt and the error
-    page. `summaries` are the sites' site.json contents (a site never built has
-    only its slug, title, source and place), `pages` each site's page paths
-    with the date they last changed and `outcomes` each site's last download
-    and build outcome and detail. A summary's `noindex` paths stay out of the
-    sitemap. No I/O."""
+    """The bucket root: an index of countries in each UI language (English at
+    `/`, others at `/lang/<lang>/`), a page per country listing its sites in
+    each of its sites' UI languages (the most offered at `/countries/<cc>/`,
+    others under it at `<lang>/`), a sitemap index over one sitemap per shard,
+    robots.txt and the error page. `summaries` are the sites' site.json
+    contents (a site never built has only its slug, title, source and place),
+    `pages` each site's page paths with the date they last changed and
+    `outcomes` each site's last download and build outcome and detail. A
+    summary's `noindex` paths stay out of the sitemap. No I/O."""
     outcomes = outcomes or {}
-    locale = "en"
-    sites = sorted(
-        (site_row(s, outcomes.get(s["slug"], {}), today, locale) for s in summaries),
-        key=lambda row: (STATUS_ORDER[row["status"]], row["title"].casefold()),
-    )
-    countries = country_groups(sites, locale)
-    common = {
-        "locale": locale,
-        "root_text": root_text(locale),
-        "site_title": ROOT_TITLE,
-        "base_url": f"{BASE_URL}/",
-        "generated": today,
-        "version": version("gtfs-zone-timetable-sites"),
-    }
+    by_locale: dict[str, list[dict]] = {}
+    for locale in ROOT_LOCALES:
+        sites = sorted(
+            (
+                localized(
+                    site_row(s, outcomes.get(s["slug"], {}), today, locale), locale
+                )
+                for s in summaries
+            ),
+            key=lambda row: (STATUS_ORDER[row["status"]], row["title"].casefold()),
+        )
+        by_locale[locale] = country_groups(sites, locale)
+    countries = by_locale[FALLBACK]
+    codes = {group["key"]: country_languages(group["sites"]) for group in countries}
+    root_paths = {locale: root_path(locale) for locale in ROOT_LOCALES}
+    version_text = version("gtfs-zone-timetable-sites")
     website = {
         "@context": "https://schema.org",
         "@type": "WebSite",
@@ -1051,15 +1147,16 @@ def build_root(
         "url": f"{BASE_URL}/",
     }
     files = {
-        "index.html": render(
-            "root.html",
-            **common,
-            countries=countries,
-            total=len(sites),
-            jsonld=website,
-            root="",
+        "error.html": render(
+            "error.html",
+            locale=FALLBACK,
+            root_text=root_text(FALLBACK),
+            site_title=ROOT_TITLE,
+            base_url=f"{BASE_URL}/",
+            generated=today,
+            version=version_text,
+            root="/",
         ),
-        "error.html": render("error.html", **common, root="/"),
         "style.css": asset("style.css"),
         "logo.svg": asset("logo.svg"),
         "root.js": asset("root.js"),
@@ -1068,9 +1165,58 @@ def build_root(
             world(), "key", {c["key"]: len(c["sites"]) for c in countries}
         ),
     }
+    for locale, groups in by_locale.items():
+        path = root_paths[locale]
+        root = "../" * path.count("/")
+        common = {
+            "locale": locale,
+            "root_text": root_text(locale),
+            "site_title": ROOT_TITLE,
+            "generated": today,
+            "version": version_text,
+        }
+        files[f"{path}index.html"] = render(
+            "root.html",
+            **common,
+            base_url=f"{BASE_URL}/{path}",
+            countries=[
+                g | {"href": country_path(g["key"], locale, codes[g["key"]])}
+                for g in groups
+            ],
+            total=sum(len(g["sites"]) for g in groups),
+            jsonld=website | {"url": f"{BASE_URL}/{path}"},
+            languages=picker(root_paths, root, locale),
+            root=root,
+        )
+        for group in groups:
+            key = group["key"]
+            if locale not in codes[key]:
+                continue
+            paths = {code: country_path(key, code, codes[key]) for code in codes[key]}
+            path = paths[locale]
+            root = "../" * path.count("/")
+            url = f"{BASE_URL}/{path}"
+            boundaries = country(key) if key != OTHER else None
+            files[f"{path}index.html"] = render(
+                "country.html",
+                **common,
+                base_url=url,
+                country=group,
+                boundaries=boundaries
+                and {k: v for k, v in boundaries.items() if k != "features"},
+                regions=f"{root}countries/{key}/regions.json",
+                jsonld=breadcrumbs(
+                    [
+                        (ROOT_TITLE, f"{BASE_URL}/{root_paths[locale]}"),
+                        (group["name"], url),
+                    ]
+                ),
+                languages=picker(paths, root, locale),
+                home=root_paths[locale],
+                root=root,
+            )
     for group in countries:
         key = group["key"]
-        url = f"{BASE_URL}/countries/{key}/"
         boundaries = country(key) if key != OTHER else None
         if boundaries:
             files[f"countries/{key}/regions.json"] = with_counts(
@@ -1078,20 +1224,19 @@ def build_root(
                 "id",
                 {g["id"]: len(g["sites"]) for g in group["subdivisions"] if g["id"]},
             )
-        files[f"countries/{key}/index.html"] = render(
-            "country.html",
-            **(common | {"base_url": url}),
-            country=group,
-            boundaries=boundaries
-            and {k: v for k, v in boundaries.items() if k != "features"},
-            jsonld=breadcrumbs([(ROOT_TITLE, f"{BASE_URL}/"), (group["name"], url)]),
-            root="../../",
-        )
 
     # One sitemap per shard of sites, so each stays far below 50,000 URLs.
-    root_urls = [(f"{BASE_URL}/", None, [])] + [
-        (f"{BASE_URL}/countries/{c['key']}/", None, []) for c in countries
+    root_urls: list[SitemapUrl] = [
+        (f"{BASE_URL}/{path}", None, sitemap_alternates(root_paths))
+        for path in root_paths.values()
     ]
+    for group in countries:
+        key = group["key"]
+        paths = {code: country_path(key, code, codes[key]) for code in codes[key]}
+        root_urls += [
+            (f"{BASE_URL}/{path}", None, sitemap_alternates(paths))
+            for path in paths.values()
+        ]
     maps = {"sitemaps/root.xml": root_urls}
     noindex = {s["slug"]: set(s.get("noindex", ())) for s in summaries}
     languages = {s["slug"]: s.get("languages") or [] for s in summaries}

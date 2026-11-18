@@ -17,7 +17,7 @@ from gtfs_zone_timetable_sites.config import CatalogFeed, Config, Site, parse_fe
 
 SHARDS = 16
 # Root paths a site slug may not take.
-RESERVED = {"countries", "sitemaps"}
+RESERVED = {"countries", "lang", "sitemaps"}
 # Countries whose timetables use 12-hour times; every other country uses 24h.
 TWELVE_HOUR = {"US", "CA", "AU", "NZ", "IN", "PH", "PK", "BD", "EG", "SA"}
 QUEBEC = ("CA", "Quebec")

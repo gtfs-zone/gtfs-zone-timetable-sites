@@ -29,7 +29,7 @@ pnpm run build:mo             # compile locales/*/LC_MESSAGES/messages.po (the C
 | `strip.py` | Stop-column rail lanes, endpoints and minority stops, ported from gtfs-zone-web-common's `route-graph.ts` / `route-strip.ts` |
 | `colors.py` | Hashed color for a route without `route_color`, a hex-exact port of gtfs-zone-web-common's `route-colors.ts` |
 | `languages.py` | A feed's languages (`feed_lang`, `agency_lang`, translations.txt) as normalized codes: the default, the offered ones, kana readings apart; `translate` gives the feed with its text in one language |
-| `build.py` | `build_site(zip_bytes, site) -> {path: bytes}`, the only entry point; a page set per offered language, the default at the site root, others under `<lang>/` |
+| `build.py` | `build_site(zip_bytes, site) -> {path: bytes}`, the only entry point; a page set per offered language, the default at the site root, others under `<lang>/`; `build_root` writes the root and country pages in each UI language |
 | `places.py` | A feed's state, province or country from its stop times, reverse-geocoded offline with `reverse_geocode`, for page titles and JSON-LD |
 | `boundaries.py` | Bundled country (Natural Earth) and ADM1 region (geoBoundaries) GeoJSON in `boundaries/`, written by `scripts/boundaries.py`, and the region a point is in, for the root pages' maps and sections |
 | `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts) for the content report |

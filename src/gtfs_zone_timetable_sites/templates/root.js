@@ -65,6 +65,16 @@ function whenNear(el, fn) {
 
 /* Choropleth */
 
+const REGION_NAMES = new Intl.DisplayNames([document.documentElement.lang], { type: "region", fallback: "none" });
+// A world.json country in the page's language, else as the file names it
+function countryName({ key, name }) {
+  try {
+    return REGION_NAMES.of(key.toUpperCase()) ?? name;
+  } catch {
+    return name;
+  }
+}
+
 // Up to 5 class breaks from 1 to max, evenly spaced on a log scale
 function breaks(max) {
   const found = new Set([1]);
@@ -153,7 +163,8 @@ async function initChoropleth(el) {
     if (!cap) return;
     cap.hidden = !feature;
     if (!feature) return;
-    const { name, count } = feature.properties;
+    const { count } = feature.properties;
+    const name = world ? countryName(feature.properties) : feature.properties.name;
     cap.textContent = count ? t("root.map_count", { name, agencies: t("root.agencies", { n: count }) }) : name;
   };
   const at = (point) => (map.getLayer("fill") ? map.queryRenderedFeatures(point, { layers: ["fill"] })[0] : undefined);
@@ -162,7 +173,9 @@ async function initChoropleth(el) {
   map.on("click", (e) => {
     const feature = at(e.point);
     if (!feature?.properties.count) return;
-    location.href = el.dataset.href.replace("{}", encodeURIComponent(feature.properties.ref));
+    // The page's own link to the area, in the page's language, else the template
+    const link = document.querySelector(`a[data-key="${CSS.escape(feature.properties.ref)}"]`);
+    location.href = link?.href ?? el.dataset.href.replace("{}", encodeURIComponent(feature.properties.ref));
   });
 }
 
@@ -172,11 +185,14 @@ for (const el of document.querySelectorAll(".area")) whenNear(el, () => initChor
 
 const STATUS_DOT = { ok: "bg-success", expiring: "bg-warning", stale: "bg-warning", expired: "bg-error", unavailable: "bg-base-300" };
 
-function resultItem([slug, title, source, where, status]) {
+// A result row's link: the site's page set in the page's language when it has
+// one, else its default set, from root (the path to the bucket root)
+function resultItem([slug, title, source, where, status, langs = []], root) {
   const li = document.createElement("li");
   const a = document.createElement("a");
   a.className = "flex min-h-11 items-center gap-3 rounded-box px-4 py-2 hover:bg-base-200 focus-visible:bg-base-200";
-  a.href = `${slug}/`;
+  const lang = document.documentElement.lang;
+  a.href = `${root}${slug}/${langs.includes(lang) ? `${lang.toLowerCase()}/` : ""}`;
   const dot = document.createElement("span");
   dot.className = `size-3 shrink-0 rounded-full ${STATUS_DOT[status] ?? "bg-base-300"}`;
   const text = document.createElement("span");
@@ -215,7 +231,7 @@ function initSiteSearch(input) {
     // A newer query was typed while loading
     if (input.value.trim() !== query) return;
     const found = search(uf, haystack, query);
-    results.replaceChildren(...found.slice(0, MAX_RESULTS).map((i) => resultItem(rows[i])));
+    results.replaceChildren(...found.slice(0, MAX_RESULTS).map((i) => resultItem(rows[i], input.dataset.root ?? "")));
     results.hidden = !found.length;
     status.textContent = found.length
       ? found.length > MAX_RESULTS

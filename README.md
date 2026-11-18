@@ -91,6 +91,13 @@ replaced by its `translations.txt` row in that language, by `record_id` or by
 `field_value`, else kept; slugs and the shared system map `map.json` keep the
 default language's. Kana readings show beside stop names they read.
 
+The root is in every UI language: English at `/`, the others at `/lang/<lang>/`
+(`lang` is reserved as a slug). A country page is in each UI language its sites
+offer, the one most of them offer at `/countries/<cc>/` and the others at
+`/countries/<cc>/<lang>/`, English when none has a catalog. Their country names
+come from CLDR; site titles and links use the site's page set in the page's
+language when it has one, else its default.
+
 Each listed site needs exactly one of `feed` or `url`, a `slug` when it has a
 `url` (optional for a `feed`), and may override any default. A listed `feed` is
 built whatever the catalog filter says:

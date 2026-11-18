@@ -49,6 +49,7 @@ def test_slugify():
     assert slugify("!!!") == "feed"
     assert base_slug(catalog_feed("f-0000000001", "!!!")) == "f-0000000001"
     assert base_slug(catalog_feed("f-0000000002", "Countries")) == "f-0000000002"
+    assert base_slug(catalog_feed("f-0000000003", "Lang")) == "f-0000000003"
 
 
 def test_slugify_cuts_at_a_word_boundary():

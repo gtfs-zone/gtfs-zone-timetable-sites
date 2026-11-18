@@ -6,7 +6,7 @@
 <script type="module" src="{{ root }}root.js"></script>
 {% endblock %}
 {% block brand %}
-<a class="btn btn-ghost h-auto min-h-11 gap-3 py-2" href="{{ root }}">
+<a class="btn btn-ghost h-auto min-h-11 gap-3 py-2" href="{{ root }}{{ home }}">
 <img class="w-8 rounded-lg" src="{{ root }}logo.svg" alt="">
 <span class="text-xl font-bold"><span class="text-primary">sites</span>.gtfs.zone</span>
 </a>
@@ -28,7 +28,7 @@
 <p class="sr-only" id="search-status" role="status"></p>
 {% endif %}
 {% if boundaries %}
-<section class="card area bg-base-100 shadow-sm" data-src="regions.json" data-key="id" data-href="#{}">
+<section class="card area bg-base-100 shadow-sm" data-src="{{ regions }}" data-key="id" data-href="#{}">
 <div class="card-body p-2">
 <div class="relative">
 <div class="area-map" role="region" aria-label="{{ t("country.map", country=country.name) }}"></div>
@@ -46,7 +46,7 @@
 {% for site in subdivision.sites %}
 {% set status = statuses[site.status] %}
 {% set tag = "a" if site.status != "unavailable" else "div" %}
-<li><{{ tag }} class="flex min-h-11 items-center gap-3 rounded-box px-4 py-2{% if tag == "a" %} hover:bg-base-200{% else %} opacity-70{% endif %}"{% if tag == "a" %} href="{{ root }}{{ site.slug }}/"{% endif %}>
+<li><{{ tag }} class="flex min-h-11 items-center gap-3 rounded-box px-4 py-2{% if tag == "a" %} hover:bg-base-200{% else %} opacity-70{% endif %}"{% if tag == "a" %} href="{{ root }}{{ site.href }}"{% endif %}>
 <span class="size-3 shrink-0 rounded-full {{ status[0] }}" title="{{ status[1] }}"><span class="sr-only">{{ status[1] }}</span></span>
 <span class="flex min-w-0 flex-1 flex-col">
 <span class="font-semibold">{{ site.title }}</span>
@@ -73,5 +73,5 @@
 {% set license %}{% if boundaries.license_url %}<a class="link" href="{{ boundaries.license_url }}" target="_blank" rel="noopener">{{ boundaries.license }}</a>{% else %}{{ boundaries.license }}{% endif %}{% endset %}
 <p>{{ t("country.borders", link=geoboundaries, source=source, license=license) }}</p>
 {% endif %}
-<p><a class="link" href="{{ root }}">{{ t("country.all") }}</a></p>
+<p><a class="link" href="{{ root }}{{ home }}">{{ t("country.all") }}</a></p>
 {% endblock %}
