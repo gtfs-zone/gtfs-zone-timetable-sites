@@ -93,6 +93,13 @@ ignore_names = [
     # Fare fields on Feed, read only by the tests so far
     "duration_limit_type",
     "media_type",
+    # translations.txt fields on Feed, read only by the tests until 4e
+    "field_name",
+    "field_value",
+    "record_id",
+    "record_sub_id",
+    "table_name",
+    "translation",
 ]
 
 [tool.deptry]

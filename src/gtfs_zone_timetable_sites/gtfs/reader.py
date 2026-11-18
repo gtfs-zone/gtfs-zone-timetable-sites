@@ -27,6 +27,7 @@ class Agency:
     url: str
     timezone: str
     phone: str
+    lang: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,6 +115,21 @@ class FeedInfo:
     version: str
     start: date | None
     end: date | None
+    lang: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class Translation:
+    """One translations.txt row. A row matches its record by `record_id` (and
+    `record_sub_id`) or, when those are empty, by `field_value`."""
+
+    table_name: str
+    field_name: str
+    language: str
+    translation: str
+    record_id: str
+    record_sub_id: str
+    field_value: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -218,6 +234,7 @@ class Feed:
     frequencies: dict[str, tuple[Frequency, ...]]
     feed_info: FeedInfo | None
     fares: Fares
+    translations: tuple[Translation, ...] = ()
 
     def timezone(self, route: Route) -> str:
         agency = self.agencies.get(route.agency_id)
@@ -321,6 +338,7 @@ def read_agencies(archive: Archive) -> dict[str, Agency]:
         "agency_url",
         "agency_timezone",
         "agency_phone",
+        "agency_lang",
     )
     return {
         row["agency_id"]: Agency(
@@ -329,6 +347,7 @@ def read_agencies(archive: Archive) -> dict[str, Agency]:
             url=row["agency_url"],
             timezone=row["agency_timezone"],
             phone=row["agency_phone"],
+            lang=row["agency_lang"].strip(),
         )
         for row in archive.rows("agency", columns)
     }
@@ -567,6 +586,7 @@ def read_feed_info(archive: Archive) -> FeedInfo | None:
         "feed_version",
         "feed_start_date",
         "feed_end_date",
+        "feed_lang",
     )
     for row in archive.rows("feed_info", columns):
         return FeedInfo(
@@ -575,8 +595,33 @@ def read_feed_info(archive: Archive) -> FeedInfo | None:
             version=row["feed_version"],
             start=parse_date(row["feed_start_date"]),
             end=parse_date(row["feed_end_date"]),
+            lang=row["feed_lang"].strip(),
         )
     return None
+
+
+def read_translations(archive: Archive) -> tuple[Translation, ...]:
+    columns = (
+        "table_name",
+        "field_name",
+        "language",
+        "translation",
+        "record_id",
+        "record_sub_id",
+        "field_value",
+    )
+    return tuple(
+        Translation(
+            table_name=row["table_name"],
+            field_name=row["field_name"],
+            language=row["language"].strip(),
+            translation=row["translation"],
+            record_id=row["record_id"],
+            record_sub_id=row["record_sub_id"],
+            field_value=row["field_value"],
+        )
+        for row in archive.rows("translations", columns)
+    )
 
 
 def read_fares(archive: Archive) -> Fares:
@@ -755,4 +800,5 @@ def read_feed(
             frequencies=read_frequencies(archive, set(trips)),
             feed_info=read_feed_info(archive),
             fares=read_fares(archive),
+            translations=read_translations(archive),
         )

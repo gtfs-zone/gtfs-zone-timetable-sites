@@ -4,13 +4,15 @@ import hashlib
 
 from gtfs_zone_timetable_sites.gtfs.reader import Feed
 from gtfs_zone_timetable_sites.gtfs.service import first_service_date, last_service_date
+from gtfs_zone_timetable_sites.languages import feed_languages
 
 
 def feed_facts(zip_bytes: bytes, feed: Feed, filtered: bool) -> dict:
-    """Size, hash, feed_info, service range, agencies and counts of a parsed
-    feed. `filtered` marks counts taken after a site's route filter."""
+    """Size, hash, feed_info, service range, agencies, counts and languages of
+    a parsed feed. `filtered` marks counts taken after a site's route filter."""
     start = first_service_date(feed)
     end = last_service_date(feed)
+    languages = feed_languages(feed)
     facts: dict = {
         "bytes": len(zip_bytes),
         "sha256": hashlib.sha256(zip_bytes).hexdigest(),
@@ -29,6 +31,10 @@ def feed_facts(zip_bytes: bytes, feed: Feed, filtered: bool) -> dict:
         },
         "routeTypes": sorted({route.route_type for route in feed.routes.values()}),
         "filtered": filtered,
+        "languages": {
+            "default": languages.default,
+            "offered": list(languages.offered),
+        },
     }
     if info := feed.feed_info:
         facts["feedInfo"] = {

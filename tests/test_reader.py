@@ -11,6 +11,7 @@ from gtfs_zone_timetable_sites.gtfs.reader import (
     FareRule,
     FareTransferRule,
     Timeframe,
+    Translation,
     parse_color,
     parse_time,
     read_feed,
@@ -220,3 +221,31 @@ def test_header_only_fare_files_are_empty():
     }
     fares = read_feed(make_zip(files)).fares
     assert all(not getattr(fares, name) for name in fares.__slots__)
+
+
+def test_languages_and_translations():
+    feed = read_feed(fixture_zip("languages"))
+    assert feed.feed_info is not None and feed.feed_info.lang == "fr"
+    assert [agency.lang for agency in feed.agencies.values()] == ["FR", "fr-CA"]
+    assert len(feed.translations) == 5
+    assert feed.translations[0] == Translation(
+        table_name="stops",
+        field_name="stop_name",
+        language="en",
+        translation="Central Station",
+        record_id="A",
+        record_sub_id="",
+        field_value="",
+    )
+    by_value = feed.translations[3]
+    assert (by_value.record_id, by_value.field_value) == ("", "Hôtel de ville")
+
+
+def test_missing_and_header_only_translations_are_empty():
+    assert read_feed(fixture_zip("branching")).translations == ()
+    files = fixture_files("branching") | {
+        "translations.txt": "table_name,field_name,language,translation\n"
+    }
+    feed = read_feed(make_zip(files))
+    assert feed.translations == ()
+    assert feed.agencies["a"].lang == ""

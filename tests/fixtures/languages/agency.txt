@@ -1,0 +1,3 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang
+a,Société de transport,https://example.org,America/Montreal,FR
+b,Traverse du lac,https://example.org/traverse,America/Montreal,fr-CA

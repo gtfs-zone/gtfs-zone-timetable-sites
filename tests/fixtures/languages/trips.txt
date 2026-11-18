@@ -1,0 +1,3 @@
+route_id,service_id,trip_id,trip_headsign,direction_id
+R1,DAILY,r1,Hôtel de ville,0
+F,DAILY,f1,Quai sud,0

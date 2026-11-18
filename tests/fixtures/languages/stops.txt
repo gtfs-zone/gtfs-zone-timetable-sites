@@ -1,0 +1,5 @@
+stop_id,stop_name,stop_lat,stop_lon
+A,Gare centrale,45.50,-73.56
+B,Hôtel de ville,45.51,-73.55
+Q1,Quai nord,45.60,-73.50
+Q2,Quai sud,45.58,-73.50
