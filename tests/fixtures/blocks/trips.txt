@@ -1,0 +1,7 @@
+route_id,service_id,trip_id,trip_headsign,direction_id,block_id
+R,DAILY,r1,Central,0,X
+Q,DAILY,q1,Charlie,0,X
+R,DAILY,r2,Bravo,0,Y
+R,DAILY,r3,Alpha,1,Y
+R,DAILY,r4,Central,0,Z
+Q,DAILY,q2,Charlie,0,Z

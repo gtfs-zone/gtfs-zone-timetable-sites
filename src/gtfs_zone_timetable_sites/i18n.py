@@ -40,6 +40,8 @@ EN: dict[str, str] = {
     "day.runs_only": "Runs only on {dates}.",
     "day.no_service": "No service {dates}.",
     "day.also_runs": "Also runs {dates}.",
+    "day.valid": "Valid {range}.",
+    "day.valid_until": "Valid until {date}.",
     # Modes
     "mode.light rail": "light rail",
     "mode.subway": "subway",
@@ -141,6 +143,9 @@ EN: dict[str, str] = {
     "route.trips_start": "Trips start at {time}.",
     "route.first_last": "First trip starts at {first}, last at {last}.",
     "route.zone_time": "{zone} time",
+    "route.platform": "Platform {platform}",
+    "route.continues": "continues to {headsign}",
+    "route.continues_as": "continues as {route} to {headsign}",
     "route.all_routes": "All routes",
     "route.agency_page": "Route page on the agency's site",
     # Footer
@@ -185,6 +190,8 @@ FR: dict[str, str] = {
     "day.runs_only": "En service seulement : {dates}.",
     "day.no_service": "Aucun service : {dates}.",
     "day.also_runs": "Aussi en service : {dates}.",
+    "day.valid": "Valide {range}.",
+    "day.valid_until": "Valide jusqu'au {date}.",
     "mode.light rail": "tramway",
     "mode.subway": "métro",
     "mode.train": "train",
@@ -280,6 +287,9 @@ FR: dict[str, str] = {
     "route.trips_start": "Départs à {time}.",
     "route.first_last": "Premier départ à {first}, dernier à {last}.",
     "route.zone_time": "heure {zone}",
+    "route.platform": "Quai {platform}",
+    "route.continues": "continue vers {headsign}",
+    "route.continues_as": "continue comme {route} vers {headsign}",
     "route.all_routes": "Toutes les lignes",
     "route.agency_page": "Page de la ligne sur le site de l'organisme",
     "footer.generated": "Généré le {date} à partir du flux GTFS de l'organisme."

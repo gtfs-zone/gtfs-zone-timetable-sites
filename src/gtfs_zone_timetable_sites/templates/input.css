@@ -39,6 +39,7 @@
 /* A headsign spanning shaded and unshaded columns covers the column shading */
 .timetable tr.to th:not(.alt) { background: var(--color-base-100); }
 .timetable .pm { font-weight: 700; }
+.timetable small.code { font-size: .75rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); white-space: nowrap; }
 .timetable tr.approx > td { color: color-mix(in oklab, var(--color-base-content) 60%, transparent); }
 /* Raised by vertical-align, since preflight's relative positioning would paint it over the sticky stop column */
 .timetable sup { position: static; vertical-align: .5em; font-size: .7em; line-height: 0; }

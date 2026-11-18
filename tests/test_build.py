@@ -746,3 +746,24 @@ def test_root_groups_by_region_and_writes_maps():
     rows = json.loads(files["sites.json"])
     assert ["a", "Alpha", "", "Massachusetts, United States", "unavailable"] in rows
     assert ["d", "Delta", "", "Atlantis, United States", "unavailable"] in rows
+
+
+def test_block_continuations_stop_codes_and_platforms():
+    files = build("blocks")
+    page = files["1/index.html"]
+    link = '<a class="link link-hover" href="../2/">continues as 2 to Charlie</a>'
+    assert link in page
+    assert "continues to Alpha" in page
+    # q2 starts 70 minutes after r4 ends: no continuation
+    assert page.count("continues as") == 1
+    assert '<small class="code">101</small>' in page
+    assert "Central</a> <small" in page
+    assert '<small class="code">Platform 1</small>' in page
+    assert "Valid until Dec 31, 2026." in page
+
+
+def test_validity_names_a_start_after_today():
+    site = Site(slug="test", url="https://example.org/g.zip")
+    files = build_site(fixture_zip("blocks"), site, today=date(2025, 12, 1))
+    page = files["1/index.html"].decode()
+    assert "Valid from Jan 1, 2026 to Dec 31, 2026." in page

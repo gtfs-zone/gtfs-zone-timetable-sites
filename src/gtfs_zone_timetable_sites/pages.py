@@ -38,7 +38,13 @@ from gtfs_zone_timetable_sites.strip import (
     row_paths,
     stop_stats,
 )
-from gtfs_zone_timetable_sites.timetable import Cell, Column, Timetable, mode_name
+from gtfs_zone_timetable_sites.timetable import (
+    Cell,
+    Column,
+    Timetable,
+    headsign,
+    mode_name,
+)
 
 DAY_SECONDS = 24 * 3600
 # Minimum WCAG contrast for badge text on the route color.
@@ -242,6 +248,16 @@ class RowView:
     num: int = 0
     # Times here are approximate (timepoint=0), dimmed.
     approx: bool = False
+    code: str = ""
+    platform: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class Continuation:
+    """The trip a column continues as: text, and a link when on another route."""
+
+    text: str
+    href: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -270,6 +286,12 @@ class TableView:
     trip_ids: tuple[str, ...] = ()
     stop_ids: tuple[str, ...] = ()
     sched: tuple[tuple[int | None, ...], ...] = ()
+    # Per column, the trip it continues as in its block.
+    continues: tuple[Continuation | None, ...] = ()
+
+    @property
+    def show_continues(self) -> bool:
+        return any(self.continues)
 
     @property
     def live(self) -> dict[str, object]:
@@ -290,6 +312,8 @@ class DayView:
     runs: int = 0
     first: str = ""
     last: str = ""
+    # The dates the day's tables are valid for.
+    valid: str = ""
 
     @property
     def trips(self) -> int:
@@ -535,6 +559,7 @@ def table_view(
     marked: frozenset[str] = frozenset(),
     locale: Locale = "en",
     numbers: Mapping[str, int] | None = None,
+    routes: Mapping[str, "RouteView"] | None = None,
 ) -> TableView:
     notes = [
         trip_note(table.day_type, column.trip_id, locale) for column in table.columns
@@ -579,6 +604,8 @@ def table_view(
             wheelchair="stops" in marked and row.wheelchair == 1,
             num=(numbers or {}).get(row.stop_id, 0),
             approx=not row.exact,
+            code=tidy(row.code),
+            platform=tidy(row.platform),
         )
         for k, row in enumerate(table.rows)
     )
@@ -643,7 +670,32 @@ def table_view(
             minute_steps([cell.time if cell else None for cell in column.cells])
             for column in table.columns
         ),
+        continues=tuple(
+            continuation(feed, table.route_id, column, routes or {}, locale)
+            for column in table.columns
+        ),
     )
+
+
+def continuation(
+    feed: Feed,
+    route_id: str,
+    column: Column,
+    routes: Mapping[str, "RouteView"],
+    locale: Locale = "en",
+) -> Continuation | None:
+    """'continues to <headsign>' on the same route, else 'continues as
+    <route> to <headsign>' linked to that route's page when the site has it."""
+    trip = feed.trips.get(column.next_trip)
+    if trip is None:
+        return None
+    to = tidy(headsign(feed, trip))
+    if trip.route_id == route_id:
+        return Continuation(t(locale, "route.continues", headsign=to))
+    view = routes.get(trip.route_id)
+    route = view.badge if view else tidy(feed.routes[trip.route_id].name)
+    text = t(locale, "route.continues_as", route=route, headsign=to)
+    return Continuation(text, f"../{view.slug}/" if view else "")
 
 
 def day_notes(day: DayType, locale: Locale = "en") -> tuple[str, ...]:
@@ -745,9 +797,11 @@ def day_views(
     time_format: TimeFormat,
     marked: frozenset[str] = frozenset(),
     locale: Locale = "en",
+    routes: Mapping[str, "RouteView"] | None = None,
+    today: date | None = None,
 ) -> list[DayView]:
     """A view per day type in page order (see `ordered_days`), stops numbered
-    by `stop_numbers`."""
+    by `stop_numbers`; `routes` links block continuations to other routes."""
     numbers = stop_numbers(tables)
     views = []
     anchors: set[str] = set()
@@ -772,6 +826,7 @@ def day_views(
                             marked,
                             locale,
                             numbers,
+                            routes,
                         )
                         for i, table in enumerate(group)
                     ],
@@ -780,9 +835,43 @@ def day_views(
                 runs=sum(runs(t) for t in group),
                 first=clock_label(span[0], time_format) if span else "",
                 last=clock_label(span[1], time_format) if span else "",
+                valid=valid_label(feed, group, today, locale),
             )
         )
     return views
+
+
+def valid_label(
+    feed: Feed,
+    tables: list[Timetable],
+    today: date | None,
+    locale: Locale = "en",
+) -> str:
+    """'Valid until Dec 31, 2026.', or 'Valid from Jan 5, 2027 to ...' when
+    service starts after `today`, from the calendars of the tables' trips and
+    the feed's end when sooner. Empty for exception days, which list their
+    own dates."""
+    if not tables or not tables[0].day_type.regular:
+        return ""
+    services = {
+        feed.trips[c.trip_id].service_id for table in tables for c in table.columns
+    }
+    starts, ends = [], []
+    for service_id in services:
+        if calendar := feed.calendars.get(service_id):
+            starts.append(calendar.start)
+            ends.append(calendar.end)
+        added = [d for d, on in feed.calendar_dates.get(service_id, {}).items() if on]
+        starts += added
+        ends += added
+    if not ends:
+        return ""
+    first, last = min(starts), max(ends)
+    if feed.feed_info and feed.feed_info.end:
+        last = min(last, feed.feed_info.end)
+    if today and first > today:
+        return t(locale, "day.valid", range=date_range(first, last, locale, "valid"))
+    return t(locale, "day.valid_until", date=long_date(last, locale))
 
 
 def route_labels(feed: Feed, routes: list[Route]) -> dict[str, str]:

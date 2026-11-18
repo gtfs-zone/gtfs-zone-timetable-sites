@@ -4,6 +4,7 @@ import logging
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
+from datetime import date
 from functools import cache, cmp_to_key
 from itertools import pairwise
 
@@ -14,6 +15,7 @@ from gtfs_zone_timetable_sites.gtfs.reader import Feed, StopTime, Trip
 from gtfs_zone_timetable_sites.gtfs.service import (
     DAY_SECONDS,
     DayType,
+    active_services,
     start_day_offset,
     timezone_shift,
     trip_note,
@@ -36,6 +38,9 @@ MODES = {
 }
 # Vocab families shown as their own mode instead of their base type's.
 FAMILY_MODES = frozenset({"coach", "air", "taxi", "misc"})
+# A trip continues as the next trip in its block starting within this long
+# after it ends.
+BLOCK_GAP = 3600
 # Headsign groups sharing less than this share of the smaller one's stops get
 # separate tables.
 BRANCH_OVERLAP = 0.5
@@ -90,6 +95,8 @@ class Column:
     # GTFS bikes_allowed and wheelchair_accessible: 0 unknown, 1 yes, 2 no.
     bikes: int = 0
     wheelchair: int = 0
+    # The trip this one continues as in its block, else "".
+    next_trip: str = ""
 
     def first_time(self) -> int | None:
         return next((c.time for c in self.cells if c and c.time is not None), None)
@@ -104,6 +111,9 @@ class Row:
     timezone: str | None = None
     # wheelchair_boarding shared by every stop served here, else 0.
     wheelchair: int = 0
+    # stop_code and platform_code shared by every stop served here, else "".
+    code: str = ""
+    platform: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -288,10 +298,70 @@ def branches(feed: Feed, trips: Sequence[Trip]) -> list[list[Trip]]:
     return list(groups.values())
 
 
+class Blocks:
+    """A feed's trips by block_id, to find the trip each one continues as."""
+
+    def __init__(self, feed: Feed) -> None:
+        self.feed = feed
+        by_block: dict[str, list[tuple[int, str]]] = {}
+        for trip in feed.trips.values():
+            if not trip.block_id or trip.trip_id in feed.frequencies:
+                continue
+            times = feed.stop_times.get(trip.trip_id, ())
+            first = next((st.time for st in times if st.time is not None), None)
+            if first is not None:
+                by_block.setdefault(trip.block_id, []).append((first, trip.trip_id))
+        self.starts = {block: sorted(v) for block, v in by_block.items() if len(v) > 1}
+        self.services: dict[date, set[str]] = {}
+
+    def next_trip(self, trip: Trip, day: date) -> str:
+        """The block's first trip running on `day` that starts within
+        BLOCK_GAP of `trip`'s last time, else ""."""
+        block = self.starts.get(trip.block_id)
+        if not block:
+            return ""
+        times = self.feed.stop_times.get(trip.trip_id, ())
+        end = next(
+            (
+                st.arrival if st.arrival is not None else st.departure
+                for st in reversed(times)
+                if st.time is not None
+            ),
+            None,
+        )
+        if end is None:
+            return ""
+        if day not in self.services:
+            self.services[day] = active_services(self.feed, day)
+        services = self.services[day]
+        for first, trip_id in block:
+            if (
+                trip_id != trip.trip_id
+                and end <= first <= end + BLOCK_GAP
+                and self.feed.trips[trip_id].service_id in services
+            ):
+                return trip_id
+        return ""
+
+
+def stop_code(feed: Feed, stop_id: str, served: set[str]) -> str:
+    """The row stop's stop_code, else the one its served stops share."""
+    stop = feed.stops.get(stop_id)
+    if stop and stop.code:
+        return stop.code
+    return shared({feed.stops[s].code for s in served if s in feed.stops})
+
+
+def shared(values: set[str]) -> str:
+    """The one value in `values`, else ""."""
+    return next(iter(values)) if len(values) == 1 else ""
+
+
 def build_timetable(
     feed: Feed,
     trips: Sequence[Trip],
     day_type: DayType,
+    blocks: Blocks | None = None,
 ) -> Timetable:
     route = feed.routes[trips[0].route_id]
     stop_times: dict[str, tuple[StopTime, ...]] = {
@@ -320,6 +390,7 @@ def build_timetable(
     flagged: set[int] = set()
     any_flag = False
     boarding: list[set[int]] = [set() for _ in merged]
+    served: list[set[str]] = [set() for _ in merged]
     for trip in trips:
         times = stop_times[trip.trip_id]
         rows = positions[tuple(feed.station(st.stop_id) for st in times)]
@@ -329,8 +400,14 @@ def build_timetable(
             if st.timepoint == 1:
                 flagged.add(row)
             boarding[row].add(feed.wheelchair_boarding(st.stop_id))
+            served[row].add(st.stop_id)
         # Trips starting before local midnight run on the previous local day.
         day_shift = -start_day_offset(feed, trip.trip_id, day_type.start) * DAY_SECONDS
+        next_trip = (
+            blocks.next_trip(trip, day_type.trip_dates(trip.trip_id)[0])
+            if blocks
+            else ""
+        )
         for headway, offset in trip_columns(feed, trip):
             cells: list[Cell | None] = [None] * len(merged)
             for row, st in zip(rows, times, strict=True):
@@ -351,6 +428,7 @@ def build_timetable(
                     headway=headway,
                     bikes=trip.bikes_allowed,
                     wheelchair=trip.wheelchair_accessible,
+                    next_trip=next_trip if headway is None else "",
                 )
             )
     columns.sort(key=cmp_to_key(compare_columns))
@@ -368,6 +446,10 @@ def build_timetable(
                 exact=row in flagged or not any_flag,
                 timezone=zones[row],
                 wheelchair=next(iter(boarding[row])) if len(boarding[row]) == 1 else 0,
+                code=stop_code(feed, stop_id, served[row]),
+                platform=shared(
+                    {feed.stops[s].platform for s in served[row] if s in feed.stops}
+                ),
             )
             for row, stop_id in enumerate(merged)
         ),
@@ -379,6 +461,7 @@ def route_timetables(
     feed: Feed,
     route_id: str,
     day_types: Sequence[DayType],
+    blocks: Blocks | None = None,
 ) -> list[Timetable]:
     """Timetables per direction, then branch, then day type."""
     trips = [
@@ -396,7 +479,7 @@ def route_timetables(
             for day_type in day_types:
                 running = [t for t in branch if t.trip_id in day_type.trip_ids]
                 if running:
-                    tables.append(build_timetable(feed, running, day_type))
+                    tables.append(build_timetable(feed, running, day_type, blocks))
     return tables
 
 

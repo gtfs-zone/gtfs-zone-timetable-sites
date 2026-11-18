@@ -56,6 +56,7 @@ class Stop:
     timezone: str
     parent_station: str
     wheelchair_boarding: int
+    platform: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,6 +70,7 @@ class Trip:
     shape_id: str
     bikes_allowed: int
     wheelchair_accessible: int
+    block_id: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -290,6 +292,7 @@ def read_stops(archive: Archive) -> dict[str, Stop]:
         "stop_timezone",
         "parent_station",
         "wheelchair_boarding",
+        "platform_code",
     )
     return {
         row["stop_id"]: Stop(
@@ -301,6 +304,7 @@ def read_stops(archive: Archive) -> dict[str, Stop]:
             timezone=row["stop_timezone"],
             parent_station=row["parent_station"],
             wheelchair_boarding=parse_int(row["wheelchair_boarding"]) or 0,
+            platform=row["platform_code"],
         )
         for row in archive.rows("stops", columns)
     }
@@ -317,6 +321,7 @@ def read_trips(archive: Archive, route_ids: set[str]) -> dict[str, Trip]:
         "shape_id",
         "bikes_allowed",
         "wheelchair_accessible",
+        "block_id",
     )
     return {
         row["trip_id"]: Trip(
@@ -329,6 +334,7 @@ def read_trips(archive: Archive, route_ids: set[str]) -> dict[str, Trip]:
             shape_id=row["shape_id"],
             bikes_allowed=parse_int(row["bikes_allowed"]) or 0,
             wheelchair_accessible=parse_int(row["wheelchair_accessible"]) or 0,
+            block_id=row["block_id"],
         )
         for row in archive.rows("trips", columns)
         if row["route_id"] in route_ids

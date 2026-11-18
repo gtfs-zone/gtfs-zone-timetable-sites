@@ -52,7 +52,7 @@ from gtfs_zone_timetable_sites.pages import (
 )
 from gtfs_zone_timetable_sites.places import feed_place, place_label
 from gtfs_zone_timetable_sites.render import asset, compact_json, render
-from gtfs_zone_timetable_sites.timetable import Timetable, route_timetables
+from gtfs_zone_timetable_sites.timetable import Blocks, Timetable, route_timetables
 
 BASE_URL = "https://sites.gtfs.zone"
 LIST_URL = "https://list.gtfs.zone"
@@ -139,6 +139,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
     when that ended, or its first when that starts later."""
     start = horizon_start(feed, today)
     days = site.horizon_days
+    blocks = Blocks(feed)
     trips_by_route: dict[str, list[str]] = {}
     for trip in feed.trips.values():
         trips_by_route.setdefault(trip.route_id, []).append(trip.trip_id)
@@ -146,7 +147,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
     for route in sorted(feed.routes.values(), key=route_order):
         trip_ids = trips_by_route.get(route.route_id, [])
         types = day_types(feed, trip_ids, start, days, site.locale)
-        tables = route_timetables(feed, route.route_id, types)
+        tables = route_timetables(feed, route.route_id, types, blocks)
         if tables:
             result.append(RouteTables(route, tables))
             continue
@@ -163,7 +164,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
         else:
             continue
         types = day_types(feed, trip_ids, window, days, site.locale)
-        tables = route_timetables(feed, route.route_id, types)
+        tables = route_timetables(feed, route.route_id, types, blocks)
         if tables:
             result.append(RouteTables(route, tables, state, state_date))
     return result
@@ -262,6 +263,7 @@ def build_site(
         for rt in timetables
     ]
     common["map_text"] = map_text(locale, [view.mode for view in routes])
+    by_route = {view.route_id: view for view in routes}
     start, end = service_range(feed)
     maps = site.map == "maplibre"
     groups = mode_groups([view for view in routes if view.state != "expired"], locale)
@@ -318,7 +320,9 @@ def build_site(
             else None
         )
         route_map = script_json(data) if data and data["lines"] else ""
-        days = day_views(feed, rt.tables, site.time_format, marked, locale)
+        days = day_views(
+            feed, rt.tables, site.time_format, marked, locale, by_route, today
+        )
         # Live-times data is fetched only once a timetable is on screen, so
         # it adds nothing to the page itself
         if updates:

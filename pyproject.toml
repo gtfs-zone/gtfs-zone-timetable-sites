@@ -76,15 +76,18 @@ ignore_names = [
     "google",
     "gutter",
     "heading",
+    "href",
     "icons",
     "phone",
     "rail",
     "show_amenities",
+    "show_continues",
     "show_headsigns",
     "show_notes",
     "show_numbers",
     "solid",
     "state_label",
+    "valid",
 ]
 
 [tool.deptry]

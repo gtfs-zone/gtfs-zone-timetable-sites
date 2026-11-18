@@ -11,6 +11,8 @@
 {%- if row.paths %}<svg viewBox="0 0 {{ gutter }} 100" preserveAspectRatio="none">
 {%- for d in row.paths %}<path class="case" d="{{ d }}"/><path d="{{ d }}"/>{% endfor %}</svg>{% endif %}<span class="dot{% if row.solid %} solid{% endif %}" style="left:{{ row.dot_x }}px">{% if row.num %}{{ row.num }}{% endif %}</span></span>
 {%- if row.google %}<a class="link link-hover" href="{{ row.google }}" target="_blank" rel="noopener">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}
+{%- if row.code %} <small class="code">{{ row.code }}</small>{% endif %}
+{%- if row.platform %} <small class="code">{{ t("route.platform", platform=row.platform) }}</small>{% endif %}
 {%- endmacro %}
 {% block main %}
 <div class="space-y-2">
@@ -56,6 +58,7 @@
 {% for note in day.notes %}
 <p class="text-base-content/80">{{ note }}</p>
 {% endfor %}
+{% if day.valid %}<p class="text-sm text-base-content/70">{{ day.valid }}</p>{% endif %}
 {% for table in day.tables %}
 <div id="{{ table.anchor }}" class="scroll-mt-4 space-y-2">
 <h3 class="font-semibold">{{ table.title }}</h3>
@@ -91,9 +94,11 @@
 </tr>
 {% endfor %}
 </tbody>
-{% if table.heads | selectattr("every") | list %}
+{% set every = table.heads | selectattr("every") | list %}
+{% if every or table.show_continues %}
 <tfoot>
-<tr><td></td>{% for head in table.heads %}<td class="every">{{ head.every }}</td>{% endfor %}</tr>
+{% if every %}<tr><td></td>{% for head in table.heads %}<td class="every">{{ head.every }}</td>{% endfor %}</tr>{% endif %}
+{% if table.show_continues %}<tr><td></td>{% for c in table.continues %}<td class="every">{% if c %}{% if c.href %}<a class="link link-hover" href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}{% endif %}</td>{% endfor %}</tr>{% endif %}
 </tfoot>
 {% endif %}
 </table>
