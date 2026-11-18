@@ -26,11 +26,10 @@ from gtfs_zone_timetable_sites.config import RouteFilter, Site
 from gtfs_zone_timetable_sites.facts import feed_facts
 from gtfs_zone_timetable_sites.gtfs.reader import Agency, Feed, Route, read_feed
 from gtfs_zone_timetable_sites.gtfs.service import (
+    Services,
     day_types,
-    first_service_date,
     horizon_start,
     key_services,
-    last_service_date,
     service_rule,
 )
 from gtfs_zone_timetable_sites.i18n import CATALOGS, Locale, capitalize, join_and, t
@@ -139,23 +138,24 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
     """Every route's timetables over the site's horizon from `today`. A route
     with no service in the horizon gets its last `horizon_days` of service
     when that ended, or its first when that starts later."""
-    start = horizon_start(feed, today)
+    services = Services(feed)
+    start = horizon_start(feed, today, services)
     days = site.horizon_days
-    blocks = Blocks(feed)
+    blocks = Blocks(feed, services)
     trips_by_route: dict[str, list[str]] = {}
     for trip in feed.trips.values():
         trips_by_route.setdefault(trip.route_id, []).append(trip.trip_id)
     result = []
     for route in sorted(feed.routes.values(), key=route_order):
         trip_ids = trips_by_route.get(route.route_id, [])
-        types = day_types(feed, trip_ids, start, days, site.locale)
+        types = day_types(feed, trip_ids, start, days, site.locale, services)
         tables = route_timetables(feed, route.route_id, types, blocks)
         if tables:
             result.append(RouteTables(route, tables))
             continue
-        services = {feed.trips[t].service_id for t in trip_ids}
-        first = first_service_date(feed, services)
-        last = last_service_date(feed, services)
+        service_ids = {feed.trips[t].service_id for t in trip_ids}
+        first = services.first(service_ids)
+        last = services.last(service_ids)
         if first is None or last is None:
             continue
         if last < start:
@@ -165,7 +165,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
             state, state_date, window = "upcoming", first, first
         else:
             continue
-        types = day_types(feed, trip_ids, window, days, site.locale)
+        types = day_types(feed, trip_ids, window, days, site.locale, services)
         tables = route_timetables(feed, route.route_id, types, blocks)
         if tables:
             result.append(RouteTables(route, tables, state, state_date))

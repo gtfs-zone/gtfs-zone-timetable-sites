@@ -4,9 +4,10 @@ from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from functools import cached_property
 from zoneinfo import ZoneInfo
 
-from gtfs_zone_timetable_sites.gtfs.reader import Feed
+from gtfs_zone_timetable_sites.gtfs.reader import Calendar, Feed
 from gtfs_zone_timetable_sites.i18n import (
     WEEKDAYS,
     Locale,
@@ -55,19 +56,73 @@ class DayType:
         return dict(self.partial).get(trip_id, self.dates)
 
 
-def active_services(feed: Feed, day: date) -> set[str]:
-    services = {
-        service_id
-        for service_id, calendar in feed.calendars.items()
-        if calendar.start <= day <= calendar.end and calendar.weekdays[day.weekday()]
-    }
-    for service_id, exceptions in feed.calendar_dates.items():
-        added = exceptions.get(day)
-        if added is True:
-            services.add(service_id)
-        elif added is False:
-            services.discard(service_id)
-    return services
+class Services:
+    """A feed's service_ids by date and each service's first and last date,
+    each built once on first use."""
+
+    def __init__(self, feed: Feed) -> None:
+        self.feed = feed
+        self.by_day: dict[date, frozenset[str]] = {}
+
+    @cached_property
+    def calendars(self) -> list[Calendar]:
+        """Calendars that run on some weekday."""
+        return [c for c in self.feed.calendars.values() if any(c.weekdays)]
+
+    @cached_property
+    def exceptions(self) -> dict[date, dict[str, bool]]:
+        """date -> service_id -> True when added, False when removed."""
+        by_day: dict[date, dict[str, bool]] = defaultdict(dict)
+        for service_id, exceptions in self.feed.calendar_dates.items():
+            for day, added in exceptions.items():
+                by_day[day][service_id] = added
+        return dict(by_day)
+
+    @cached_property
+    def bounds(self) -> dict[str, tuple[date, date]]:
+        """service_id -> (calendar start, calendar end), widened by its added
+        dates."""
+        bounds = {sid: (c.start, c.end) for sid, c in self.feed.calendars.items()}
+        for service_id, exceptions in self.feed.calendar_dates.items():
+            added = [day for day, on in exceptions.items() if on]
+            if not added:
+                continue
+            first, last = min(added), max(added)
+            if service_id in bounds:
+                start, end = bounds[service_id]
+                first, last = min(start, first), max(end, last)
+            bounds[service_id] = (first, last)
+        return bounds
+
+    def active(self, day: date) -> frozenset[str]:
+        if day not in self.by_day:
+            services = {
+                c.service_id
+                for c in self.calendars
+                if c.start <= day <= c.end and c.weekdays[day.weekday()]
+            }
+            for service_id, added in self.exceptions.get(day, {}).items():
+                if added:
+                    services.add(service_id)
+                else:
+                    services.discard(service_id)
+            self.by_day[day] = frozenset(services)
+        return self.by_day[day]
+
+    def first(self, service_ids: Iterable[str] | None = None) -> date | None:
+        """The first date of the given services, or of all of them."""
+        return min((b[0] for b in self.selected(service_ids)), default=None)
+
+    def last(self, service_ids: Iterable[str] | None = None) -> date | None:
+        """The last date of the given services, or of all of them."""
+        return max((b[1] for b in self.selected(service_ids)), default=None)
+
+    def selected(
+        self, service_ids: Iterable[str] | None
+    ) -> Iterable[tuple[date, date]]:
+        if service_ids is None:
+            return self.bounds.values()
+        return (self.bounds[s] for s in set(service_ids) if s in self.bounds)
 
 
 EPOCH = date(1970, 1, 1)
@@ -137,40 +192,21 @@ def start_day_offset(feed: Feed, trip_id: str, day: date) -> int:
     return min(0, local // DAY_SECONDS)
 
 
-def service_bounds(
-    feed: Feed, service_ids: Iterable[str] | None = None
-) -> tuple[list[date], list[date]]:
-    """(calendar starts, calendar ends), each plus the added dates, of the
-    given services or of all of them."""
-    wanted = None if service_ids is None else set(service_ids)
-    calendars = [
-        c for sid, c in feed.calendars.items() if wanted is None or sid in wanted
-    ]
-    added = [
-        day
-        for sid, exceptions in feed.calendar_dates.items()
-        if wanted is None or sid in wanted
-        for day, on in exceptions.items()
-        if on
-    ]
-    return [c.start for c in calendars] + added, [c.end for c in calendars] + added
-
-
 def first_service_date(
     feed: Feed, service_ids: Iterable[str] | None = None
 ) -> date | None:
-    return min(service_bounds(feed, service_ids)[0], default=None)
+    return Services(feed).first(service_ids)
 
 
 def last_service_date(
     feed: Feed, service_ids: Iterable[str] | None = None
 ) -> date | None:
-    return max(service_bounds(feed, service_ids)[1], default=None)
+    return Services(feed).last(service_ids)
 
 
-def horizon_start(feed: Feed, today: date) -> date:
+def horizon_start(feed: Feed, today: date, services: Services | None = None) -> date:
     """Today, or the feed's first service date when that is later."""
-    first = first_service_date(feed)
+    first = (services or Services(feed)).first()
     return max(today, first) if first is not None else today
 
 
@@ -323,6 +359,7 @@ def day_types(
     start: date,
     days: int,
     locale: Locale = "en",
+    services: Services | None = None,
 ) -> tuple[DayType, ...]:
     """Group the horizon's dates by the set of trips running on each.
 
@@ -330,8 +367,10 @@ def day_types(
     key. Dates with near-identical sets are clustered (see MERGE_SIMILARITY).
     The most common cluster on each weekday is that weekday's regular
     schedule (ties go to the earliest). Clusters that are regular on no
-    weekday become exceptions named by their dates.
+    weekday become exceptions named by their dates. `services` is the
+    feed's index, shared between calls.
     """
+    services = services or Services(feed)
     # Trips by service and by the day offset from service to local date.
     trips_by_service: dict[tuple[str, int], set[str]] = defaultdict(set)
     keys: dict[str, TripKey] = {}
@@ -339,7 +378,6 @@ def day_types(
         shift = start_day_offset(feed, trip_id, start)
         trips_by_service[feed.trips[trip_id].service_id, shift].add(trip_id)
         keys[trip_id] = trip_key(feed, trip_id)
-    shifts = sorted({shift for _, shift in trips_by_service})
 
     signatures: dict[date, frozenset[TripKey]] = {}
     chosen: dict[TripKey, str] = {}
@@ -347,9 +385,9 @@ def day_types(
         day = start + timedelta(days=offset)
         running = [
             trip_id
-            for shift in shifts
-            for service_id in active_services(feed, day - timedelta(days=shift))
-            for trip_id in trips_by_service.get((service_id, shift), ())
+            for (service_id, shift), trips in trips_by_service.items()
+            if service_id in services.active(day - timedelta(days=shift))
+            for trip_id in trips
         ]
         for trip_id in sorted(running):
             chosen.setdefault(keys[trip_id], trip_id)

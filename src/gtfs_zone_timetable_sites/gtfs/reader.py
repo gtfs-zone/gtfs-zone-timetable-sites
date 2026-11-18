@@ -375,7 +375,8 @@ def read_stop_times(
     }
 
 
-def read_calendars(archive: Archive) -> dict[str, Calendar]:
+def read_calendars(archive: Archive, service_ids: set[str]) -> dict[str, Calendar]:
+    """Calendars of the given services."""
     days = (
         "monday",
         "tuesday",
@@ -389,6 +390,8 @@ def read_calendars(archive: Archive) -> dict[str, Calendar]:
     for row in archive.rows(
         "calendar", ("service_id", "start_date", "end_date", *days)
     ):
+        if row["service_id"] not in service_ids:
+            continue
         start, end = parse_date(row["start_date"]), parse_date(row["end_date"])
         if start is None or end is None:
             continue
@@ -401,10 +404,15 @@ def read_calendars(archive: Archive) -> dict[str, Calendar]:
     return calendars
 
 
-def read_calendar_dates(archive: Archive) -> dict[str, dict[date, bool]]:
-    """service_id -> date -> True when added, False when removed."""
+def read_calendar_dates(
+    archive: Archive, service_ids: set[str]
+) -> dict[str, dict[date, bool]]:
+    """service_id -> date -> True when added, False when removed, of the given
+    services."""
     exceptions: dict[str, dict[date, bool]] = defaultdict(dict)
     for row in archive.rows("calendar_dates", ("service_id", "date", "exception_type")):
+        if row["service_id"] not in service_ids:
+            continue
         day = parse_date(row["date"])
         if day is not None:
             exceptions[row["service_id"]][day] = row["exception_type"].strip() == "1"
@@ -491,14 +499,15 @@ def read_feed(
             routes = {key: route for key, route in routes.items() if keep_route(route)}
         trips = read_trips(archive, set(routes))
         stop_times = read_stop_times(archive, set(trips))
+        service_ids = {trip.service_id for trip in trips.values()}
         return Feed(
             agencies=read_agencies(archive),
             routes=routes,
             stops=read_stops(archive),
             trips=trips,
             stop_times=stop_times,
-            calendars=read_calendars(archive),
-            calendar_dates=read_calendar_dates(archive),
+            calendars=read_calendars(archive, service_ids),
+            calendar_dates=read_calendar_dates(archive, service_ids),
             shapes=read_shapes(archive, {t.shape_id for t in trips.values()} - {""}),
             frequencies=read_frequencies(archive, set(trips)),
             feed_info=read_feed_info(archive),

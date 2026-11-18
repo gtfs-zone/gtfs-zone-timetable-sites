@@ -15,7 +15,7 @@ from gtfs_zone_timetable_sites.gtfs.reader import Feed, StopTime, Trip
 from gtfs_zone_timetable_sites.gtfs.service import (
     DAY_SECONDS,
     DayType,
-    active_services,
+    Services,
     start_day_offset,
     timezone_shift,
     trip_note,
@@ -305,8 +305,9 @@ def branches(feed: Feed, trips: Sequence[Trip]) -> list[list[Trip]]:
 class Blocks:
     """A feed's trips by block_id, to find the trip each one continues as."""
 
-    def __init__(self, feed: Feed) -> None:
+    def __init__(self, feed: Feed, services: Services) -> None:
         self.feed = feed
+        self.services = services
         by_block: dict[str, list[tuple[int, str]]] = {}
         for trip in feed.trips.values():
             if not trip.block_id or trip.trip_id in feed.frequencies:
@@ -316,7 +317,6 @@ class Blocks:
             if first is not None:
                 by_block.setdefault(trip.block_id, []).append((first, trip.trip_id))
         self.starts = {block: sorted(v) for block, v in by_block.items() if len(v) > 1}
-        self.services: dict[date, set[str]] = {}
 
     def next_trip(self, trip: Trip, day: date) -> str:
         """The block's first trip running on `day` that starts within
@@ -335,9 +335,7 @@ class Blocks:
         )
         if end is None:
             return ""
-        if day not in self.services:
-            self.services[day] = active_services(self.feed, day)
-        services = self.services[day]
+        services = self.services.active(day)
         for first, trip_id in block:
             if (
                 trip_id != trip.trip_id

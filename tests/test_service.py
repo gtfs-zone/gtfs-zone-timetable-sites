@@ -1,10 +1,10 @@
 from datetime import date, timedelta
 
-from conftest import fixture_zip, make_zip
+from conftest import fixture_files, fixture_zip, make_zip
 
 from gtfs_zone_timetable_sites.gtfs.reader import read_feed
 from gtfs_zone_timetable_sites.gtfs.service import (
-    active_services,
+    Services,
     day_types,
     exception_name,
     horizon_start,
@@ -31,7 +31,7 @@ def test_weekday_names():
 
 def test_calendar_dates_only_day_types():
     feed = read_feed(fixture_zip("calendar-dates-only"))
-    assert active_services(feed, date(2026, 10, 10)) == {"SAT"}
+    assert Services(feed).active(date(2026, 10, 10)) == {"SAT"}
     types = day_types(feed, feed.trips, MONDAY, 14)
     saturday, special = types
     assert saturday.name == "Saturday" and saturday.regular
@@ -46,6 +46,51 @@ def test_calendar_dates_only_day_types():
     assert special.dates == (date(2026, 10, 12),)
     assert special.name == "Mon Oct 12"
     assert special.trip_ids == {"special"}
+
+
+def test_unused_services_are_dropped_and_change_nothing():
+    """Calendars no trip uses, as in feeds with a calendar per train."""
+    files = fixture_files("calendar-dates-only")
+    unused = range(500)
+    files["calendar.txt"] = (
+        "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,"
+        "start_date,end_date\n"
+        + "".join(f"U{i},1,1,1,1,1,1,1,20250101,20271231\n" for i in unused)
+    )
+    files["calendar_dates.txt"] += "".join(
+        f"U{i},20261012,2\nU{i},20261013,1\n" for i in unused
+    )
+    plain = read_feed(fixture_zip("calendar-dates-only"))
+    feed = read_feed(make_zip(files))
+    assert not feed.calendars
+    assert feed.calendar_dates == plain.calendar_dates
+    assert day_types(feed, feed.trips, MONDAY, 14) == day_types(
+        plain, plain.trips, MONDAY, 14
+    )
+    assert horizon_start(feed, date(2026, 1, 1)) == date(2026, 10, 10)
+
+
+def test_services_index_matches_a_scan():
+    feed = read_feed(fixture_zip("overnight"))
+    feed.calendar_dates["DAILY"] = {date(2026, 10, 12): False}
+    feed.calendar_dates["EXTRA"] = {date(2026, 10, 13): True}
+    services = Services(feed)
+    for offset in range(14):
+        day = MONDAY + timedelta(days=offset)
+        expected = {
+            sid
+            for sid, c in feed.calendars.items()
+            if c.start <= day <= c.end and c.weekdays[day.weekday()]
+        }
+        expected |= {
+            sid for sid, dates in feed.calendar_dates.items() if dates.get(day)
+        }
+        expected -= {
+            sid for sid, dates in feed.calendar_dates.items() if dates.get(day) is False
+        }
+        assert services.active(day) == expected
+    assert services.first(["EXTRA"]) == services.last(["EXTRA"]) == date(2026, 10, 13)
+    assert services.first(["NONE"]) is None
 
 
 def test_removed_date_is_missing_from_regular_day_type():
