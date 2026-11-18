@@ -954,14 +954,12 @@ def test_kana_readings_beside_names():
 
 
 def test_a_language_without_a_catalog_has_english_text():
-    files = build("languages", locale="nl")
+    files = build("languages", locale="eu")
     home = files["index.html"]
-    assert '<html lang="nl">' in home and '"ferry":"Ferry"' in home
-    assert (
-        ' href="./" lang="nl" hreflang="nl" aria-current="page">Nederlands</a>' in home
-    )
+    assert '<html lang="eu">' in home and '"ferry":"Ferry"' in home
+    assert ' href="./" lang="eu" hreflang="eu" aria-current="page">Euskara</a>' in home
     # The pin replaces the feed's default (fr); en stays.
-    assert json.loads(files["site.json"])["languages"] == ["nl", "en"]
+    assert json.loads(files["site.json"])["languages"] == ["eu", "en"]
 
 
 def test_a_one_language_site_has_no_picker():
