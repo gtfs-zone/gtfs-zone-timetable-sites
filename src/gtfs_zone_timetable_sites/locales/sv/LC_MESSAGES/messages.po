@@ -1,0 +1,719 @@
+# Swedish translations for gtfs-zone-timetable-sites.
+# CHECK:
+# - days.weekday: Vardagar (Monday to Friday); days.plural: '{day}ar'
+# (fredagar).
+# - route.platform: Läge for every mode, also rail tracks (spår).
+# - Feeds are flöden; agencies are trafikföretag.
+# - mode.light rail: spårväg; mode.coach: långfärdsbuss.
+msgid ""
+msgstr ""
+"Project-Id-Version: gtfs-zone-timetable-sites VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-11-17 09:49+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: sv\n"
+"Language-Team: sv <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "others"
+msgid_plural "others"
+msgstr[0] "{n} till"
+msgstr[1] "{n} till"
+
+msgid "range.both"
+msgstr "{start} till {end}"
+
+msgid "range.from"
+msgstr "från {start}"
+
+msgid "range.to"
+msgstr "till {end}"
+
+msgid "range.valid"
+msgstr "från {start} till {end}"
+
+# Day types and trip notes
+msgid "days.weekday"
+msgstr "Vardagar"
+
+msgid "days.weekdays"
+msgstr "Vardagar"
+
+msgid "days.weekend"
+msgstr "Helg"
+
+msgid "days.weekends"
+msgstr "Helger"
+
+msgid "days.daily"
+msgstr "Dagligen"
+
+msgid "days.range"
+msgstr "{first}-{last}"
+
+msgid "days.plural"
+msgstr "{day}ar"
+
+msgid "note.only_days"
+msgstr "Endast {days}"
+
+msgid "note.until"
+msgstr "Till och med {date}"
+
+msgid "note.from"
+msgstr "Från {date}"
+
+msgid "note.not"
+msgstr "Ej {dates}"
+
+msgid "note.only"
+msgstr "Endast {dates}"
+
+msgid "day.runs_only"
+msgstr "Går endast: {dates}."
+
+msgid "day.no_service"
+msgstr "Ingen trafik: {dates}."
+
+msgid "day.also_runs"
+msgstr "Går även: {dates}."
+
+msgid "day.valid"
+msgstr "Gäller {range}."
+
+msgid "day.valid_until"
+msgstr "Gäller till och med {date}."
+
+# Modes
+msgid "mode.light rail"
+msgstr "spårväg"
+
+msgid "mode.subway"
+msgstr "tunnelbana"
+
+msgid "mode.train"
+msgstr "tåg"
+
+msgid "mode.bus"
+msgstr "buss"
+
+msgid "mode.ferry"
+msgstr "färja"
+
+msgid "mode.cable car"
+msgstr "kabelspårvagn"
+
+msgid "mode.gondola"
+msgstr "kabinbana"
+
+msgid "mode.funicular"
+msgstr "bergbana"
+
+msgid "mode.trolleybus"
+msgstr "trådbuss"
+
+msgid "mode.monorail"
+msgstr "enspårsbana"
+
+msgid "mode.coach"
+msgstr "långfärdsbuss"
+
+msgid "mode.air"
+msgstr "flyg"
+
+msgid "mode.taxi"
+msgstr "taxi"
+
+msgid "mode.misc"
+msgstr "trafik"
+
+msgid "mode.transit"
+msgstr "kollektivtrafik"
+
+# Timetables
+msgid "table.to"
+msgstr "Mot {places}"
+
+msgid "table.from_to"
+msgstr "{first} - {last}"
+
+msgid "table.every"
+msgstr "sedan var {minutes} min till {until}"
+
+msgid "legend.note"
+msgstr "{letter}: {note}."
+
+msgid "legend.icon"
+msgstr "{icon}: {text}"
+
+msgid "legend.pm"
+msgstr "Tider på eftermiddagen och kvällen är i fetstil."
+
+msgid "legend.next_day"
+msgstr "+1: efter midnatt, nästa dag."
+
+msgid "legend.later_days"
+msgstr "+n: efter midnatt, n dagar senare."
+
+msgid "legend.evening_before"
+msgstr "-1: kvällen före."
+
+msgid "legend.untimed"
+msgstr "|: stannar här, utan tid i tidtabellen."
+
+msgid "legend.drop_off"
+msgstr "d: endast avstigning."
+
+msgid "legend.pick_up"
+msgstr "p: endast påstigning."
+
+msgid "legend.flag"
+msgstr "f: stannar endast vid behov."
+
+msgid "legend.dwell"
+msgstr "Två tider: ankomst, sedan avgång."
+
+msgid "legend.approx"
+msgstr "Tider i grått är ungefärliga."
+
+msgid "legend.next"
+msgstr "Nästa hållplats för varje tur som går nu."
+
+msgid "amenity.bikes"
+msgstr "Cykel tillåten"
+
+msgid "amenity.bikes_all"
+msgstr "Cykel tillåten på alla turer."
+
+msgid "amenity.bikes_none"
+msgstr "Cyklar är inte tillåtna på någon tur."
+
+msgid "amenity.trips"
+msgstr "Rullstolsanpassad tur"
+
+msgid "amenity.trips_all"
+msgstr "Alla turer är rullstolsanpassade."
+
+msgid "amenity.trips_none"
+msgstr "Ingen tur är rullstolsanpassad."
+
+msgid "amenity.stops"
+msgstr "Rullstolsanpassad hållplats"
+
+msgid "amenity.stops_all"
+msgstr "Alla hållplatser är rullstolsanpassade."
+
+msgid "amenity.stops_none"
+msgstr "Ingen hållplats är rullstolsanpassad."
+
+msgid "amenity.wheelchair"
+msgstr "Rullstolsanpassad"
+
+# Maps
+msgid "map.title"
+msgstr "Karta: {title}"
+
+msgid "map.system"
+msgstr "Karta över alla linjer: {site}"
+
+msgid "map.modes"
+msgstr "Trafikslag på kartan"
+
+msgid "map.in_timetable"
+msgstr "Visa i tidtabellen"
+
+msgid "map.vehicle"
+msgstr "Fordon {label}"
+
+msgid "map.to"
+msgstr "Mot {headsign}"
+
+msgid "map.stopped_at"
+msgstr "Står vid {stop}"
+
+msgid "map.arriving_at"
+msgstr "Ankommer till {stop}"
+
+msgid "map.next_stop"
+msgstr "Nästa hållplats: {stop}"
+
+msgid "map.position_ago"
+msgstr "Position {ago}"
+
+msgid "map.open_timetable"
+msgstr "Öppna tidtabellen"
+
+msgid "map.live"
+msgid_plural "map.live"
+msgstr[0] "Live: {n} fordon på kartan"
+msgstr[1] "Live: {n} fordon på kartan"
+
+msgid "map.updated"
+msgstr "{live}, uppdaterad {ago}"
+
+msgid "rt.on_time"
+msgstr "i tid"
+
+msgid "rt.skipped"
+msgstr "hoppas över"
+
+msgid "rt.canceled"
+msgstr "Inställd"
+
+# Site index
+msgid "index.title"
+msgstr "{site}: tidtabeller"
+
+msgid "index.title_place"
+msgstr "{site}: tidtabeller - {place}"
+
+msgid "index.serves"
+msgstr "Tidtabeller ({modes_lower}) i {place}."
+
+msgid "index.description"
+msgid_plural "index.description"
+msgstr[0] ""
+"{site} ({modes_lower}): tidtabeller för {n} linje, med tider vid varje "
+"hållplats."
+msgstr[1] ""
+"{site} ({modes_lower}): tidtabeller för {n} linjer, med tider vid varje "
+"hållplats."
+
+msgid "index.expired"
+msgstr "Utgångna"
+
+msgid "index.expired_badge"
+msgstr "Utgången"
+
+msgid "index.ended"
+msgstr "Upphörde {date}"
+
+msgid "index.starts"
+msgstr "Börjar {date}"
+
+msgid "index.map"
+msgstr "Karta"
+
+msgid "index.route_page"
+msgstr "Öppna linjens sida"
+
+msgid "index.route_page_label"
+msgstr "Öppna linjens sida: {route}"
+
+msgid "index.loading"
+msgstr "Läser in tidtabellen"
+
+msgid "index.load_error"
+msgstr "Tidtabellen kunde inte läsas in här. Öppna dess sida i stället."
+
+msgid "index.about"
+msgstr "Om"
+
+msgid "index.website"
+msgstr "Webbplats"
+
+msgid "index.valid"
+msgstr "Tidtabellerna gäller {range}."
+
+msgid "index.feed_link"
+msgstr "Det här flödet på list.gtfs.zone"
+
+# Route page
+msgid "route.title"
+msgstr "{mode} {route} tidtabell - {site}"
+
+msgid "route.description"
+msgstr ""
+"{mode} {route} tidtabell{between}{days}. Tider vid varje hållplats, "
+"första och sista tur, från {site}."
+
+msgid "route.between"
+msgstr " mellan {first} och {last}"
+
+msgid "route.days"
+msgstr ": {days}"
+
+msgid "route.expired"
+msgstr ""
+"Trafiken på den här linjen upphörde {date}. Tidtabellen som visas är den "
+"sista."
+
+msgid "route.upcoming"
+msgstr ""
+"Trafiken på den här linjen börjar {date}. Tidtabellen som visas är den "
+"första."
+
+msgid "route.intro_both"
+msgstr "{mode} {route} går mellan {first} och {last}, med tidtabeller för {days}."
+
+msgid "route.intro_ends"
+msgstr "{mode} {route} går mellan {first} och {last}."
+
+msgid "route.intro_days"
+msgstr "{mode} {route} har tidtabeller för {days}."
+
+msgid "route.trips"
+msgid_plural "route.trips"
+msgstr[0] "{n} tur"
+msgstr[1] "{n} turer"
+
+msgid "route.trips_start"
+msgstr "Avgång {time}."
+
+msgid "route.first_last"
+msgstr "Första tur {first}, sista {last}."
+
+msgid "route.zone_time"
+msgstr "tid {zone}"
+
+msgid "route.platform"
+msgstr "Läge {platform}"
+
+msgid "route.continues_as"
+msgstr "Fortsätter som {route} mot {headsign}"
+
+msgid "route.all_routes"
+msgstr "Alla linjer"
+
+msgid "route.agency_page"
+msgstr "Linjens sida hos trafikföretaget"
+
+msgid "fare.one"
+msgstr "Pris: {fare}."
+
+msgid "fare.several"
+msgstr "Priser:"
+
+msgid "fare.on_board"
+msgstr "{price} vid betalning ombord"
+
+msgid "fare.before_boarding"
+msgstr "{price} vid betalning före påstigning"
+
+msgid "fare.with"
+msgstr "{fare}, {transfers}"
+
+msgid "fare.no_transfers"
+msgstr "inga fria byten"
+
+msgid "fare.valid_for"
+msgstr "giltig {duration}"
+
+msgid "fare.transfers"
+msgid_plural "fare.transfers"
+msgstr[0] "{n} fritt byte"
+msgstr[1] "{n} fria byten"
+
+msgid "fare.unlimited"
+msgstr "obegränsat med fria byten"
+
+msgid "fare.within"
+msgstr "{transfers} inom {duration}"
+
+msgid "fare.minutes"
+msgstr "{n} min"
+
+msgid "fare.zone"
+msgstr "Zon {zone}"
+
+msgid "fare.media"
+msgstr "{price} med {media}"
+
+msgid "fare.product"
+msgstr "{price} ({product})"
+
+msgid "fare.during"
+msgstr "{fare}, {times}"
+
+msgid "fare.times"
+msgstr "{start}-{end}"
+
+msgid "fare.other_stops"
+msgstr "Andra hållplatser"
+
+msgid "fare.by_stop"
+msgstr "Priser per hållplats"
+
+msgid "fare.by_zone"
+msgstr "Priser per zon"
+
+msgid "fare.between_stops"
+msgstr "Pris mellan två hållplatser: den ena i vänstra kolumnen, den andra överst."
+
+msgid "fare.between_zones"
+msgstr "Pris mellan två zoner: den ena i vänstra kolumnen, den andra överst."
+
+msgid "fare.from_stops"
+msgstr "Pris från hållplatsen i vänstra kolumnen till hållplatsen överst."
+
+msgid "fare.from_zones"
+msgstr "Pris från zonen i vänstra kolumnen till zonen överst."
+
+msgid "fare.paid_on_board"
+msgstr "Betalas ombord"
+
+msgid "fare.paid_before"
+msgstr "Betalas före påstigning"
+
+msgid "fares.title"
+msgstr "Priser - {site}"
+
+msgid "fares.heading"
+msgstr "Priser"
+
+msgid "fares.description"
+msgstr "Priser och byten för {site}."
+
+msgid "fares.link"
+msgstr "Priser"
+
+msgid "fares.all"
+msgstr "Alla priser"
+
+msgid "fares.transfers"
+msgstr "Byten"
+
+msgid "fares.any_routes"
+msgstr "Alla linjer"
+
+msgid "fare.any_leg"
+msgstr "valfri biljett"
+
+msgid "fare.legs"
+msgstr "{products} ({networks})"
+
+msgid "fare.from_area"
+msgstr "från {area}"
+
+msgid "fare.transfer"
+msgstr "{from_legs} till {to_legs}: {terms}"
+
+msgid "fare.transfer_free"
+msgstr "gratis"
+
+msgid "fare.transfer_fee"
+msgstr "{fee} extra"
+
+msgid "fare.both_fares"
+msgstr "båda biljetterna"
+
+msgid "fare.both_fares_fee"
+msgstr "båda biljetterna plus {fee}"
+
+msgid "fare.fee_only"
+msgstr "{fee} för båda"
+
+msgid "fare.transfer_up_to"
+msgid_plural "fare.transfer_up_to"
+msgstr[0] "upp till {n} byte"
+msgstr[1] "upp till {n} byten"
+
+msgid "fare.transfer_any"
+msgstr "obegränsat antal byten"
+
+msgid "fare.transfer_within"
+msgstr "inom {duration}"
+
+# Footer
+msgid "footer.generated"
+msgstr ""
+"Skapad {date} från trafikföretagets GTFS-flöde. Kontrollera med "
+"trafikföretaget före resan."
+
+msgid "footer.source"
+msgstr "Tidtabelldata från {publisher}{feed}{terms}."
+
+msgid "footer.feed"
+msgstr "GTFS-flöde"
+
+msgid "footer.licensed"
+msgstr ", licensierad under {licenses}"
+
+msgid "footer.license_n"
+msgstr "licens {n}"
+
+msgid "footer.publisher_license"
+msgstr "utgivarens licens"
+
+msgid "footer.publisher_terms"
+msgstr ", enligt utgivarens villkor"
+
+msgid "footer.listed"
+msgstr "Listad i {catalogs}."
+
+msgid "footer.mobility_database"
+msgstr "Mobility Database"
+
+msgid "footer.more"
+msgstr "Fler GTFS-verktyg på {link}"
+
+msgid "nav.github"
+msgstr "Källkod på GitHub"
+
+msgid "nav.language"
+msgstr "Språk"
+
+msgid "nav.theme"
+msgstr "Ljust eller mörkt tema"
+
+# Root, country and error pages
+msgid "root.title"
+msgstr "Tidtabeller för kollektivtrafik"
+
+msgid "root.description"
+msgstr ""
+"Buss- och tågtidtabeller för {agencies} i {countries}, skapade från deras"
+" GTFS-flöden."
+
+msgid "root.transit_agencies"
+msgid_plural "root.transit_agencies"
+msgstr[0] "{n} trafikföretag"
+msgstr[1] "{n} trafikföretag"
+
+msgid "root.countries"
+msgid_plural "root.countries"
+msgstr[0] "{n} land"
+msgstr[1] "{n} länder"
+
+msgid "root.agencies"
+msgid_plural "root.agencies"
+msgstr[0] "{n} trafikföretag"
+msgstr[1] "{n} trafikföretag"
+
+msgid "root.search"
+msgstr "Sök trafikföretag, platser"
+
+msgid "root.map"
+msgstr "Karta över länder med tidtabeller"
+
+msgid "root.map_count"
+msgstr "{name}: {agencies}"
+
+msgid "root.found_first"
+msgid_plural "root.found_first"
+msgstr[0] "{n} trafikföretag, de första {max} visas"
+msgstr[1] "{n} trafikföretag, de första {max} visas"
+
+msgid "root.none_found"
+msgstr "Inga trafikföretag hittades"
+
+msgid "root.generated"
+msgstr ""
+"Skapas dagligen från varje trafikföretags GTFS-flöde av {link}. "
+"Kontrollera med trafikföretaget före resan."
+
+msgid "root.found_through"
+msgstr "Flöden hittade via {list}, från {atlas} ({license}) och {mdb}."
+
+msgid "root.borders"
+msgstr "Landsgränser från {link}."
+
+msgid "root.terms"
+msgstr "Varje tidtabell bygger på utgivarens data, enligt utgivarens villkor."
+
+msgid "country.title"
+msgstr "Tidtabeller för kollektivtrafik: {country}"
+
+msgid "country.description"
+msgstr ""
+"Buss- och tågtidtabeller för {agencies} ({country}), skapade från deras "
+"GTFS-flöden."
+
+msgid "country.search"
+msgstr "Sök trafikföretag: {country}"
+
+msgid "country.map"
+msgstr "Karta över regioner med tidtabeller: {country}"
+
+msgid "country.elsewhere"
+msgstr "Annanstans"
+
+msgid "country.other"
+msgstr "Övrigt"
+
+msgid "country.routes"
+msgid_plural "country.routes"
+msgstr[0] "{n} linje"
+msgstr[1] "{n} linjer"
+
+msgid "country.expired_routes"
+msgid_plural "country.expired_routes"
+msgstr[0] "({n} utgången)"
+msgstr[1] "({n} utgångna)"
+
+msgid "country.borders"
+msgstr "Regiongränser från {link} ({source}), {license}."
+
+msgid "country.source"
+msgstr "källa"
+
+msgid "country.all"
+msgstr "Alla länder"
+
+msgid "status.ok"
+msgstr "Aktuell"
+
+msgid "status.expiring"
+msgstr "Går snart ut"
+
+msgid "status.stale"
+msgstr "Senaste uppdateringen misslyckades"
+
+msgid "status.expired"
+msgstr "Utgången"
+
+msgid "status.unavailable"
+msgstr "Inte tillgänglig"
+
+msgid "reason.not_built"
+msgstr "Inte skapad än"
+
+msgid "reason.no_routes"
+msgstr "Flödet har inga linjer"
+
+msgid "reason.http_error"
+msgstr "Nedladdningen misslyckades"
+
+msgid "reason.http_error_detail"
+msgstr "Nedladdningen misslyckades: {detail}"
+
+msgid "reason.not_zip"
+msgstr "Nedladdningen är ingen zip"
+
+msgid "reason.missing_files"
+msgstr "Obligatoriska filer saknas"
+
+msgid "reason.parse_error"
+msgstr "Flödet kunde inte läsas"
+
+msgid "reason.empty"
+msgstr "Flödet har inga planerade turer"
+
+msgid "reason.timeout"
+msgstr "Nedladdningen tog för lång tid"
+
+msgid "reason.memory"
+msgstr "För stort för att skapas"
+
+msgid "reason.error"
+msgstr "Skapandet misslyckades"
+
+msgid "error.title"
+msgstr "Sidan hittades inte"
+
+msgid "error.description"
+msgstr "Det finns ingen sida på den här adressen."
+
+msgid "error.moved"
+msgstr ""
+"Tidtabellsidor flyttas när ett trafikföretag byter namn på en linje. "
+"{link}."
+
+msgid "error.find"
+msgstr "Hitta ditt trafikföretags tidtabeller"
+
