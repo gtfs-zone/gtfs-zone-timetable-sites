@@ -459,7 +459,9 @@ def test_download_records_source_headers():
         return httpx.Response(200, content=b"zip", headers={"ETag": '"v1"'})
 
     body, source = download(client(handler), "https://x/g.zip", None)
-    assert body == b"zip"
+    assert body is not None
+    with body:
+        assert body.read() == b"zip"
     assert source == {"url": "https://x/g.zip", "etag": '"v1"', "last_modified": None}
 
 
@@ -481,7 +483,9 @@ def test_download_ignores_previous_for_another_url():
         return httpx.Response(200, content=b"zip")
 
     body, _ = download(client(handler), "https://x/g.zip", previous)
-    assert body == b"zip"
+    assert body is not None
+    with body:
+        assert body.read() == b"zip"
 
 
 def test_publish_root_lists_unbuilt_sites_from_the_catalog():

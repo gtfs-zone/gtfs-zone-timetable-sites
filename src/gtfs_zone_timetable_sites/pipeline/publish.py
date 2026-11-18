@@ -21,15 +21,16 @@ timetable-sites version change, or RETRY_DAYS pass.
 """
 
 import hashlib
-import io
 import json
 import logging
 import re
+import tempfile
 import zipfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from datetime import date
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, BinaryIO, Protocol
 
 from gtfs_zone_timetable_sites.build import (
     UNUSABLE,
@@ -101,23 +102,31 @@ class Store(Protocol):
 
 def download(
     http: "httpx.Client", url: str, previous: dict | None
-) -> tuple[bytes | None, dict]:
-    """The feed zip and its source headers; None when `previous` still matches."""
+) -> tuple[BinaryIO | None, dict]:
+    """The feed zip, streamed to a temporary file the caller closes, and its
+    source headers; None when `previous` still matches."""
     headers = {}
     if previous and previous.get("url") == url:
         if previous.get("etag"):
             headers["If-None-Match"] = previous["etag"]
         if previous.get("last_modified"):
             headers["If-Modified-Since"] = previous["last_modified"]
-    response = http.get(url, headers=headers)
-    if response.status_code == 304:
-        return None, previous or {}
-    response.raise_for_status()
-    return response.content, {
-        "url": url,
-        "etag": response.headers.get("etag"),
-        "last_modified": response.headers.get("last-modified"),
-    }
+    with http.stream("GET", url, headers=headers) as response:
+        if response.status_code == 304:
+            return None, previous or {}
+        response.raise_for_status()
+        # Closed here only when the download fails.
+        with ExitStack() as stack:
+            body = stack.enter_context(tempfile.TemporaryFile())
+            for chunk in response.iter_bytes():
+                body.write(chunk)
+            stack.pop_all()
+        body.seek(0)
+        return body, {
+            "url": url,
+            "etag": response.headers.get("etag"),
+            "last_modified": response.headers.get("last-modified"),
+        }
 
 
 def read_json(store: Store, key: str) -> dict | None:
@@ -232,7 +241,8 @@ def build_and_publish(
             "entry": site_entry(summary, previous["built"], previous["pages"]),
             "content": read_json(store, f"{site.slug}/content.json") or {},
         }
-    files = checked_build(body, site, today)
+    with body:
+        files = checked_build(body, site, today)
     counts, changed, pages = publish_site(
         store, site.slug, files, source, today, version
     )
@@ -245,11 +255,13 @@ def build_and_publish(
     }
 
 
-def checked_build(body: bytes, site: Site, today: date) -> dict[str, bytes]:
-    """build_site, with a body that is not a usable GTFS zip raised as a
-    FeedProblem."""
-    if not zipfile.is_zipfile(io.BytesIO(body)):
-        raise FeedProblem("not_zip", sniff(body))
+def checked_build(body: BinaryIO, site: Site, today: date) -> dict[str, bytes]:
+    """build_site over a seekable zip file, with a body that is not a usable
+    GTFS zip raised as a FeedProblem."""
+    if not zipfile.is_zipfile(body):
+        body.seek(0)
+        raise FeedProblem("not_zip", sniff(body.read(512)))
+    body.seek(0)
     try:
         return build_site(body, site, today)
     except zipfile.BadZipFile as exc:
