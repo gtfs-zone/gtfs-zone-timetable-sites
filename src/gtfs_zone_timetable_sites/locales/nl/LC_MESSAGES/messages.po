@@ -1,0 +1,723 @@
+# Dutch translations for gtfs-zone-timetable-sites.
+# CHECK:
+# - dienstregeling for timetable (Belgium also says uurrooster); u forms.
+# - days.weekday: Werkdagen (Monday to Friday); days.plural: '{day}en'
+# (vrijdagen).
+# - Agencies are vervoerders.
+# - mode.light rail: sneltram; mode.coach: langeafstandsbus.
+msgid ""
+msgstr ""
+"Project-Id-Version: gtfs-zone-timetable-sites VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-11-17 09:49+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: nl\n"
+"Language-Team: nl <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "others"
+msgid_plural "others"
+msgstr[0] "{n} andere"
+msgstr[1] "{n} andere"
+
+msgid "range.both"
+msgstr "{start} tot {end}"
+
+msgid "range.from"
+msgstr "vanaf {start}"
+
+msgid "range.to"
+msgstr "tot {end}"
+
+msgid "range.valid"
+msgstr "van {start} tot {end}"
+
+# Day types and trip notes
+msgid "days.weekday"
+msgstr "Werkdagen"
+
+msgid "days.weekdays"
+msgstr "Werkdagen"
+
+msgid "days.weekend"
+msgstr "Weekend"
+
+msgid "days.weekends"
+msgstr "Weekends"
+
+msgid "days.daily"
+msgstr "Dagelijks"
+
+msgid "days.range"
+msgstr "{first} tot {last}"
+
+msgid "days.plural"
+msgstr "{day}en"
+
+msgid "note.only_days"
+msgstr "Alleen {days}"
+
+msgid "note.until"
+msgstr "Tot {date}"
+
+msgid "note.from"
+msgstr "Vanaf {date}"
+
+msgid "note.not"
+msgstr "Niet op {dates}"
+
+msgid "note.only"
+msgstr "Alleen op {dates}"
+
+msgid "day.runs_only"
+msgstr "Rijdt alleen: {dates}."
+
+msgid "day.no_service"
+msgstr "Geen dienst: {dates}."
+
+msgid "day.also_runs"
+msgstr "Rijdt ook: {dates}."
+
+msgid "day.valid"
+msgstr "Geldig {range}."
+
+msgid "day.valid_until"
+msgstr "Geldig tot {date}."
+
+# Modes
+msgid "mode.light rail"
+msgstr "sneltram"
+
+msgid "mode.subway"
+msgstr "metro"
+
+msgid "mode.train"
+msgstr "trein"
+
+msgid "mode.bus"
+msgstr "bus"
+
+msgid "mode.ferry"
+msgstr "veerboot"
+
+msgid "mode.cable car"
+msgstr "kabeltram"
+
+msgid "mode.gondola"
+msgstr "kabelbaan"
+
+msgid "mode.funicular"
+msgstr "kabelspoorweg"
+
+msgid "mode.trolleybus"
+msgstr "trolleybus"
+
+msgid "mode.monorail"
+msgstr "monorail"
+
+msgid "mode.coach"
+msgstr "langeafstandsbus"
+
+msgid "mode.air"
+msgstr "vlucht"
+
+msgid "mode.taxi"
+msgstr "taxi"
+
+msgid "mode.misc"
+msgstr "dienst"
+
+msgid "mode.transit"
+msgstr "openbaar vervoer"
+
+# Timetables
+msgid "table.to"
+msgstr "Richting {places}"
+
+msgid "table.from_to"
+msgstr "{first} - {last}"
+
+msgid "table.every"
+msgstr "daarna elke {minutes} min tot {until}"
+
+msgid "legend.note"
+msgstr "{letter}: {note}."
+
+msgid "legend.icon"
+msgstr "{icon}: {text}"
+
+msgid "legend.pm"
+msgstr "Middag- en avondtijden staan vet."
+
+msgid "legend.next_day"
+msgstr "+1: na middernacht, de volgende dag."
+
+msgid "legend.later_days"
+msgstr "+n: na middernacht, n dagen later."
+
+msgid "legend.evening_before"
+msgstr "-1: de avond ervoor."
+
+msgid "legend.untimed"
+msgstr "|: stopt hier, zonder geplande tijd."
+
+msgid "legend.drop_off"
+msgstr "d: alleen uitstappen."
+
+msgid "legend.pick_up"
+msgstr "p: alleen instappen."
+
+msgid "legend.flag"
+msgstr "f: stopt alleen op verzoek."
+
+msgid "legend.dwell"
+msgstr "Twee tijden: aankomst, dan vertrek."
+
+msgid "legend.approx"
+msgstr "Tijden in grijs zijn bij benadering."
+
+msgid "legend.next"
+msgstr "Volgende halte van elke rit die nu rijdt."
+
+msgid "amenity.bikes"
+msgstr "Fietsen toegestaan"
+
+msgid "amenity.bikes_all"
+msgstr "Fietsen toegestaan op alle ritten."
+
+msgid "amenity.bikes_none"
+msgstr "Op geen enkele rit zijn fietsen toegestaan."
+
+msgid "amenity.trips"
+msgstr "Rolstoeltoegankelijke rit"
+
+msgid "amenity.trips_all"
+msgstr "Alle ritten zijn rolstoeltoegankelijk."
+
+msgid "amenity.trips_none"
+msgstr "Geen enkele rit is rolstoeltoegankelijk."
+
+msgid "amenity.stops"
+msgstr "Rolstoeltoegankelijke halte"
+
+msgid "amenity.stops_all"
+msgstr "Alle haltes zijn rolstoeltoegankelijk."
+
+msgid "amenity.stops_none"
+msgstr "Geen enkele halte is rolstoeltoegankelijk."
+
+msgid "amenity.wheelchair"
+msgstr "Rolstoeltoegankelijk"
+
+# Maps
+msgid "map.title"
+msgstr "Kaart: {title}"
+
+msgid "map.system"
+msgstr "Kaart van alle lijnen van {site}"
+
+msgid "map.modes"
+msgstr "Vervoerswijzen op de kaart"
+
+msgid "map.in_timetable"
+msgstr "Tonen in de dienstregeling"
+
+msgid "map.vehicle"
+msgstr "Voertuig {label}"
+
+msgid "map.to"
+msgstr "Richting {headsign}"
+
+msgid "map.stopped_at"
+msgstr "Staat bij {stop}"
+
+msgid "map.arriving_at"
+msgstr "Komt aan bij {stop}"
+
+msgid "map.next_stop"
+msgstr "Volgende halte: {stop}"
+
+msgid "map.position_ago"
+msgstr "Positie {ago}"
+
+msgid "map.open_timetable"
+msgstr "Dienstregeling openen"
+
+msgid "map.live"
+msgid_plural "map.live"
+msgstr[0] "Live: {n} voertuig op de kaart"
+msgstr[1] "Live: {n} voertuigen op de kaart"
+
+msgid "map.updated"
+msgstr "{live}, bijgewerkt {ago}"
+
+msgid "rt.on_time"
+msgstr "op tijd"
+
+msgid "rt.skipped"
+msgstr "overgeslagen"
+
+msgid "rt.canceled"
+msgstr "Rijdt niet"
+
+# Site index
+msgid "index.title"
+msgstr "{site}: dienstregeling"
+
+msgid "index.title_place"
+msgstr "{site}: dienstregeling - {place}"
+
+msgid "index.serves"
+msgstr "Dienstregelingen ({modes_lower}) in {place}."
+
+msgid "index.description"
+msgid_plural "index.description"
+msgstr[0] ""
+"{site} ({modes_lower}): dienstregeling van {n} lijn, met de tijden bij "
+"elke halte."
+msgstr[1] ""
+"{site} ({modes_lower}): dienstregeling van {n} lijnen, met de tijden bij "
+"elke halte."
+
+msgid "index.expired"
+msgstr "Verlopen"
+
+msgid "index.expired_badge"
+msgstr "Verlopen"
+
+msgid "index.ended"
+msgstr "Beëindigd op {date}"
+
+msgid "index.starts"
+msgstr "Vanaf {date}"
+
+msgid "index.map"
+msgstr "Kaart"
+
+msgid "index.route_page"
+msgstr "Lijnpagina openen"
+
+msgid "index.route_page_label"
+msgstr "Lijnpagina openen: {route}"
+
+msgid "index.loading"
+msgstr "Dienstregeling laden"
+
+msgid "index.load_error"
+msgstr "De dienstregeling kon hier niet worden geladen. Open de pagina ervan."
+
+msgid "index.about"
+msgstr "Over"
+
+msgid "index.website"
+msgstr "Website"
+
+msgid "index.valid"
+msgstr "Dienstregeling geldig {range}."
+
+msgid "index.feed_link"
+msgstr "Deze feed op list.gtfs.zone"
+
+# Route page
+msgid "route.title"
+msgstr "{mode} {route} dienstregeling - {site}"
+
+msgid "route.description"
+msgstr ""
+"{mode} {route} dienstregeling{between}{days}. Tijden bij elke halte, "
+"eerste en laatste rit, van {site}."
+
+msgid "route.between"
+msgstr " tussen {first} en {last}"
+
+msgid "route.days"
+msgstr ": {days}"
+
+msgid "route.expired"
+msgstr ""
+"De dienst op deze lijn is gestopt op {date}. De getoonde dienstregeling "
+"is de laatste."
+
+msgid "route.upcoming"
+msgstr ""
+"De dienst op deze lijn begint op {date}. De getoonde dienstregeling is de"
+" eerste."
+
+msgid "route.intro_both"
+msgstr ""
+"{mode} {route} rijdt tussen {first} en {last}, met dienstregelingen voor "
+"{days}."
+
+msgid "route.intro_ends"
+msgstr "{mode} {route} rijdt tussen {first} en {last}."
+
+msgid "route.intro_days"
+msgstr "{mode} {route} heeft dienstregelingen voor {days}."
+
+msgid "route.trips"
+msgid_plural "route.trips"
+msgstr[0] "{n} rit"
+msgstr[1] "{n} ritten"
+
+msgid "route.trips_start"
+msgstr "Vertrek om {time}."
+
+msgid "route.first_last"
+msgstr "Eerste rit om {first}, laatste om {last}."
+
+msgid "route.zone_time"
+msgstr "tijd {zone}"
+
+msgid "route.platform"
+msgstr "Perron {platform}"
+
+msgid "route.continues_as"
+msgstr "Rijdt verder als {route} naar {headsign}"
+
+msgid "route.all_routes"
+msgstr "Alle lijnen"
+
+msgid "route.agency_page"
+msgstr "Lijnpagina op de website van de vervoerder"
+
+msgid "fare.one"
+msgstr "Tarief: {fare}."
+
+msgid "fare.several"
+msgstr "Tarieven:"
+
+msgid "fare.on_board"
+msgstr "{price} aan boord betaald"
+
+msgid "fare.before_boarding"
+msgstr "{price} vooraf betaald"
+
+msgid "fare.with"
+msgstr "{fare}, {transfers}"
+
+msgid "fare.no_transfers"
+msgstr "geen gratis overstappen"
+
+msgid "fare.valid_for"
+msgstr "geldig {duration}"
+
+msgid "fare.transfers"
+msgid_plural "fare.transfers"
+msgstr[0] "{n} gratis overstap"
+msgstr[1] "{n} gratis overstappen"
+
+msgid "fare.unlimited"
+msgstr "onbeperkt gratis overstappen"
+
+msgid "fare.within"
+msgstr "{transfers} binnen {duration}"
+
+msgid "fare.minutes"
+msgstr "{n} min"
+
+msgid "fare.zone"
+msgstr "Zone {zone}"
+
+msgid "fare.media"
+msgstr "{price} met {media}"
+
+msgid "fare.product"
+msgstr "{price} ({product})"
+
+msgid "fare.during"
+msgstr "{fare}, {times}"
+
+msgid "fare.times"
+msgstr "van {start} tot {end}"
+
+msgid "fare.other_stops"
+msgstr "Andere haltes"
+
+msgid "fare.by_stop"
+msgstr "Tarieven per halte"
+
+msgid "fare.by_zone"
+msgstr "Tarieven per zone"
+
+msgid "fare.between_stops"
+msgstr "Tarief tussen twee haltes: de ene in de linkerkolom, de andere bovenaan."
+
+msgid "fare.between_zones"
+msgstr "Tarief tussen twee zones: de ene in de linkerkolom, de andere bovenaan."
+
+msgid "fare.from_stops"
+msgstr "Tarief van de halte in de linkerkolom naar de halte bovenaan."
+
+msgid "fare.from_zones"
+msgstr "Tarief van de zone in de linkerkolom naar de zone bovenaan."
+
+msgid "fare.paid_on_board"
+msgstr "Aan boord betaald"
+
+msgid "fare.paid_before"
+msgstr "Vooraf betaald"
+
+msgid "fares.title"
+msgstr "Tarieven - {site}"
+
+msgid "fares.heading"
+msgstr "Tarieven"
+
+msgid "fares.description"
+msgstr "Tarieven en overstappen van {site}."
+
+msgid "fares.link"
+msgstr "Tarieven"
+
+msgid "fares.all"
+msgstr "Alle tarieven"
+
+msgid "fares.transfers"
+msgstr "Overstappen"
+
+msgid "fares.any_routes"
+msgstr "Alle lijnen"
+
+msgid "fare.any_leg"
+msgstr "elk tarief"
+
+msgid "fare.legs"
+msgstr "{products} ({networks})"
+
+msgid "fare.from_area"
+msgstr "vanaf {area}"
+
+msgid "fare.transfer"
+msgstr "{from_legs} naar {to_legs}: {terms}"
+
+msgid "fare.transfer_free"
+msgstr "gratis"
+
+msgid "fare.transfer_fee"
+msgstr "{fee} extra"
+
+msgid "fare.both_fares"
+msgstr "beide tarieven"
+
+msgid "fare.both_fares_fee"
+msgstr "beide tarieven plus {fee}"
+
+msgid "fare.fee_only"
+msgstr "{fee} voor beide"
+
+msgid "fare.transfer_up_to"
+msgid_plural "fare.transfer_up_to"
+msgstr[0] "tot {n} overstap"
+msgstr[1] "tot {n} overstappen"
+
+msgid "fare.transfer_any"
+msgstr "onbeperkt overstappen"
+
+msgid "fare.transfer_within"
+msgstr "binnen {duration}"
+
+# Footer
+msgid "footer.generated"
+msgstr ""
+"Gemaakt op {date} uit de GTFS-feed van de vervoerder. Controleer bij de "
+"vervoerder voordat u reist."
+
+msgid "footer.source"
+msgstr "Dienstregelingsgegevens van {publisher}{feed}{terms}."
+
+msgid "footer.feed"
+msgstr "GTFS-feed"
+
+msgid "footer.licensed"
+msgstr ", onder {licenses}"
+
+msgid "footer.license_n"
+msgstr "licentie {n}"
+
+msgid "footer.publisher_license"
+msgstr "de licentie van de uitgever"
+
+msgid "footer.publisher_terms"
+msgstr ", onder de voorwaarden van de uitgever"
+
+msgid "footer.listed"
+msgstr "Opgenomen in {catalogs}."
+
+msgid "footer.mobility_database"
+msgstr "de Mobility Database"
+
+msgid "footer.more"
+msgstr "Meer GTFS-tools op {link}"
+
+msgid "nav.github"
+msgstr "Broncode op GitHub"
+
+msgid "nav.language"
+msgstr "Taal"
+
+msgid "nav.theme"
+msgstr "Licht of donker thema"
+
+# Root, country and error pages
+msgid "root.title"
+msgstr "Dienstregelingen van het openbaar vervoer"
+
+msgid "root.description"
+msgstr ""
+"Bus- en treindienstregelingen van {agencies} in {countries}, gemaakt uit "
+"hun GTFS-feeds."
+
+msgid "root.transit_agencies"
+msgid_plural "root.transit_agencies"
+msgstr[0] "{n} vervoerder"
+msgstr[1] "{n} vervoerders"
+
+msgid "root.countries"
+msgid_plural "root.countries"
+msgstr[0] "{n} land"
+msgstr[1] "{n} landen"
+
+msgid "root.agencies"
+msgid_plural "root.agencies"
+msgstr[0] "{n} vervoerder"
+msgstr[1] "{n} vervoerders"
+
+msgid "root.search"
+msgstr "Zoek vervoerders, plaatsen"
+
+msgid "root.map"
+msgstr "Kaart van landen met dienstregelingen"
+
+msgid "root.map_count"
+msgstr "{name}: {agencies}"
+
+msgid "root.found_first"
+msgid_plural "root.found_first"
+msgstr[0] "{n} vervoerder, de eerste {max} getoond"
+msgstr[1] "{n} vervoerders, de eerste {max} getoond"
+
+msgid "root.none_found"
+msgstr "Geen vervoerders gevonden"
+
+msgid "root.generated"
+msgstr ""
+"Dagelijks gemaakt uit de GTFS-feed van elke vervoerder door {link}. "
+"Controleer bij de vervoerder voordat u reist."
+
+msgid "root.found_through"
+msgstr "Feeds gevonden via {list}, uit de {atlas} ({license}) en de {mdb}."
+
+msgid "root.borders"
+msgstr "Landsgrenzen van {link}."
+
+msgid "root.terms"
+msgstr ""
+"Elke dienstregeling is gemaakt uit de gegevens van de uitgever, onder de "
+"voorwaarden van de uitgever."
+
+msgid "country.title"
+msgstr "Dienstregelingen van het openbaar vervoer: {country}"
+
+msgid "country.description"
+msgstr ""
+"Bus- en treindienstregelingen van {agencies} ({country}), gemaakt uit hun"
+" GTFS-feeds."
+
+msgid "country.search"
+msgstr "Zoek vervoerders: {country}"
+
+msgid "country.map"
+msgstr "Kaart van regio's met dienstregelingen: {country}"
+
+msgid "country.elsewhere"
+msgstr "Elders"
+
+msgid "country.other"
+msgstr "Overig"
+
+msgid "country.routes"
+msgid_plural "country.routes"
+msgstr[0] "{n} lijn"
+msgstr[1] "{n} lijnen"
+
+msgid "country.expired_routes"
+msgid_plural "country.expired_routes"
+msgstr[0] "({n} verlopen)"
+msgstr[1] "({n} verlopen)"
+
+msgid "country.borders"
+msgstr "Regiogrenzen van {link} ({source}), {license}."
+
+msgid "country.source"
+msgstr "bron"
+
+msgid "country.all"
+msgstr "Alle landen"
+
+msgid "status.ok"
+msgstr "Actueel"
+
+msgid "status.expiring"
+msgstr "Verloopt binnenkort"
+
+msgid "status.stale"
+msgstr "Laatste update mislukt"
+
+msgid "status.expired"
+msgstr "Verlopen"
+
+msgid "status.unavailable"
+msgstr "Niet beschikbaar"
+
+msgid "reason.not_built"
+msgstr "Nog niet gemaakt"
+
+msgid "reason.no_routes"
+msgstr "Feed heeft geen lijnen"
+
+msgid "reason.http_error"
+msgstr "Download mislukt"
+
+msgid "reason.http_error_detail"
+msgstr "Download mislukt: {detail}"
+
+msgid "reason.not_zip"
+msgstr "Download is geen zip"
+
+msgid "reason.missing_files"
+msgstr "Verplichte bestanden ontbreken"
+
+msgid "reason.parse_error"
+msgstr "Feed kon niet worden gelezen"
+
+msgid "reason.empty"
+msgstr "Feed heeft geen geplande ritten"
+
+msgid "reason.timeout"
+msgstr "Time-out bij het downloaden"
+
+msgid "reason.memory"
+msgstr "Te groot om te maken"
+
+msgid "reason.error"
+msgstr "Maken mislukt"
+
+msgid "error.title"
+msgstr "Pagina niet gevonden"
+
+msgid "error.description"
+msgstr "Er is geen pagina op dit adres."
+
+msgid "error.moved"
+msgstr ""
+"Dienstregelingspagina's verhuizen wanneer een vervoerder een lijn "
+"hernoemt. {link}."
+
+msgid "error.find"
+msgstr "Vind de dienstregelingen van uw vervoerder"
+
