@@ -108,8 +108,9 @@ def capitalize(text: str) -> str:
 
 
 def weekday_names(locale: str) -> tuple[str, ...]:
-    """'Monday' to 'Sunday' in `locale`."""
-    names = get_day_names("wide", locale=locale)
+    """'Monday' to 'Sunday' in `locale`, as labels (Finnish 'maanantai', not
+    'maanantaina')."""
+    names = get_day_names("wide", context="stand-alone", locale=locale)
     return tuple(names[day] for day in range(7))
 
 

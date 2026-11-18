@@ -6,6 +6,7 @@ import pytest
 from conftest import fixture_files, fixture_zip, make_zip
 
 from gtfs_zone_timetable_sites.build import (
+    ROOT_LOCALES,
     build_root,
     build_site,
     country_languages,
@@ -23,6 +24,8 @@ from gtfs_zone_timetable_sites.gtfs.reader import read_feed
 from gtfs_zone_timetable_sites.pages import date_range
 
 MONDAY = date(2026, 10, 5)
+# The root page in each UI language.
+ROOT_PAGES = {"index.html"} | {f"lang/{lang}/index.html" for lang in ROOT_LOCALES[1:]}
 NOINDEX = '<meta name="robots" content="noindex">'
 
 
@@ -417,9 +420,7 @@ def test_build_root():
         k: v.decode() for k, v in build_root(summaries, MONDAY, pages, "k3y").items()
     }
     shard = f"sitemaps/{shard_of('a'):02d}.xml"
-    assert set(files) == {
-        "index.html",
-        "lang/fr/index.html",
+    assert set(files) == ROOT_PAGES | {
         "countries/us/index.html",
         "countries/ca/index.html",
         "countries/other/index.html",
@@ -478,10 +479,15 @@ def test_build_root():
         in index
     )
     root_map = files["sitemaps/root.xml"]
+    alternates = "".join(
+        f'<xhtml:link rel="alternate" hreflang="{lang}" '
+        f'href="https://sites.gtfs.zone/lang/{lang}/"/>'
+        for lang in ROOT_LOCALES[1:]
+    )
     assert (
         "<url><loc>https://sites.gtfs.zone/</loc>"
         '<xhtml:link rel="alternate" hreflang="en" href="https://sites.gtfs.zone/"/>'
-        '<xhtml:link rel="alternate" hreflang="fr" href="https://sites.gtfs.zone/lang/fr/"/>'
+        f"{alternates}"
         '<xhtml:link rel="alternate" hreflang="x-default" href="https://sites.gtfs.zone/"/>'
         "</url>"
     ) in root_map
@@ -1016,14 +1022,12 @@ def test_root_and_country_pages_per_ui_language():
         }
         | ca,
         {"slug": "d", "title": "Delta", "languages": ["fr"], "country_code": "FR"},
-        {"slug": "e", "title": "Echo", "languages": ["ja"], "country_code": "JP"},
+        {"slug": "e", "title": "Echo", "languages": ["hur"], "country_code": "JP"},
     ]
     files = {k: v.decode() for k, v in build_root(summaries, MONDAY).items()}
     pages = {k for k in files if k.endswith("index.html")}
     # Canada: en on 3 sites, fr on 2; France: fr only; Japan: no catalog, en.
-    assert pages == {
-        "index.html",
-        "lang/fr/index.html",
+    assert pages == ROOT_PAGES | {
         "countries/ca/index.html",
         "countries/ca/fr/index.html",
         "countries/fr/index.html",
@@ -1082,9 +1086,9 @@ def test_root_and_country_pages_per_ui_language():
 
 def test_country_languages_most_offered_first():
     assert country_languages([]) == ["en"]
-    assert country_languages([{"languages": ["ja"]}]) == ["en"]
+    assert country_languages([{"languages": ["hur"]}]) == ["en"]
     assert country_languages(
-        [{"languages": ["fr", "nl"]}, {"languages": ["nl", "fr"]}, {}]
+        [{"languages": ["fr", "hur"]}, {"languages": ["hur", "fr"]}, {}]
     ) == ["fr"]
     assert country_languages([{"languages": ["fr"]}, {"languages": ["en", "fr"]}]) == [
         "fr",

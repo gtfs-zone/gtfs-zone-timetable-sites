@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
+from babel.messages.catalog import Catalog
 from babel.messages.extract import extract_from_dir
 from babel.messages.frontend import parse_mapping_cfg
 from babel.messages.pofile import read_po
@@ -23,18 +24,24 @@ MONDAY = date(2026, 10, 5)
 REPO = Path(__file__).parent.parent
 
 
-def catalog(locale: str) -> dict[str, tuple[str, ...]]:
-    """A locale's .po as msgid -> its forms (one, or one per plural form)."""
+def messages(locale: str) -> list:
     path = i18n.LOCALES_DIR / locale / "LC_MESSAGES" / "messages.po"
     with path.open("rb") as file:
-        messages = read_po(file)
+        return [m for m in read_po(file) if m.id]
+
+
+def catalog(locale: str) -> dict[str, tuple[str, ...]]:
+    """A locale's .po as msgid -> its forms (one, or one per plural form)."""
     return {
         m.id if isinstance(m.id, str) else m.id[0]: (
             (m.string,) if isinstance(m.string, str) else tuple(m.string)
         )
-        for m in messages
-        if m.id
+        for m in messages(locale)
     }
+
+
+def plural_keys(locale: str) -> set[str]:
+    return {m.id[0] for m in messages(locale) if m.pluralizable}
 
 
 def test_every_locale_has_a_catalog():
@@ -44,11 +51,14 @@ def test_every_locale_has_a_catalog():
 def test_every_msgid_is_in_every_catalog_and_translated():
     en = catalog("en")
     for locale in UI_LOCALES:
-        messages = catalog(locale)
-        assert set(messages) == set(en), locale
-        for key, forms in messages.items():
+        entries = catalog(locale)
+        assert set(entries) == set(en), locale
+        plurals = plural_keys(locale)
+        assert plurals == plural_keys("en"), locale
+        nplurals = Catalog(locale=locale).num_plurals
+        for key, forms in entries.items():
             assert all(forms), (locale, key)
-            assert (len(forms) > 1) == (len(en[key]) > 1), (locale, key)
+            assert len(forms) == (nplurals if key in plurals else 1), (locale, key)
 
 
 def test_every_extracted_key_is_in_the_catalog():
@@ -148,3 +158,7 @@ def test_dates_and_lists_from_cldr():
 def test_french_lists_and_modes():
     assert join_and(["A", "B", "C"], "fr") == "A, B et C"
     assert modes_label(["bus", "ferry"], "fr") == "Bus et traversier"
+
+
+def test_finnish_weekdays_are_labels():
+    assert weekday_name([5], locale="fi") == "Lauantai"
