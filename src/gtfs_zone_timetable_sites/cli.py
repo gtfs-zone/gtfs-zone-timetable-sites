@@ -4,6 +4,7 @@ import argparse
 import contextlib
 import functools
 import gzip
+import io
 import json
 import logging
 import shutil
@@ -13,9 +14,11 @@ import sys
 import threading
 import time
 import urllib.request
+from collections.abc import Iterator
 from datetime import date
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import BinaryIO
 
 from gtfs_zone_timetable_sites.build import (
     build_root,
@@ -94,21 +97,26 @@ def find_site(sites: list[Site], slug: str) -> Site:
     raise SystemExit(f"no site {slug!r}")
 
 
-def feed_zip(site: Site, zip_path: Path | None, cache: Path | None = None) -> bytes:
+@contextlib.contextmanager
+def feed_zip(
+    site: Site, zip_path: Path | None, cache: Path | None = None
+) -> Iterator[BinaryIO]:
     """The local zip when given, else the cached download in `cache`, else a
-    download of the site's feed (saved to `cache` when given)."""
-    if zip_path is not None:
-        return zip_path.read_bytes()
+    download of the site's feed (saved to `cache` when given), opened for
+    reading."""
     cached = cache / f"{site.slug}.zip" if cache else None
-    if cached and cached.exists():
-        return cached.read_bytes()
-    url = site.download_url()
-    log.info("downloading %s", url)
-    body = fetch(url)
-    if cached:
-        cached.parent.mkdir(parents=True, exist_ok=True)
-        cached.write_bytes(body)
-    return body
+    path = zip_path or (cached if cached and cached.exists() else None)
+    if path is None:
+        url = site.download_url()
+        log.info("downloading %s", url)
+        body = fetch(url)
+        if cached:
+            cached.parent.mkdir(parents=True, exist_ok=True)
+            cached.write_bytes(body)
+        yield io.BytesIO(body)
+        return
+    with path.open("rb") as source:
+        yield source
 
 
 def write_files(files: dict[str, bytes], root: Path) -> None:
@@ -141,7 +149,8 @@ def write_root(out: Path) -> None:
 
 def build_one(site: Site, zip_path: Path | None, cache: Path | None, out: Path) -> int:
     """Build one site into a cleared `out/<slug>`. Returns its file count."""
-    files = build_site(feed_zip(site, zip_path, cache), site)
+    with feed_zip(site, zip_path, cache) as source:
+        files = build_site(source, site)
     root = out / site.slug
     clear(root)
     write_files(files, root)
@@ -182,7 +191,8 @@ def build(args: argparse.Namespace) -> None:
 
 def dump(args: argparse.Namespace) -> None:
     site = find_site(load_sites(args.config, None), args.site)
-    feed = site_feed(feed_zip(site, args.zip), site)
+    with feed_zip(site, args.zip) as source:
+        feed = site_feed(source, site)
     today = args.date or date.today()
     for route, tables, state, state_date in site_timetables(feed, site, today):
         print(f"# {route.name}" + (f" ({state} {state_date})" if state else ""))

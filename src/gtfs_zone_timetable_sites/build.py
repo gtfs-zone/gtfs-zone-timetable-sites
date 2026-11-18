@@ -1,10 +1,8 @@
 """build_site: the only entry point from a GTFS zip to a site's files."""
 
 import hashlib
-import io
 import json
 import re
-import zipfile
 from collections import Counter
 from dataclasses import replace
 from datetime import date, timedelta
@@ -28,7 +26,14 @@ from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import RouteFilter, Site
 from gtfs_zone_timetable_sites.facts import feed_facts
 from gtfs_zone_timetable_sites.fares import ZoneFares, route_fares, site_fares
-from gtfs_zone_timetable_sites.gtfs.reader import Agency, Feed, Route, read_feed
+from gtfs_zone_timetable_sites.gtfs.reader import (
+    Agency,
+    Feed,
+    Route,
+    ZipSource,
+    open_zip,
+    read_feed,
+)
 from gtfs_zone_timetable_sites.gtfs.service import (
     Services,
     day_types,
@@ -95,10 +100,10 @@ def page_digest(body: bytes) -> str:
     return hashlib.sha256(GENERATED.sub(b"", body)).hexdigest()
 
 
-def site_feed(zip_bytes: bytes, site: Site) -> Feed:
+def site_feed(source: ZipSource, site: Site) -> Feed:
     """The feed with only the routes the site's filter accepts."""
     return read_feed(
-        zip_bytes, keep_route=lambda r: site.routes.accepts(r.route_id, r.route_type)
+        source, keep_route=lambda r: site.routes.accepts(r.route_id, r.route_type)
     )
 
 
@@ -307,16 +312,17 @@ def alternates(
 
 
 def build_site(
-    zip_bytes: bytes, site: Site, today: date | None = None
+    source: ZipSource, site: Site, today: date | None = None
 ) -> dict[str, bytes]:
     """Map of path (relative to the site root) to file contents: a page set per
-    language (see `page_sets`) plus the files they share. No I/O."""
-    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+    language (see `page_sets`) plus the files they share. `source` is the zip's
+    bytes or a seekable binary file. No I/O beyond reading `source`."""
+    with open_zip(source) as archive:
         bad = archive.testzip()
     if bad is not None:
         raise ValueError(f"corrupt member in GTFS zip: {bad}")
     today = today or date.today()
-    read = site_feed(zip_bytes, site)
+    read = site_feed(source, site)
     feed = merge_routes(read)
     timetables = site_timetables(feed, site, today)
     if not timetables:
@@ -634,7 +640,7 @@ def build_site(
         noindex=sorted(noindex),
     )
     files["content.json"] = summary_json(
-        **feed_facts(zip_bytes, read, site.routes != RouteFilter())
+        **feed_facts(source, read, site.routes != RouteFilter())
     )
     files["style.css"] = asset("style.css")
     files["map.js"] = asset("map.js")

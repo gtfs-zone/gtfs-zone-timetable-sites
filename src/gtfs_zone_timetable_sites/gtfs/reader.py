@@ -9,6 +9,9 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
+from typing import BinaryIO
+
+type ZipSource = bytes | BinaryIO
 
 REQUIRED_FILES = ("agency", "routes", "trips", "stop_times", "stops")
 log = logging.getLogger(__name__)
@@ -297,6 +300,11 @@ def parse_float(text: str) -> float | None:
 def parse_color(text: str) -> str | None:
     text = text.strip().lstrip("#").upper()
     return text if len(text) == 6 and all(c in HEX_DIGITS for c in text) else None
+
+
+def open_zip(source: ZipSource) -> zipfile.ZipFile:
+    """A ZipFile over zip bytes or a seekable binary file."""
+    return zipfile.ZipFile(io.BytesIO(source) if isinstance(source, bytes) else source)
 
 
 class Archive:
@@ -787,10 +795,10 @@ def read_fares(archive: Archive) -> Fares:
 
 
 def read_feed(
-    zip_bytes: bytes, keep_route: Callable[[Route], bool] | None = None
+    source: ZipSource, keep_route: Callable[[Route], bool] | None = None
 ) -> Feed:
     """Parse a GTFS zip, keeping only routes accepted by `keep_route`."""
-    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as raw:
+    with open_zip(source) as raw:
         archive = Archive(raw)
         missing = [table for table in REQUIRED_FILES if not archive.has(table)]
         if not (archive.has("calendar") or archive.has("calendar_dates")):

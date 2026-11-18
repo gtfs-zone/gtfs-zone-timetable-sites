@@ -1,3 +1,4 @@
+import io
 import json
 import re
 from datetime import date
@@ -33,6 +34,14 @@ def build(name: str, **options) -> dict[str, str]:
     site = Site(slug="test", url="https://example.org/g.zip", **options)
     files = build_site(fixture_zip(name), site, today=MONDAY)
     return {path: body.decode() for path, body in files.items()}
+
+
+def test_file_source_builds_the_same_files():
+    site = Site(slug="test", url="https://example.org/g.zip")
+    body = fixture_zip("branching")
+    from_bytes = build_site(body, site, today=MONDAY)
+    from_file = build_site(io.BytesIO(body), site, today=MONDAY)
+    assert from_file == from_bytes
 
 
 def test_site_files():
