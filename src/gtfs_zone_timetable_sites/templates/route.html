@@ -82,7 +82,7 @@
 {% endif %}
 <tbody>
 {% for row in table.rows %}
-<tr><th scope="row"{% if row.num %} data-num="{{ row.num }}"{% endif %}><span class="stop">{{ stop_name(row, table.gutter) }}
+<tr{% if row.approx %} class="approx"{% endif %}><th scope="row"{% if row.num %} data-num="{{ row.num }}"{% endif %}><span class="stop">{{ stop_name(row, table.gutter) }}
 {%- if row.wheelchair %} {{ icon("wheelchair", t("amenity.wheelchair")) }}{% endif %}
 {%- if row.zone %} <small>{{ t("route.zone_time", zone=row.zone) }}</small>{% endif %}</span></th>
 {% for cell in row.cells %}

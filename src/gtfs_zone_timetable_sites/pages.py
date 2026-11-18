@@ -240,6 +240,8 @@ class RowView:
     solid: bool = False
     wheelchair: bool = False
     num: int = 0
+    # Times here are approximate (timepoint=0), dimmed.
+    approx: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -541,7 +543,6 @@ def table_view(
         note: chr(ord("A") + i)
         for i, note in enumerate(dict.fromkeys(note for note in notes if note))
     }
-    shown = [i for i, row in enumerate(table.rows) if row.timepoint]
     heads = tuple(
         replace(
             column_head(column, time_format, shaded, locale),
@@ -553,31 +554,33 @@ def table_view(
             table.columns, hour_shading(table.columns), notes, strict=True
         )
     )
-    # Each column's served rows, indexed among the shown rows.
+    # Each column's served rows.
     patterns = [
-        [k for k, i in enumerate(shown) if column.cells[i] is not None]
+        [k for k, cell in enumerate(column.cells) if cell is not None]
         for column in table.columns
     ]
-    graph = route_graph(list(dict.fromkeys(map(tuple, patterns))), len(shown))
-    stats = stop_stats(patterns, len(shown))
+    size = len(table.rows)
+    graph = route_graph(list(dict.fromkeys(map(tuple, patterns))), size)
+    stats = stop_stats(patterns, size)
     total = len(table.columns)
     threshold = endpoint_threshold(total)
     rows = tuple(
         RowView(
-            name=tidy(table.rows[i].name),
-            zone=zone_label(table.rows[i].timezone, table.day_type.start),
+            name=tidy(row.name),
+            zone=zone_label(row.timezone, table.day_type.start),
             cells=tuple(
-                cell_view(column.cells[i], time_format) for column in table.columns
+                cell_view(column.cells[k], time_format) for column in table.columns
             ),
-            google=stop_link(feed, table.rows[i].stop_id),
+            google=stop_link(feed, row.stop_id),
             paths=() if straight(graph.rows[k]) else tuple(row_paths(graph, k)),
             rail=rail_class(graph.rows[k]),
             dot_x=lane_x(graph.rows[k].lane),
             solid=is_endpoint(stats[k], threshold),
-            wheelchair="stops" in marked and table.rows[i].wheelchair == 1,
-            num=(numbers or {}).get(table.rows[i].stop_id, 0),
+            wheelchair="stops" in marked and row.wheelchair == 1,
+            num=(numbers or {}).get(row.stop_id, 0),
+            approx=not row.exact,
         )
-        for k, i in enumerate(shown)
+        for k, row in enumerate(table.rows)
     )
     cells = [cell for row in rows for cell in row.cells]
     legend = [
@@ -605,6 +608,8 @@ def table_view(
         keys.append("flag")
     if any(c.arrival for c in cells):
         keys.append("dwell")
+    if any(row.approx and any(c.time for c in row.cells) for row in rows):
+        keys.append("approx")
     legend += [t(locale, f"legend.{key}") for key in keys]
     shown_icons = {
         "bikes": any(head.bikes for head in heads),
@@ -633,11 +638,9 @@ def table_view(
         trip_ids=tuple(
             "" if column.headway else column.trip_id for column in table.columns
         ),
-        stop_ids=tuple(table.rows[i].stop_id for i in shown),
+        stop_ids=tuple(row.stop_id for row in table.rows),
         sched=tuple(
-            minute_steps(
-                [column.cells[i].time if column.cells[i] else None for i in shown]
-            )
+            minute_steps([cell.time if cell else None for cell in column.cells])
             for column in table.columns
         ),
     )
@@ -679,11 +682,11 @@ def trip_span(tables: list[Timetable]) -> tuple[int, int] | None:
 
 
 def endpoints(tables: list[Timetable]) -> tuple[str, str] | None:
-    """First and last timepoint names of the busiest table, when they differ."""
+    """First and last stop names of the busiest table, when they differ."""
     if not tables:
         return None
     busiest = max(tables, key=runs)
-    names = [tidy(row.name) for row in busiest.rows if row.timepoint]
+    names = [tidy(row.name) for row in busiest.rows]
     if len(names) < 2 or names[0] == names[-1]:
         return None
     return names[0], names[-1]
@@ -703,13 +706,13 @@ def ordered_days(tables: list[Timetable]) -> list[tuple[DayType, list[Timetable]
 
 
 def stop_numbers(tables: list[Timetable]) -> dict[str, int]:
-    """stop_id -> 1..N in order of first appearance among the shown rows of
-    the tables, in page order, so a route's map and tables share numbers."""
+    """stop_id -> 1..N in order of first appearance among the rows of the
+    tables, in page order, so a route's map and tables share numbers."""
     numbers: dict[str, int] = {}
     for _, group in ordered_days(tables):
         for table in group:
             for row in table.rows:
-                if row.timepoint and row.stop_id not in numbers:
+                if row.stop_id not in numbers:
                     numbers[row.stop_id] = len(numbers) + 1
     return numbers
 

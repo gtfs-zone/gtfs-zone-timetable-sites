@@ -72,7 +72,6 @@ built whatever the catalog filter says:
 | `map` | `maplibre`, `none` | `maplibre` |
 | `horizon_days` | days used to derive day types | `28` |
 | `time_format` | `12h`, `24h` | `12h` |
-| `timepoints` | `auto`, `all`, `timepoint-flag` | `auto` |
 | `locale` | `en`, `fr`: the language of the site's pages (the root and country pages stay English) | `en` |
 | `index` | `true`, `false`: whether search engines may index the site's pages; `false` adds a robots `noindex` to every page and leaves them out of the sitemap, as for expired routes | `true` |
 

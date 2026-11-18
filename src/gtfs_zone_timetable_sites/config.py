@@ -9,7 +9,6 @@ from gtfs_zone_timetable_sites.i18n import Locale
 
 MapKind = Literal["maplibre", "none"]
 TimeFormat = Literal["12h", "24h"]
-Timepoints = Literal["auto", "all", "timepoint-flag"]
 
 FEEDS_URL = "https://data.gtfs.zone/feeds.json"
 USER_AGENT = "gtfs-zone-timetable-sites (+https://sites.gtfs.zone)"
@@ -34,7 +33,6 @@ class Options(Strict):
     map: MapKind = "maplibre"
     horizon_days: int = Field(28, gt=0, le=366)
     time_format: TimeFormat = "12h"
-    timepoints: Timepoints = "auto"
     locale: Locale = "en"
     # Whether search engines may index the site's pages.
     index: bool = True

@@ -2,7 +2,6 @@ defaults:
   map: maplibre            # maplibre | none
   horizon_days: 28         # window used to derive day types and effective dates
   time_format: 12h         # 12h | 24h
-  timepoints: auto         # auto | all | timepoint-flag
   locale: en               # en | fr: the language of the site's pages
   index: true              # whether search engines may index the site's pages
 

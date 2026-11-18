@@ -66,25 +66,25 @@ def test_format_time():
 
 
 def test_overnight_sorted_and_marked_next_day():
-    (table,) = tables("overnight", timepoints="all")
+    (table,) = tables("overnight")
     assert [c.trip_id for c in table.columns] == ["early", "noon", "late"]
     assert times(table)[-1][:2] == ["11:40p", "11:55p"]
 
 
 def test_multiday_marks_each_day():
-    (table,) = tables("multiday", timepoints="all")
+    (table,) = tables("multiday")
     assert times(table) == [["10:00p", "11:30p+1", "2:10a+2"]]
 
 
 def test_stop_timezone_shifts_times():
-    (table,) = tables("overnight", timepoints="all")
+    (table,) = tables("overnight")
     assert table.rows[2].timezone == "America/Chicago"
     assert table.rows[0].timezone is None
     assert [t[2] for t in times(table)] == ["5:30a", "11:30a", "11:10p"]
 
 
 def test_frequencies():
-    (table,) = tables("frequencies", timepoints="all")
+    (table,) = tables("frequencies")
     headway, *exact = table.columns
     assert headway.headway is not None
     assert headway.headway.headway_secs == 600
@@ -94,7 +94,7 @@ def test_frequencies():
 
 
 def test_branches_split_by_headsign_but_short_turns_stay():
-    north, east, back = tables("branching", timepoints="all")
+    north, east, back = tables("branching")
     assert north.headsigns == ("North",)
     assert [row.stop_id for row in north.rows] == ["A", "B", "C", "D"]
     assert [c.trip_id for c in north.columns] == ["north1", "north2"]
@@ -109,46 +109,33 @@ def test_branches_split_by_headsign_but_short_turns_stay():
 
 
 def test_untimed_stops_are_served_but_blank():
-    (table,) = tables("missing-timepoints", timepoints="all")
+    (table,) = tables("missing-timepoints")
     cell = table.columns[0].cells[2]
     assert cell is not None and cell.time is None
     assert "|" in to_text(table)
 
 
-def test_auto_timepoints_capped_and_spread_without_flags():
-    (table,) = tables("missing-timepoints", cap=4)
-    chosen = [row.stop_id for row in table.rows if row.timepoint]
-    assert chosen[0] == "A" and chosen[-1] == "G"
-    assert len(chosen) == 4
-    assert "C" not in chosen and "E" not in chosen
+def test_every_stop_is_a_row_and_exact_without_flags():
+    (table,) = tables("missing-timepoints")
+    assert [row.stop_id for row in table.rows] == list("ABCDEFG")
+    assert all(row.exact for row in table.rows)
 
 
-@pytest.mark.parametrize(("route_type", "shown"), [(109, 7), (900, 7), (700, 4)])
-def test_extended_route_types_by_mode(route_type, shown):
+@pytest.mark.parametrize("route_type", [3, 109, 700, 900])
+def test_rows_do_not_depend_on_route_type(route_type):
     files = fixture_files("missing-timepoints")
     files["routes.txt"] = files["routes.txt"].replace(",3", f",{route_type}")
     feed = read_feed(make_zip(files))
     types = day_types(feed, feed.trips, MONDAY, 7)
-    (table,) = route_timetables(feed, "R", types, cap=4)
-    assert sum(row.timepoint for row in table.rows) == shown
+    (table,) = route_timetables(feed, "R", types)
+    assert len(table.rows) == 7
 
 
-def test_timepoint_flags_win_in_auto():
-    files = fixture_files("missing-timepoints")
-    header, *lines = files["stop_times.txt"].splitlines()
-    flagged = [line + (",1" if line.split(",")[3] in "AD" else ",0") for line in lines]
-    files["stop_times.txt"] = "\n".join([header + ",timepoint", *flagged])
-    feed = read_feed(make_zip(files))
-    types = day_types(feed, feed.trips, MONDAY, 7)
-    (table,) = route_timetables(feed, "R", types, cap=4)
-    # Flags plus the pattern's ends
-    assert [row.stop_id for row in table.rows if row.timepoint] == ["A", "D", "G"]
-
-
-def test_tables_under_the_cap_show_every_stop():
-    out, loop, back = tables("shared-terminus")
-    assert all(row.timepoint for table in (out, loop, back) for row in table.rows)
-    assert [row.stop_id for row in back.rows] == ["G", "F", "C", "B", "A"]
+def test_end_timepoints_keep_every_row_and_mark_the_middle_approximate():
+    (table,) = tables("end-timepoints")
+    assert [row.stop_id for row in table.rows] == list("ABCDEFG")
+    assert [row.exact for row in table.rows] == [True, *[False] * 5, True]
+    assert "Charlie" in to_text(table)
 
 
 def test_headsignless_trips_sharing_a_terminus_split():
@@ -190,7 +177,7 @@ def test_platforms_merge_into_their_station():
 
 
 def test_amenities_carried_to_columns_rows_and_cells():
-    (table,) = tables("amenities", timepoints="all")
+    (table,) = tables("amenities")
     assert [c.bikes for c in table.columns] == [1, 2, 0]
     assert [c.wheelchair for c in table.columns] == [1, 1, 1]
     assert [r.wheelchair for r in table.rows] == [1, 2, 1]

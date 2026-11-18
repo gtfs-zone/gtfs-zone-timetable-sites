@@ -16,9 +16,6 @@ const FONT = ["Noto Sans Bold"];
 const SIZE = { radius: 8, end: 9, text: 10, line: 4, casing: 7 };
 // Inset maps per route at most; each is its own WebGL map
 const MAX_INSETS = 3;
-// Modes drawn wide on the system map; the rest (buses) thinner and below
-const WIDE = new Set(["subway", "light rail", "monorail", "train", "ferry", "cable car", "gondola", "funicular"]);
-
 const TEXT = JSON.parse(document.getElementById("map-text")?.textContent ?? "{}");
 const LANG = document.documentElement.lang;
 // i18n text for key, with _one / _other picked by vars.n as i18n.plural does
@@ -594,7 +591,6 @@ function systemGeojson(data) {
         rs: `,${line.r.join(",")},`,
         ms: modes(line.r),
         color: lineColor(first.color),
-        wide: line.r.some((i) => WIDE.has(data.routes[i].mode)) ? 1 : 0,
       },
       geometry: { type: "LineString", coordinates: line.c.length > 1 ? line.c : [line.c[0], line.c[0]] },
     };
@@ -646,8 +642,7 @@ async function initSystemMap(el) {
   map.addControl(new L.NavigationControl({ showCompass: false }), "top-right");
   const modes = [...new Set(data.routes.map((r) => r.mode))];
   const enabled = new Set(modes);
-  const width = (wide, narrow) => ["case", ["==", ["get", "wide"], 1], wide, narrow];
-  const layout = { "line-join": "round", "line-cap": "round", "line-sort-key": ["get", "wide"] };
+  const layout = { "line-join": "round", "line-cap": "round" };
   const filtered = ["sys-casing", "sys-lines", "sys-transfers", "sys-transfer-names"];
   let vehicles;
   const showModes = () => {
@@ -664,9 +659,9 @@ async function initSystemMap(el) {
     quietBasemap(map);
     map.addSource("lines", { type: "geojson", data: geo.lines });
     map.addSource("transfers", { type: "geojson", data: geo.stops });
-    map.addLayer({ id: "sys-casing", type: "line", source: "lines", layout, paint: { "line-color": paper(), "line-width": width(7, 4.5) } });
-    map.addLayer({ id: "sys-lines", type: "line", source: "lines", layout, paint: { "line-color": ["get", "color"], "line-width": width(4, 2.5) } });
-    map.addLayer({ id: "sys-hover", type: "line", source: "lines", layout, filter: ["==", ["get", "rs"], ""], paint: { "line-color": ["get", "color"], "line-width": width(7, 5) } });
+    map.addLayer({ id: "sys-casing", type: "line", source: "lines", layout, paint: { "line-color": paper(), "line-width": 4.5 } });
+    map.addLayer({ id: "sys-lines", type: "line", source: "lines", layout, paint: { "line-color": ["get", "color"], "line-width": 2.5 } });
+    map.addLayer({ id: "sys-hover", type: "line", source: "lines", layout, filter: ["==", ["get", "rs"], ""], paint: { "line-color": ["get", "color"], "line-width": 5 } });
     map.addLayer({
       id: "sys-transfers",
       type: "circle",

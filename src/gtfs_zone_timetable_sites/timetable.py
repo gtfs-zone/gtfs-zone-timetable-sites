@@ -9,7 +9,7 @@ from itertools import pairwise
 
 from gtfs_zone_vocab.route_types import route_type_info
 
-from gtfs_zone_timetable_sites.config import TimeFormat, Timepoints
+from gtfs_zone_timetable_sites.config import TimeFormat
 from gtfs_zone_timetable_sites.gtfs.reader import Feed, StopTime, Trip
 from gtfs_zone_timetable_sites.gtfs.service import (
     DAY_SECONDS,
@@ -36,19 +36,6 @@ MODES = {
 }
 # Vocab families shown as their own mode instead of their base type's.
 FAMILY_MODES = frozenset({"coach", "air", "taxi", "misc"})
-# Modes shown with every stop.
-ALL_STOPS_MODES = frozenset(
-    {
-        "light rail",
-        "subway",
-        "train",
-        "ferry",
-        "cable car",
-        "gondola",
-        "funicular",
-        "monorail",
-    }
-)
 # Headsign groups sharing less than this share of the smaller one's stops get
 # separate tables.
 BRANCH_OVERLAP = 0.5
@@ -112,7 +99,8 @@ class Column:
 class Row:
     stop_id: str
     name: str
-    timepoint: bool
+    # The feed calls the times here exact (timepoint=1, or no timepoint values).
+    exact: bool
     timezone: str | None = None
     # wheelchair_boarding shared by every stop served here, else 0.
     wheelchair: int = 0
@@ -226,46 +214,6 @@ def compare_columns(a: Column, b: Column) -> int:
     return (ta > tb) - (ta < tb)
 
 
-def spread(candidates: list[int], chosen: set[int], count: int) -> set[int]:
-    """Pick `count` of `candidates` as far as possible from each other and `chosen`."""
-    picked = set(chosen)
-    pool = sorted(candidates)
-    for _ in range(min(count, len(pool))):
-        best = max(pool, key=lambda p: min((abs(p - q) for q in picked), default=0))
-        picked.add(best)
-        pool.remove(best)
-    return picked - chosen
-
-
-def auto_timepoints(
-    columns: Sequence[Column], patterns: Sequence[list[int]], size: int, cap: int
-) -> set[int]:
-    """Ends of the table, then ends of each pattern, then rows served by at
-    least half as many trips as the busiest, then the rest, spread evenly."""
-    served = Counter(
-        row
-        for column in columns
-        for row, cell in enumerate(column.cells)
-        if cell and cell.time is not None
-    )
-    busiest = max(served.values(), default=0)
-    tiers: list[list[int]] = [
-        [0, size - 1],
-        sorted({p for pattern in patterns for p in (pattern[0], pattern[-1])}),
-        [row for row, n in served.items() if 2 * n >= busiest],
-        [row for row, n in served.items() if 2 * n < busiest],
-    ]
-
-    chosen: set[int] = set()
-    for tier in tiers:
-        fresh = [row for row in tier if row not in chosen]
-        room = cap - len(chosen)
-        if room <= 0:
-            break
-        chosen |= set(fresh) if len(fresh) <= room else spread(fresh, chosen, room)
-    return chosen
-
-
 def shifted(cell: Cell, seconds: int) -> Cell:
     return replace(
         cell,
@@ -344,8 +292,6 @@ def build_timetable(
     feed: Feed,
     trips: Sequence[Trip],
     day_type: DayType,
-    timepoints: Timepoints,
-    cap: int,
 ) -> Timetable:
     route = feed.routes[trips[0].route_id]
     stop_times: dict[str, tuple[StopTime, ...]] = {
@@ -372,11 +318,14 @@ def build_timetable(
 
     columns = []
     flagged: set[int] = set()
+    any_flag = False
     boarding: list[set[int]] = [set() for _ in merged]
     for trip in trips:
         times = stop_times[trip.trip_id]
         rows = positions[tuple(feed.station(st.stop_id) for st in times)]
         for row, st in zip(rows, times, strict=True):
+            if st.timepoint is not None:
+                any_flag = True
             if st.timepoint == 1:
                 flagged.add(row)
             boarding[row].add(feed.wheelchair_boarding(st.stop_id))
@@ -406,19 +355,6 @@ def build_timetable(
             )
     columns.sort(key=cmp_to_key(compare_columns))
 
-    every_row = set(range(len(merged)))
-    if timepoints == "all":
-        chosen = every_row
-    elif timepoints == "timepoint-flag":
-        chosen = flagged or every_row
-    elif mode_name(route.route_type) in ALL_STOPS_MODES or len(merged) <= cap:
-        chosen = every_row
-    elif flagged:
-        ends = {p for pattern in positions.values() for p in (pattern[0], pattern[-1])}
-        chosen = flagged | ends
-    else:
-        chosen = auto_timepoints(columns, list(positions.values()), len(merged), cap)
-
     names = Counter(column.headsign for column in columns)
     return Timetable(
         route_id=route.route_id,
@@ -429,7 +365,7 @@ def build_timetable(
             Row(
                 stop_id=stop_id,
                 name=feed.stops[stop_id].name if stop_id in feed.stops else stop_id,
-                timepoint=row in chosen,
+                exact=row in flagged or not any_flag,
                 timezone=zones[row],
                 wheelchair=next(iter(boarding[row])) if len(boarding[row]) == 1 else 0,
             )
@@ -443,8 +379,6 @@ def route_timetables(
     feed: Feed,
     route_id: str,
     day_types: Sequence[DayType],
-    timepoints: Timepoints = "auto",
-    cap: int = 8,
 ) -> list[Timetable]:
     """Timetables per direction, then branch, then day type."""
     trips = [
@@ -462,9 +396,7 @@ def route_timetables(
             for day_type in day_types:
                 running = [t for t in branch if t.trip_id in day_type.trip_ids]
                 if running:
-                    tables.append(
-                        build_timetable(feed, running, day_type, timepoints, cap)
-                    )
+                    tables.append(build_timetable(feed, running, day_type))
     return tables
 
 
@@ -487,11 +419,9 @@ def format_cell(cell: Cell | None, time_format: TimeFormat) -> str:
     return format_time(cell.time, time_format)
 
 
-def to_text(
-    table: Timetable, time_format: TimeFormat = "12h", all_rows: bool = False
-) -> str:
+def to_text(table: Timetable, time_format: TimeFormat = "12h") -> str:
     """Plain-text grid for checking a timetable against a printed one."""
-    rows = [(i, row) for i, row in enumerate(table.rows) if all_rows or row.timepoint]
+    rows = list(enumerate(table.rows))
     day = table.day_type
     title = f"To {' / '.join(table.headsigns)} - {day.name}"
     lines = [title, f"{day.start} to {day.end}"]

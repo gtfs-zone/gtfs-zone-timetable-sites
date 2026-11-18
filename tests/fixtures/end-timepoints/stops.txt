@@ -1,0 +1,8 @@
+stop_id,stop_name,stop_lat,stop_lon,stop_timezone
+A,Alpha,42.0,-73.0,
+B,Bravo,42.1,-73.1,
+C,Charlie,42.2,-73.2,
+D,Delta,42.3,-73.3,
+E,Echo,42.4,-73.4,
+F,Foxtrot,42.5,-73.5,
+G,Golf,42.6,-73.6,

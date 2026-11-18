@@ -157,6 +157,26 @@ def test_tables_sharing_a_title_name_their_ends():
     assert sorted(titles) == ["Alpha to Golf", "Hotel to Golf", "To Alpha"]
 
 
+def test_approximate_rows_are_dimmed_with_a_legend_key():
+    site = Site(slug="t", url="https://example.org/g.zip")
+    feed = site_feed(fixture_zip("end-timepoints"), site)
+    [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
+    [day] = day_views(feed, tables, "12h")
+    [table] = day.tables
+    assert [row.approx for row in table.rows] == [False, *[True] * 5, False]
+    assert "Times in grey are approximate." in [key.text for key in table.legend]
+
+
+def test_no_approximate_key_without_timepoint_values():
+    site = Site(slug="t", url="https://example.org/g.zip")
+    feed = site_feed(fixture_zip("missing-timepoints"), site)
+    [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
+    [day] = day_views(feed, tables, "12h")
+    [table] = day.tables
+    assert not any(row.approx for row in table.rows)
+    assert "Times in grey are approximate." not in [k.text for k in table.legend]
+
+
 def test_days_sorted_by_runs():
     site = Site(slug="t", url="https://example.org/g.zip")
     feed = site_feed(fixture_zip("calendar-dates-only"), site)

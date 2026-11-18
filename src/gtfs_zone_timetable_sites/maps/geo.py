@@ -174,15 +174,15 @@ def route_paths(feed: Feed, tables: Sequence[Timetable]) -> list[tuple[Point, ..
     return [p for p in paths if p]
 
 
-def timepoint_stops(tables: Sequence[Timetable]) -> tuple[list[str], set[str]]:
-    """Timepoint stop ids in table order, and the timepoints where enough
-    trips start or end to count as an endpoint."""
+def table_stops(tables: Sequence[Timetable]) -> tuple[list[str], set[str]]:
+    """Stop ids in table order, and the stops where enough trips start or
+    end to count as an endpoint."""
     stops: dict[str, None] = {}
     starts: dict[str, int] = {}
     ends: dict[str, int] = {}
     trips = 0
     for table in tables:
-        rows = [(k, row.stop_id) for k, row in enumerate(table.rows) if row.timepoint]
+        rows = list(enumerate(row.stop_id for row in table.rows))
         stops.update(dict.fromkeys(stop_id for _, stop_id in rows))
         for column in table.columns:
             served = [stop_id for k, stop_id in rows if column.cells[k] is not None]
@@ -219,7 +219,7 @@ def route_data(
 ) -> dict:
     """A route map's data: lines, and stops as [lon, lat, number, name, end]
     in number order, end 1 where enough trips start or end."""
-    _, ends = timepoint_stops(tables)
+    _, ends = table_stops(tables)
     paths = route_paths(feed, tables)
     stops = []
     for stop_id, num in sorted(numbers.items(), key=lambda item: item[1]):
@@ -252,7 +252,7 @@ def system_data(
             owners = lines.setdefault(key, [])
             if i not in owners:
                 owners.append(i)
-        stops, _ = timepoint_stops(route.tables)
+        stops, _ = table_stops(route.tables)
         for stop_id in stops:
             owners = served.setdefault(stop_id, [])
             if i not in owners:

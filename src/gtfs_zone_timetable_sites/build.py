@@ -146,7 +146,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
     for route in sorted(feed.routes.values(), key=route_order):
         trip_ids = trips_by_route.get(route.route_id, [])
         types = day_types(feed, trip_ids, start, days, site.locale)
-        tables = route_timetables(feed, route.route_id, types, site.timepoints)
+        tables = route_timetables(feed, route.route_id, types)
         if tables:
             result.append(RouteTables(route, tables))
             continue
@@ -163,7 +163,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
         else:
             continue
         types = day_types(feed, trip_ids, window, days, site.locale)
-        tables = route_timetables(feed, route.route_id, types, site.timepoints)
+        tables = route_timetables(feed, route.route_id, types)
         if tables:
             result.append(RouteTables(route, tables, state, state_date))
     return result

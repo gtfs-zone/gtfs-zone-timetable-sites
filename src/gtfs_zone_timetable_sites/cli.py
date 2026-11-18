@@ -186,7 +186,7 @@ def dump(args: argparse.Namespace) -> None:
     for route, tables, state, state_date in site_timetables(feed, site, today):
         print(f"# {route.name}" + (f" ({state} {state_date})" if state else ""))
         for table in tables:
-            print(to_text(table, site.time_format, all_rows=args.all_stops))
+            print(to_text(table, site.time_format))
             print()
 
 
@@ -339,9 +339,6 @@ def parser() -> argparse.ArgumentParser:
     dump_cmd.add_argument("--config", type=Path, default=Path("sites.yaml"))
     dump_cmd.add_argument(
         "--date", type=date.fromisoformat, help="horizon start (default today)"
-    )
-    dump_cmd.add_argument(
-        "--all-stops", action="store_true", help="include non-timepoint stops"
     )
     dump_cmd.set_defaults(func=dump)
 
