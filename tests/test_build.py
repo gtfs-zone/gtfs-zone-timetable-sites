@@ -189,6 +189,32 @@ def test_unavailable_reason(outcome, detail, reason):
     assert unavailable_reason(outcome, detail) == reason
 
 
+@pytest.mark.parametrize(
+    ("outcome", "detail", "reason"),
+    [
+        (None, "", "Pas encore construit"),
+        ("http_error", "HTTP 404", "Échec du téléchargement : HTTP 404"),
+        ("timeout", "", "Délai de téléchargement dépassé"),
+        ("error", "RuntimeError: x", "Échec du traitement"),
+    ],
+)
+def test_unavailable_reason_in_french(outcome, detail, reason):
+    assert unavailable_reason(outcome, detail, "fr") == reason
+
+
+def test_root_pages_carry_root_js_text():
+    summaries = [
+        {"slug": "a", "title": "Alpha", "routes": 2, "valid_through": "2026-12-01"}
+    ]
+    files = build_root(summaries, MONDAY)
+    for path in ("index.html", "countries/other/index.html"):
+        page = files[path].decode()
+        text = json.loads(re.search(r'id="root-text">(.*?)</script>', page)[1])
+        assert text["root.agencies"] == {"one": "{n} agency", "other": "{n} agencies"}
+        assert text["root.none_found"] == "No agencies found"
+    assert "1 agency<" in files["index.html"].decode()
+
+
 def test_root_status_from_outcomes():
     summaries = [
         {"slug": "a", "title": "Alpha", "routes": 2, "valid_through": "2026-12-01"}

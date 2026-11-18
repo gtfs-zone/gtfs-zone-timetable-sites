@@ -559,3 +559,157 @@ msgstr "Source code on GitHub"
 msgid "nav.theme"
 msgstr "Light or dark theme"
 
+
+# Root, country and error pages
+msgid "root.title"
+msgstr "Transit timetables"
+
+msgid "root.description"
+msgstr ""
+"Bus and train timetables for {agencies} in {countries}, generated from "
+"their GTFS feeds."
+
+msgid "root.transit_agencies"
+msgid_plural "root.transit_agencies"
+msgstr[0] "{n} transit agency"
+msgstr[1] "{n} transit agencies"
+
+msgid "root.countries"
+msgid_plural "root.countries"
+msgstr[0] "{n} country"
+msgstr[1] "{n} countries"
+
+msgid "root.agencies"
+msgid_plural "root.agencies"
+msgstr[0] "{n} agency"
+msgstr[1] "{n} agencies"
+
+msgid "root.search"
+msgstr "Search agencies, places"
+
+msgid "root.map"
+msgstr "Map of countries with timetables"
+
+msgid "root.map_count"
+msgstr "{name}: {agencies}"
+
+msgid "root.found_first"
+msgid_plural "root.found_first"
+msgstr[0] "{n} agency, the first {max} shown"
+msgstr[1] "{n} agencies, the first {max} shown"
+
+msgid "root.none_found"
+msgstr "No agencies found"
+
+msgid "root.generated"
+msgstr ""
+"Generated daily from each agency's GTFS feed by {link}. Check with the "
+"agency before you travel."
+
+msgid "root.found_through"
+msgstr "Feeds found through {list}, from the {atlas} ({license}) and the {mdb}."
+
+msgid "root.borders"
+msgstr "Country borders from {link}."
+
+msgid "root.terms"
+msgstr "Each timetable is built from its publisher's data, on the publisher's terms."
+
+msgid "country.title"
+msgstr "{country} transit timetables"
+
+msgid "country.description"
+msgstr ""
+"Bus and train timetables for {agencies} in {country}, generated from their "
+"GTFS feeds."
+
+msgid "country.search"
+msgstr "Search agencies in {country}"
+
+msgid "country.map"
+msgstr "Map of regions of {country} with timetables"
+
+msgid "country.elsewhere"
+msgstr "Elsewhere"
+
+msgid "country.other"
+msgstr "Other"
+
+msgid "country.routes"
+msgid_plural "country.routes"
+msgstr[0] "{n} route"
+msgstr[1] "{n} routes"
+
+msgid "country.expired_routes"
+msgid_plural "country.expired_routes"
+msgstr[0] "({n} expired)"
+msgstr[1] "({n} expired)"
+
+msgid "country.borders"
+msgstr "Region borders from {link} ({source}), {license}."
+
+msgid "country.source"
+msgstr "source"
+
+msgid "country.all"
+msgstr "All countries"
+
+msgid "status.ok"
+msgstr "Current"
+
+msgid "status.expiring"
+msgstr "Expiring soon"
+
+msgid "status.stale"
+msgstr "Last update failed"
+
+msgid "status.expired"
+msgstr "Expired"
+
+msgid "status.unavailable"
+msgstr "Unavailable"
+
+msgid "reason.not_built"
+msgstr "Not built yet"
+
+msgid "reason.no_routes"
+msgstr "Feed has no routes"
+
+msgid "reason.http_error"
+msgstr "Download failed"
+
+msgid "reason.http_error_detail"
+msgstr "Download failed: {detail}"
+
+msgid "reason.not_zip"
+msgstr "Download is not a zip"
+
+msgid "reason.missing_files"
+msgstr "Missing required files"
+
+msgid "reason.parse_error"
+msgstr "Feed could not be read"
+
+msgid "reason.empty"
+msgstr "Feed has no scheduled trips"
+
+msgid "reason.timeout"
+msgstr "Download timed out"
+
+msgid "reason.memory"
+msgstr "Too large to build"
+
+msgid "reason.error"
+msgstr "Build failed"
+
+msgid "error.title"
+msgstr "Page not found"
+
+msgid "error.description"
+msgstr "No page at this address."
+
+msgid "error.moved"
+msgstr "Timetable pages move when an agency renames a route. {link}."
+
+msgid "error.find"
+msgstr "Find your agency's timetables"

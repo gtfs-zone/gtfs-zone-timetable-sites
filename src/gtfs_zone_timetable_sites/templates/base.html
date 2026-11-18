@@ -11,6 +11,15 @@
 {%- if cell.time %}{{ clock_time(cell.time) }}{% elif cell.untimed %}|{% endif %}
 {%- if cell.mark %}<sup>{{ cell.mark }}</sup>{% endif %}</td>
 {%- endmacro %}
+{% macro catalog_footer(borders="") %}
+{% set tool %}<a class="link" href="https://github.com/gtfs-zone/gtfs-zone-timetable-sites" target="_blank" rel="noopener">timetable-sites</a>{% endset %}
+{% set list %}<a class="link" href="https://list.gtfs.zone" target="_blank" rel="noopener">list.gtfs.zone</a>{% endset %}
+{% set atlas %}<a class="link" href="https://github.com/transitland/transitland-atlas" target="_blank" rel="noopener">Transitland Atlas</a>{% endset %}
+{% set license %}<a class="link" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>{% endset %}
+{% set mdb %}<a class="link" href="https://mobilitydatabase.org" target="_blank" rel="noopener">Mobility Database</a>{% endset %}
+<p>{{ t("root.generated", link=tool) }}</p>
+<p>{{ t("root.found_through", list=list, atlas=atlas, license=license, mdb=mdb) }}{% if borders %} {{ borders }}{% endif %} {{ t("root.terms") }}</p>
+{%- endmacro %}
 {% macro icon(name, label="") %}<svg class="icon"{% if label %} role="img" aria-label="{{ label }}"{% else %} aria-hidden="true"{% endif %}><use href="#i-{{ name }}"/></svg>{% endmacro %}
 <!doctype html>
 <html lang="{{ locale }}">

@@ -1,7 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Transit timetables - sites.gtfs.zone{% endblock %}
-{% block description %}Bus and train timetables for {{ total }} transit agencies in {{ countries | length }} countr{{ "ies" if countries | length != 1 else "y" }}, generated from their GTFS feeds.{% endblock %}
+{% block title %}{{ t("root.title") }} - sites.gtfs.zone{% endblock %}
+{% block description %}{{ t("root.description", agencies=t("root.transit_agencies", n=total), countries=t("root.countries", n=countries | length)) }}{% endblock %}
 {% block head %}
+<script type="application/json" id="root-text">{{ root_text }}</script>
 <script type="module" src="root.js"></script>
 {% endblock %}
 {% block brand %}
@@ -11,17 +12,17 @@
 </a>
 {% endblock %}
 {% block main %}
-<h1 class="text-3xl font-bold">Transit timetables</h1>
+<h1 class="text-3xl font-bold">{{ t("root.title") }}</h1>
 <label class="input input-lg w-full">
 <svg class="size-5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-<input type="search" id="site-search" data-src="sites.json" data-status="search-status" aria-controls="search-results" placeholder="Search agencies, places" autocomplete="off" aria-describedby="search-status">
+<input type="search" id="site-search" data-src="sites.json" data-status="search-status" aria-controls="search-results" placeholder="{{ t("root.search") }}" autocomplete="off" aria-describedby="search-status">
 </label>
 <p class="sr-only" id="search-status" role="status"></p>
 <ul class="list rounded-box bg-base-100 shadow-sm" id="search-results" hidden></ul>
 <section class="card area bg-base-100 shadow-sm" data-src="world.json" data-key="key" data-href="countries/{}/">
 <div class="card-body p-2">
 <div class="relative">
-<div class="area-map" role="region" aria-label="Map of countries with timetables"></div>
+<div class="area-map" role="region" aria-label="{{ t("root.map") }}"></div>
 <p class="map-cap" hidden></p>
 </div>
 </div>
@@ -30,12 +31,12 @@
 {% for country in countries %}
 <li><a class="flex min-h-14 items-center gap-4 rounded-box px-4 py-3 hover:bg-base-200 focus-visible:bg-base-200" href="countries/{{ country.key }}/">
 <span class="flex-1 font-semibold">{{ country.name }}</span>
-<span class="text-sm text-base-content/70">{{ country.sites | length }} agenc{{ "ies" if country.sites | length != 1 else "y" }}</span>
+<span class="text-sm text-base-content/70">{{ t("root.agencies", n=country.sites | length) }}</span>
 </a></li>
 {% endfor %}
 </ul>
 {% endblock %}
 {% block footer %}
-<p>Generated daily from each agency's GTFS feed by <a class="link" href="https://github.com/gtfs-zone/gtfs-zone-timetable-sites" target="_blank" rel="noopener">timetable-sites</a>. Check with the agency before you travel.</p>
-<p>Feeds found through <a class="link" href="https://list.gtfs.zone" target="_blank" rel="noopener">list.gtfs.zone</a>, from the <a class="link" href="https://github.com/transitland/transitland-atlas" target="_blank" rel="noopener">Transitland Atlas</a> (<a class="link" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>) and the <a class="link" href="https://mobilitydatabase.org" target="_blank" rel="noopener">Mobility Database</a>. Country borders from <a class="link" href="https://www.naturalearthdata.com" target="_blank" rel="noopener">Natural Earth</a>. Each timetable is built from its publisher's data, on the publisher's terms.</p>
+{% set natural_earth %}<a class="link" href="https://www.naturalearthdata.com" target="_blank" rel="noopener">Natural Earth</a>{% endset %}
+{{ catalog_footer(t("root.borders", link=natural_earth)) }}
 {% endblock %}

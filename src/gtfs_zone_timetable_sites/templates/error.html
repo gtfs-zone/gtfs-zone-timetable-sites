@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Page not found - sites.gtfs.zone{% endblock %}
-{% block description %}No page at this address.{% endblock %}
+{% block title %}{{ t("error.title") }} - sites.gtfs.zone{% endblock %}
+{% block description %}{{ t("error.description") }}{% endblock %}
 {% block head %}<meta name="robots" content="noindex">
 {% endblock %}
 {% block main %}
-<h1 class="text-3xl font-bold">Page not found</h1>
-<p>Timetable pages move when an agency renames a route. <a class="link" href="/">Find your agency's timetables</a>.</p>
+<h1 class="text-3xl font-bold">{{ t("error.title") }}</h1>
+{% set find %}<a class="link" href="/">{{ t("error.find") }}</a>{% endset %}
+<p>{{ t("error.moved", link=find) }}</p>
 {% endblock %}
 {% block footer %}{% endblock %}

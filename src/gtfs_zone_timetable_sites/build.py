@@ -509,6 +509,22 @@ def map_text(locale: Locale, modes: list[str]) -> Markup:
     )
 
 
+# Plural text root.js shows, by i18n key: forms by CLDR category.
+ROOT_PLURALS = ("root.agencies", "root.found_first")
+# Text root.js shows, by i18n key.
+ROOT_TEXT = ("root.map_count", "root.none_found")
+
+
+def root_text(locale: Locale) -> Markup:
+    """root.js's strings, as JSON for a <script> element."""
+    return script_json(
+        {
+            **{key: message(locale, key) for key in ROOT_TEXT},
+            **{key: plural_forms(locale, key) for key in ROOT_PLURALS},
+        }
+    )
+
+
 # Trip ids listed for realtime matching up to this many per route.
 MAX_RT_TRIPS = 400
 
@@ -676,14 +692,14 @@ def subdivision_groups(key: str, members: list[dict]) -> list[dict]:
     return sorted(groups.values(), key=lambda g: (not g["name"], g["name"].casefold()))
 
 
-def country_groups(sites: list[dict]) -> list[dict]:
+def country_groups(sites: list[dict], locale: Locale = "en") -> list[dict]:
     """Countries by name, each with its sites grouped by subdivision."""
     countries: dict[str, list[dict]] = {}
     for site in sites:
         countries.setdefault(country_key(site), []).append(site)
     groups = []
     for key, members in countries.items():
-        fallback = "Other" if key == OTHER else key.upper()
+        fallback = t(locale, "country.other") if key == OTHER else key.upper()
         groups.append(
             {
                 "key": key,
@@ -698,15 +714,10 @@ def country_groups(sites: list[dict]) -> list[dict]:
 
 # Outcomes that are the feed's own fault, not a passing download problem.
 UNUSABLE = frozenset({"not_zip", "missing_files", "parse_error", "empty"})
-# Why a site is unavailable, by the outcome of its last download and build.
-REASONS = {
-    "not_zip": "Download is not a zip",
-    "missing_files": "Missing required files",
-    "parse_error": "Feed could not be read",
-    "empty": "Feed has no scheduled trips",
-    "timeout": "Download timed out",
-    "memory": "Too large to build",
-}
+# Outcomes with their own `reason.<outcome>` text; others are `reason.error`.
+REASONS = frozenset(
+    {"not_zip", "missing_files", "parse_error", "empty", "timeout", "memory"}
+)
 # Order of statuses on a country page.
 STATUS_ORDER = {"ok": 0, "expiring": 0, "stale": 0, "expired": 1, "unavailable": 2}
 
@@ -727,18 +738,20 @@ def site_status(summary: dict, outcome: str | None, today: date) -> str:
     return "expiring" if days_left < EXPIRING_DAYS else "ok"
 
 
-def unavailable_reason(outcome: str | None, detail: str) -> str:
+def unavailable_reason(outcome: str | None, detail: str, locale: Locale = "en") -> str:
     """Why a site is unavailable, for its row on a country page."""
     if outcome is None:
-        return "Not built yet"
+        return t(locale, "reason.not_built")
     if outcome == "ok":
-        return "Feed has no routes"
-    if outcome == "http_error":
-        return f"Download failed: {detail}" if detail else "Download failed"
-    return REASONS.get(outcome, "Build failed")
+        return t(locale, "reason.no_routes")
+    if outcome == "http_error" and detail:
+        return t(locale, "reason.http_error_detail", detail=detail)
+    if outcome == "http_error" or outcome in REASONS:
+        return t(locale, f"reason.{outcome}")
+    return t(locale, "reason.error")
 
 
-def site_row(summary: dict, outcome: dict, today: date) -> dict:
+def site_row(summary: dict, outcome: dict, today: date, locale: Locale = "en") -> dict:
     """A site.json summary plus what its country page row shows."""
     status = site_status(summary, outcome.get("outcome"), today)
     start, end = summary.get("valid_from"), summary.get("valid_through")
@@ -749,10 +762,12 @@ def site_row(summary: dict, outcome: dict, today: date) -> dict:
         | {
             "status": status,
             "dates": date_range(
-                start and date.fromisoformat(start), end and date.fromisoformat(end)
+                start and date.fromisoformat(start),
+                end and date.fromisoformat(end),
+                locale,
             ),
             "reason": unavailable_reason(
-                outcome.get("outcome"), outcome.get("detail", "")
+                outcome.get("outcome"), outcome.get("detail", ""), locale
             )
             if status == "unavailable"
             else "",
@@ -808,13 +823,15 @@ def build_root(
     and build outcome and detail. A summary's `noindex` paths stay out of the
     sitemap. No I/O."""
     outcomes = outcomes or {}
+    locale = "en"
     sites = sorted(
-        (site_row(s, outcomes.get(s["slug"], {}), today) for s in summaries),
+        (site_row(s, outcomes.get(s["slug"], {}), today, locale) for s in summaries),
         key=lambda row: (STATUS_ORDER[row["status"]], row["title"].casefold()),
     )
-    countries = country_groups(sites)
+    countries = country_groups(sites, locale)
     common = {
-        "locale": "en",
+        "locale": locale,
+        "root_text": root_text(locale),
         "site_title": ROOT_TITLE,
         "base_url": f"{BASE_URL}/",
         "generated": today,

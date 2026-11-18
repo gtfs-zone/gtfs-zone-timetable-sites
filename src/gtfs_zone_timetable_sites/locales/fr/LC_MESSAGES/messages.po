@@ -557,3 +557,163 @@ msgstr "Code source sur GitHub"
 msgid "nav.theme"
 msgstr "Thème clair ou sombre"
 
+
+# Root, country and error pages
+msgid "root.title"
+msgstr "Horaires de transport en commun"
+
+msgid "root.description"
+msgstr ""
+"Horaires de bus et de train de {agencies} dans {countries}, générés à "
+"partir de leurs flux GTFS."
+
+msgid "root.transit_agencies"
+msgid_plural "root.transit_agencies"
+msgstr[0] "{n} organisme de transport"
+msgstr[1] "{n} organismes de transport"
+
+msgid "root.countries"
+msgid_plural "root.countries"
+msgstr[0] "{n} pays"
+msgstr[1] "{n} pays"
+
+msgid "root.agencies"
+msgid_plural "root.agencies"
+msgstr[0] "{n} organisme"
+msgstr[1] "{n} organismes"
+
+msgid "root.search"
+msgstr "Rechercher organismes, lieux"
+
+msgid "root.map"
+msgstr "Carte des pays avec des horaires"
+
+msgid "root.map_count"
+msgstr "{name} : {agencies}"
+
+msgid "root.found_first"
+msgid_plural "root.found_first"
+msgstr[0] "{n} organisme, les {max} premiers affichés"
+msgstr[1] "{n} organismes, les {max} premiers affichés"
+
+msgid "root.none_found"
+msgstr "Aucun organisme trouvé"
+
+msgid "root.generated"
+msgstr ""
+"Généré chaque jour à partir du flux GTFS de chaque organisme par {link}. "
+"Vérifiez auprès de l'organisme avant de partir."
+
+msgid "root.found_through"
+msgstr ""
+"Flux trouvés grâce à {list}, à partir du {atlas} ({license}) et de la "
+"{mdb}."
+
+msgid "root.borders"
+msgstr "Frontières des pays : {link}."
+
+msgid "root.terms"
+msgstr ""
+"Chaque horaire est construit à partir des données de son éditeur, selon "
+"les conditions de l'éditeur."
+
+msgid "country.title"
+msgstr "Horaires de transport en commun : {country}"
+
+msgid "country.description"
+msgstr ""
+"Horaires de bus et de train de {agencies} ({country}), générés à partir "
+"de leurs flux GTFS."
+
+msgid "country.search"
+msgstr "Rechercher un organisme ({country})"
+
+msgid "country.map"
+msgstr "Carte des régions avec des horaires ({country})"
+
+msgid "country.elsewhere"
+msgstr "Ailleurs"
+
+msgid "country.other"
+msgstr "Autres"
+
+msgid "country.routes"
+msgid_plural "country.routes"
+msgstr[0] "{n} ligne"
+msgstr[1] "{n} lignes"
+
+msgid "country.expired_routes"
+msgid_plural "country.expired_routes"
+msgstr[0] "({n} expirée)"
+msgstr[1] "({n} expirées)"
+
+msgid "country.borders"
+msgstr "Frontières des régions : {link} ({source}), {license}."
+
+msgid "country.source"
+msgstr "source"
+
+msgid "country.all"
+msgstr "Tous les pays"
+
+msgid "status.ok"
+msgstr "À jour"
+
+msgid "status.expiring"
+msgstr "Expire bientôt"
+
+msgid "status.stale"
+msgstr "Échec de la dernière mise à jour"
+
+msgid "status.expired"
+msgstr "Expiré"
+
+msgid "status.unavailable"
+msgstr "Indisponible"
+
+msgid "reason.not_built"
+msgstr "Pas encore construit"
+
+msgid "reason.no_routes"
+msgstr "Le flux n'a aucune ligne"
+
+msgid "reason.http_error"
+msgstr "Échec du téléchargement"
+
+msgid "reason.http_error_detail"
+msgstr "Échec du téléchargement : {detail}"
+
+msgid "reason.not_zip"
+msgstr "Ce n'est pas un zip"
+
+msgid "reason.missing_files"
+msgstr "Fichiers GTFS manquants"
+
+msgid "reason.parse_error"
+msgstr "Zip illisible"
+
+msgid "reason.empty"
+msgstr "Le flux n'a aucune course planifiée"
+
+msgid "reason.timeout"
+msgstr "Délai de téléchargement dépassé"
+
+msgid "reason.memory"
+msgstr "Trop volumineux à traiter"
+
+msgid "reason.error"
+msgstr "Échec du traitement"
+
+msgid "error.title"
+msgstr "Page introuvable"
+
+msgid "error.description"
+msgstr "Aucune page à cette adresse."
+
+msgid "error.moved"
+msgstr ""
+"Les pages d'horaires changent d'adresse quand un organisme renomme une "
+"ligne. {link}."
+
+msgid "error.find"
+msgstr "Trouver les horaires de votre organisme"

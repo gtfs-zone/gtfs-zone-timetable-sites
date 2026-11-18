@@ -7,6 +7,14 @@ const UFUZZY = "https://cdn.jsdelivr.net/npm/@leeoniya/ufuzzy@1.0.19/dist/uFuzzy
 const MAX_RESULTS = 50;
 // Above this many matches uFuzzy skips ranking, as in gtfs-zone-web-common
 const RANK_THRESHOLD = 1000;
+const TEXT = JSON.parse(document.getElementById("root-text")?.textContent ?? "{}");
+const PLURALS = new Intl.PluralRules(document.documentElement.lang);
+// i18n text for key; a plural key's form is picked by vars.n
+function t(key, vars = {}) {
+  let text = TEXT[key] ?? key;
+  if (typeof text === "object") text = text[PLURALS.select(vars.n)] ?? text.other;
+  return text.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+}
 
 // The page's theme, set by base.html, or the system's
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
@@ -146,7 +154,7 @@ async function initChoropleth(el) {
     cap.hidden = !feature;
     if (!feature) return;
     const { name, count } = feature.properties;
-    cap.textContent = count ? `${name}: ${count} agenc${count === 1 ? "y" : "ies"}` : name;
+    cap.textContent = count ? t("root.map_count", { name, agencies: t("root.agencies", { n: count }) }) : name;
   };
   const at = (point) => (map.getLayer("fill") ? map.queryRenderedFeatures(point, { layers: ["fill"] })[0] : undefined);
   map.on("mousemove", (e) => setHover(at(e.point)));
@@ -211,9 +219,9 @@ function initSiteSearch(input) {
     results.hidden = !found.length;
     status.textContent = found.length
       ? found.length > MAX_RESULTS
-        ? `${found.length} agencies, the first ${MAX_RESULTS} shown`
-        : `${found.length} agenc${found.length === 1 ? "y" : "ies"}`
-      : "No agencies found";
+        ? t("root.found_first", { n: found.length, max: MAX_RESULTS })
+        : t("root.agencies", { n: found.length })
+      : t("root.none_found");
   };
   input.addEventListener("focus", load, { once: true });
   input.addEventListener("input", update);
@@ -233,7 +241,7 @@ function initListFilter(input) {
     if (input.value.trim() !== query) return;
     items.forEach((li, i) => (li.hidden = shown != null && !shown.has(i)));
     for (const section of sections) section.hidden = ![...section.querySelectorAll("li")].some((li) => !li.hidden);
-    status.textContent = shown ? (shown.size ? `${shown.size} agenc${shown.size === 1 ? "y" : "ies"}` : "No agencies found") : "";
+    status.textContent = shown ? (shown.size ? t("root.agencies", { n: shown.size }) : t("root.none_found")) : "";
   };
   input.addEventListener("focus", uFuzzy, { once: true });
   input.addEventListener("input", update);
