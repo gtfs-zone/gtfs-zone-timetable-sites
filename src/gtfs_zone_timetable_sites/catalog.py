@@ -20,8 +20,6 @@ SHARDS = 16
 RESERVED = {"countries", "sitemaps"}
 # Countries whose timetables use 12-hour times; every other country uses 24h.
 TWELVE_HOUR = {"US", "CA", "AU", "NZ", "IN", "PH", "PK", "BD", "EG", "SA"}
-# Countries whose catalog sites are in French.
-FRENCH = {"FR", "MC"}
 QUEBEC = ("CA", "Quebec")
 SLUG_LENGTH = 60
 # A slug with the feed's subtitle or place added.
@@ -149,13 +147,10 @@ def selected(config: Config, feed: CatalogFeed) -> bool:
 
 
 def country_options(feed: CatalogFeed) -> dict[str, str]:
-    """The time format and, where French, the locale for a feed's country."""
+    """The time format for a feed's country."""
     quebec = (feed.country_code, feed.subdivision) == QUEBEC
     twelve = feed.country_code in TWELVE_HOUR and not quebec
-    options = {"time_format": "12h" if twelve else "24h"}
-    if feed.country_code in FRENCH or quebec:
-        options["locale"] = "fr"
-    return options
+    return {"time_format": "12h" if twelve else "24h"}
 
 
 def resolve_sites(

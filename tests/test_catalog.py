@@ -250,9 +250,9 @@ def test_resolve_sites_excludes_countries_and_feeds_without_one():
 def test_resolve_sites_takes_options_from_the_country():
     config = load_config(
         """
-defaults: {time_format: 12h, locale: en}
+defaults: {time_format: 12h}
 catalog: {}
-sites: [{feed: f-0000000003, time_format: 12h, locale: en}]
+sites: [{feed: f-0000000003, time_format: 12h, locale: fr-FR}]
 """
     )
     doc = {
@@ -264,11 +264,11 @@ sites: [{feed: f-0000000003, time_format: 12h, locale: en}]
     }
     sites, _, _ = resolve_sites(config, doc, {})
     options = {site.slug: (site.time_format, site.locale) for site in sites}
-    # A listed feed keeps its own options.
+    # A listed feed keeps its own options; the others' language is the feed's.
     assert options == {
-        "lyon": ("12h", "en"),
-        "paris": ("24h", "fr"),
-        "berlin": ("24h", "en"),
+        "lyon": ("12h", "fr"),
+        "paris": ("24h", None),
+        "berlin": ("24h", None),
     }
 
 
@@ -297,8 +297,8 @@ def test_resolve_sites_indexes_only_index_countries():
     [
         ("US", None, {"time_format": "12h"}),
         ("DE", None, {"time_format": "24h"}),
-        ("FR", None, {"time_format": "24h", "locale": "fr"}),
-        ("CA", "Quebec", {"time_format": "24h", "locale": "fr"}),
+        ("FR", None, {"time_format": "24h"}),
+        ("CA", "Quebec", {"time_format": "24h"}),
         ("CA", "Ontario", {"time_format": "12h"}),
         (None, None, {"time_format": "24h"}),
     ],

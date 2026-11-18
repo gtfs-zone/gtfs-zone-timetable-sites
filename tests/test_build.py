@@ -319,6 +319,7 @@ def test_site_json():
         "lat": None,
         "lon": None,
         "noindex": [],
+        "languages": ["en"],
     }
 
 
@@ -863,3 +864,92 @@ def test_fares_page_noindex_when_site_is_not_indexed():
     files = build("fares-flat-v1", index=False)
     assert NOINDEX in files["fares/index.html"]
     assert "fares/index.html" in json.loads(files["site.json"])["noindex"]
+
+
+def test_a_page_set_per_feed_language():
+    files = build("languages")
+    pages = {path for path in files if path.endswith(".html")}
+    # fr (feed_lang) at the root, en (translations.txt) under en/.
+    assert pages == {
+        "index.html",
+        "1/index.html",
+        "traverse/index.html",
+        "en/index.html",
+        "en/1/index.html",
+        "en/traverse/index.html",
+    }
+    assert json.loads(files["site.json"])["languages"] == ["fr", "en"]
+    home, en_home = files["index.html"], files["en/index.html"]
+    assert '<html lang="fr">' in home and '"ferry":"Traversier"' in home
+    assert '<html lang="en">' in en_home and '"ferry":"Ferry"' in en_home
+    alternates = (
+        '<link rel="alternate" hreflang="fr" href="https://sites.gtfs.zone/test/">\n'
+        '<link rel="alternate" hreflang="en" href="https://sites.gtfs.zone/test/en/">\n'
+        '<link rel="alternate" hreflang="x-default" href="https://sites.gtfs.zone/test/">'
+    )
+    assert alternates in home and alternates in en_home
+    assert ' href="./" lang="fr" hreflang="fr" aria-current="page">Français</a>' in home
+    assert ' href="en/" lang="en" hreflang="en">English</a>' in home
+    assert ' href="../" lang="fr" hreflang="fr">Français</a>' in en_home
+    # The en set shares the site's assets and data files.
+    assert '<link rel="stylesheet" href="../style.css">' in en_home
+    assert 'data-src="../map.json"' in en_home
+    assert 'href="../../" aria-label="sites.gtfs.zone"' in en_home
+    route = files["en/1/index.html"]
+    assert '<link rel="canonical" href="https://sites.gtfs.zone/test/en/1/">' in route
+    assert ' href="../../1/" lang="fr" hreflang="fr">Français</a>' in route
+    assert 'data-src="../../1/live.json"' in route
+    assert '<script type="module" src="../../map.js"></script>' in route
+    assert 'href="../">All routes</a>' in route
+    assert "en/1/live.json" not in files
+
+
+def test_a_language_without_a_catalog_has_english_text():
+    files = build("languages", locale="nl")
+    home = files["index.html"]
+    assert '<html lang="nl">' in home and '"ferry":"Ferry"' in home
+    assert (
+        ' href="./" lang="nl" hreflang="nl" aria-current="page">Nederlands</a>' in home
+    )
+    # The pin replaces the feed's default (fr); en stays.
+    assert json.loads(files["site.json"])["languages"] == ["nl", "en"]
+
+
+def test_a_one_language_site_has_no_picker():
+    home = build("branching")["index.html"]
+    assert "hreflang" not in home and "dropdown" not in home
+
+
+def test_other_language_pages_follow_the_site_noindex():
+    summary = json.loads(build("languages", index=False)["site.json"])
+    assert "en/index.html" in summary["noindex"]
+    assert "en/1/index.html" in summary["noindex"]
+
+
+def test_sitemap_lists_language_alternates():
+    summaries = [{"slug": "a", "title": "A", "routes": 1, "languages": ["fr", "en"]}]
+    summaries[0]["noindex"] = ["en/old/index.html"]
+    pages = {
+        "a": {
+            "index.html": "2026-09-01",
+            "en/index.html": "2026-09-02",
+            "old/index.html": "2026-09-01",
+            "en/old/index.html": "2026-09-01",
+        }
+    }
+    sitemap = build_root(summaries, MONDAY, pages)[
+        f"sitemaps/{shard_of('a'):02d}.xml"
+    ].decode()
+    assert (
+        "<url><loc>https://sites.gtfs.zone/a/en/</loc><lastmod>2026-09-02</lastmod>"
+        '<xhtml:link rel="alternate" hreflang="fr" href="https://sites.gtfs.zone/a/"/>'
+        '<xhtml:link rel="alternate" hreflang="en" href="https://sites.gtfs.zone/a/en/"/>'
+        '<xhtml:link rel="alternate" hreflang="x-default" href="https://sites.gtfs.zone/a/"/>'
+        "</url>"
+    ) in sitemap
+    # A page whose other version is noindex has no alternates.
+    assert (
+        "<url><loc>https://sites.gtfs.zone/a/old/</loc><lastmod>2026-09-01</lastmod></url>"
+        in sitemap
+    )
+    assert "a/en/old/" not in sitemap

@@ -13,6 +13,8 @@ from typing import NamedTuple
 from urllib.parse import urlsplit
 
 from anyascii import anyascii
+from babel import Locale as BabelLocale
+from babel.core import UnknownLocaleError
 from markupsafe import Markup
 
 from gtfs_zone_timetable_sites.boundaries import (
@@ -35,6 +37,8 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     service_rule,
 )
 from gtfs_zone_timetable_sites.i18n import (
+    FALLBACK,
+    UI_LOCALES,
     Locale,
     capitalize,
     join_and,
@@ -42,8 +46,10 @@ from gtfs_zone_timetable_sites.i18n import (
     plural_forms,
     t,
 )
+from gtfs_zone_timetable_sites.languages import feed_languages
 from gtfs_zone_timetable_sites.maps.geo import SystemRoute, route_data, system_data
 from gtfs_zone_timetable_sites.pages import (
+    RouteView,
     breadcrumbs,
     date_range,
     day_views,
@@ -162,7 +168,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
     result = []
     for route in sorted(feed.routes.values(), key=route_order):
         trip_ids = trips_by_route.get(route.route_id, [])
-        types = day_types(feed, trip_ids, start, days, site.locale, services)
+        types = day_types(feed, trip_ids, start, days, services)
         tables = route_timetables(feed, route.route_id, types, blocks)
         if tables:
             result.append(RouteTables(route, tables))
@@ -179,7 +185,7 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
             state, state_date, window = "upcoming", first, first
         else:
             continue
-        types = day_types(feed, trip_ids, window, days, site.locale, services)
+        types = day_types(feed, trip_ids, window, days, services)
         tables = route_timetables(feed, route.route_id, types, blocks)
         if tables:
             result.append(RouteTables(route, tables, state, state_date))
@@ -190,7 +196,7 @@ class EmptyFeed(ValueError):
     """A zip with no route that has scheduled trips."""
 
 
-def site_title(feed: Feed, site: Site) -> str:
+def site_title(feed: Feed, site: Site, locale: Locale = "en") -> str:
     """The configured title, else the named agencies with the most routes
     first, else the catalog's feed name, else the slug."""
     if site.title:
@@ -202,9 +208,9 @@ def site_title(feed: Feed, site: Site) -> str:
     names = [name for a in agencies if (name := tidy(a.name))]
     if len(names) > TITLE_AGENCIES:
         rest = len(names) - TITLE_AGENCIES
-        names = [*names[:TITLE_AGENCIES], t(site.locale, "others", n=rest)]
+        names = [*names[:TITLE_AGENCIES], t(locale, "others", n=rest)]
     if names:
-        return join_and(names, site.locale)
+        return join_and(names, locale)
     return (site.catalog and tidy(site.catalog.name)) or site.slug
 
 
@@ -227,10 +233,67 @@ def source_label(url: str) -> str:
     return f"{host}: {name}" if name else host
 
 
+class PageSet(NamedTuple):
+    """One language's pages of a site."""
+
+    # The language of the feed text, as `<html lang>`.
+    lang: str
+    # The UI catalog: `lang`'s when there is one, else English.
+    locale: str
+    # The set's directory under the site: empty for the default language.
+    prefix: str
+
+
+def page_sets(feed: Feed, site: Site) -> list[PageSet]:
+    """A page set per language the feed offers, the default first. A pinned
+    `locale` replaces the feed's default language."""
+    languages = feed_languages(feed)
+    default = site.locale or languages.default
+    codes = [default, *(code for code in languages.offered[1:] if code != default)]
+    return [
+        PageSet(
+            lang=code,
+            locale=code if code in UI_LOCALES else FALLBACK,
+            prefix=f"{code.lower()}/" if i else "",
+        )
+        for i, code in enumerate(codes)
+    ]
+
+
+def language_name(code: str) -> str:
+    """A language named in itself ('Français', '日本語'), else in English."""
+    try:
+        name = BabelLocale.parse(code, sep="-").get_display_name()
+    except (UnknownLocaleError, ValueError):
+        name = None
+    return capitalize(name or BabelLocale("en").languages.get(code, code))
+
+
+def alternates(
+    sets: list[PageSet], site_url: str, path: str, assets: str, lang: str
+) -> list[dict]:
+    """The picker and hreflang links of the page at `path` (relative to a page
+    set) in each set: `href` relative from the page, `url` absolute. Empty for
+    a one-language site."""
+    if len(sets) < 2:
+        return []
+    return [
+        {
+            "code": s.lang,
+            "name": language_name(s.lang),
+            "href": f"{assets}{s.prefix}{path}" or "./",
+            "url": f"{site_url}{s.prefix}{path}",
+            "current": s.lang == lang,
+        }
+        for s in sets
+    ]
+
+
 def build_site(
     zip_bytes: bytes, site: Site, today: date | None = None
 ) -> dict[str, bytes]:
-    """Map of path (relative to the site root) to file contents. No I/O."""
+    """Map of path (relative to the site root) to file contents: a page set per
+    language (see `page_sets`) plus the files they share. No I/O."""
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
         bad = archive.testzip()
     if bad is not None:
@@ -241,107 +304,149 @@ def build_site(
     timetables = site_timetables(feed, site, today)
     if not timetables:
         raise EmptyFeed("no route has scheduled trips")
+    sets = page_sets(read, site)
     labels = route_labels(feed, [rt.route for rt in timetables])
-    slugs = route_slugs([rt.route for rt in timetables], labels)
+    reserved = {"fares", *(s.prefix.rstrip("/") for s in sets if s.prefix)}
+    slugs = route_slugs([rt.route for rt in timetables], labels, reserved)
     agencies = agencies_by_routes(feed)
-    base_url = f"{BASE_URL}/{site.slug}/"
-    locale = site.locale
-    feed_notes, marked = feed_amenities(
-        [table for rt in timetables for table in rt.tables], locale
-    )
-    title = site_title(feed, site)
+    site_url = f"{BASE_URL}/{site.slug}/"
     place = feed_place(feed)
-    label = place_label(place, title, site.locality)
-    common = {
-        "locale": locale,
-        "site_title": title,
-        # The title with where the feed runs, for page titles and descriptions.
-        "site_place": f"{title}, {label}" if label else title,
-        "place": label,
-        "local": bool(label)
-        and (bool(site.locality) or (place is not None and bool(place.region))),
-        "base_url": base_url,
-        "generated": today,
-        "feed_notes": feed_notes,
-        "source": data_source(feed, site),
-    }
-
-    routes = [
-        route_view(
-            rt.route,
-            slugs[rt.route.route_id],
-            rt.tables,
-            labels.get(rt.route.route_id, ""),
-            rt.state,
-            rt.state_date,
-            locale,
-        )
-        for rt in timetables
-    ]
-    common["map_text"] = map_text(locale, [view.mode for view in routes])
-    by_route = {view.route_id: view for view in routes}
+    source = data_source(feed, site)
+    all_tables = [table for rt in timetables for table in rt.tables]
     start, end = service_range(feed)
     maps = site.map == "maplibre"
-    groups = mode_groups([view for view in routes if view.state != "expired"], locale)
-    expired = [view for view in routes if view.state == "expired"]
     vehicles = site.vehicles_url()
     updates = site.trip_updates_url()
-    shown = [view.slug for group in groups for view in group.routes]
-    by_slug = {
-        view.slug: (view, rt) for view, rt in zip(routes, timetables, strict=True)
-    }
-    trail = [
-        (ROOT_TITLE, f"{BASE_URL}/"),
-        (with_locality(common["site_title"], site.locality), base_url),
-    ]
+    all_fares = site_fares(read)
+
+    # Per page set: its route views and what every one of its pages shares.
+    views: dict[str, list[RouteView]] = {}
+    commons: dict[str, dict] = {}
+    for s in sets:
+        locale = s.locale
+        feed_notes, marked = feed_amenities(all_tables, locale)
+        title = site_title(feed, site, locale)
+        label = place_label(place, title, site.locality)
+        base_url = f"{site_url}{s.prefix}"
+        views[s.lang] = [
+            route_view(
+                rt.route,
+                slugs[rt.route.route_id],
+                rt.tables,
+                labels.get(rt.route.route_id, ""),
+                rt.state,
+                rt.state_date,
+                locale,
+            )
+            for rt in timetables
+        ]
+        commons[s.lang] = {
+            "locale": locale,
+            "html_lang": s.lang,
+            "site_title": title,
+            # The title with where the feed runs, for page titles and descriptions.
+            "site_place": f"{title}, {label}" if label else title,
+            "place": label,
+            "local": bool(label)
+            and (bool(site.locality) or (place is not None and bool(place.region))),
+            "base_url": base_url,
+            "generated": today,
+            "feed_notes": feed_notes,
+            "marked": marked,
+            "source": source,
+            "map_text": map_text(locale, [view.mode for view in views[s.lang]]),
+            "trail": [
+                (ROOT_TITLE, f"{BASE_URL}/"),
+                (with_locality(title, site.locality), base_url),
+            ],
+        }
+
+    routes = views[sets[0].lang]
+    expired = [view for view in routes if view.state == "expired"]
     # Search engines skip expired routes, and the whole site when it is not
     # indexed or every route has expired.
     indexed = site.index and any(view.state != "expired" for view in routes)
-    noindex = {
-        f"{view.slug}/index.html"
-        for view in routes
-        if not indexed or view.state == "expired"
+    route_noindex = {
+        view.slug for view in routes if not indexed or view.state == "expired"
     }
-    all_fares = site_fares(read)
+    noindex: set[str] = set()
+    files: dict[str, bytes] = {}
+    by_route = {
+        lang: {view.route_id: view for view in set_views}
+        for lang, set_views in views.items()
+    }
+
+    def page(s: PageSet, path: str, template: str, **context: object) -> None:
+        """Render `template` at `path` of page set `s`."""
+        depth = path.count("/")
+        root = "../" * depth
+        assets = root + ("../" if s.prefix else "")
+        common = commons[s.lang]
+        files[f"{s.prefix}{path}index.html"] = render(
+            template,
+            **{k: v for k, v in common.items() if k not in ("trail", "marked")},
+            root=root,
+            assets=assets,
+            languages=alternates(sets, site_url, path, assets, s.lang),
+            noindex=f"{s.prefix}{path}index.html" in noindex,
+            **context,
+        )
+
     if not indexed:
-        noindex.add("index.html")
+        noindex |= {f"{s.prefix}index.html" for s in sets}
         if all_fares:
-            noindex.add("fares/index.html")
-    files = {
-        "index.html": render(
+            noindex |= {f"{s.prefix}fares/index.html" for s in sets}
+    noindex |= {f"{s.prefix}{slug}/index.html" for s in sets for slug in route_noindex}
+
+    for s in sets:
+        locale = s.locale
+        common = commons[s.lang]
+        set_routes = views[s.lang]
+        groups = mode_groups(
+            [view for view in set_routes if view.state != "expired"], locale
+        )
+        page(
+            s,
+            "",
             "index.html",
-            **common,
             agencies=agencies,
-            routes=routes,
+            routes=set_routes,
             groups=groups,
-            expired=expired,
-            modes=modes_label([view.mode for view in routes], locale),
-            modes_lower=modes_text([view.mode for view in routes], locale),
-            system_map=maps and bool(shown),
+            expired=[view for view in set_routes if view.state == "expired"],
+            modes=modes_label([view.mode for view in set_routes], locale),
+            modes_lower=modes_text([view.mode for view in set_routes], locale),
+            system_map=maps and any(group.routes for group in groups),
             valid=date_range(start, end, locale, "valid"),
             feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
             fares_page=bool(all_fares),
-            jsonld=[breadcrumbs(trail), *place_jsonld(place, label, base_url)],
-            root="",
-            noindex="index.html" in noindex,
-        )
-    }
-    if all_fares:
-        files["fares/index.html"] = render(
-            "fares.html",
-            **common,
-            sections=fare_sections(
-                all_fares, locale, read.fares.timeframes, site.time_format
-            ),
-            transfers=sorted(
-                transfer_text(rule, locale) for rule in all_fares.transfers
-            ),
             jsonld=[
-                breadcrumbs([*trail, (t(locale, "fares.heading"), f"{base_url}fares/")])
+                breadcrumbs(common["trail"]),
+                *place_jsonld(place, common["place"], common["base_url"]),
             ],
-            root="../",
-            noindex="fares/index.html" in noindex,
         )
+        if all_fares:
+            fares_url = f"{common['base_url']}fares/"
+            page(
+                s,
+                "fares/",
+                "fares.html",
+                sections=fare_sections(
+                    all_fares, locale, read.fares.timeframes, site.time_format
+                ),
+                transfers=sorted(
+                    transfer_text(rule, locale) for rule in all_fares.transfers
+                ),
+                jsonld=[
+                    breadcrumbs(
+                        [*common["trail"], (t(locale, "fares.heading"), fares_url)]
+                    )
+                ],
+            )
+
+    groups = mode_groups(
+        [view for view in routes if view.state != "expired"], sets[0].locale
+    )
+    shown = [view.slug for group in groups for view in group.routes]
     trips_by_route: dict[str, list[str]] = {}
     for trip in feed.trips.values():
         trips_by_route.setdefault(trip.route_id, []).append(trip.trip_id)
@@ -350,14 +455,15 @@ def build_site(
         for rt in timetables
         for stop_id in {row.stop_id for table in rt.tables for row in table.rows}
     )
-    for view, rt in zip(routes, timetables, strict=True):
+    for i, rt in enumerate(timetables):
+        slug = routes[i].slug
         numbers = stop_numbers(rt.tables)
         data = (
             route_data(
                 feed,
                 rt.tables,
                 numbers,
-                view.colors,
+                routes[i].colors,
                 {"url": vehicles, **route_ids(read, rt.tables)} if vehicles else None,
                 served,
             )
@@ -367,57 +473,69 @@ def build_site(
         route_map = script_json(data) if data and data["lines"] else ""
         trip_ids = {c.trip_id for table in rt.tables for c in table.columns} - {""}
         fares = route_fares(read, trip_ids)
-        days = day_views(
-            feed,
-            rt.tables,
-            site.time_format,
-            marked,
-            locale,
-            by_route,
-            today,
-            fare_badges(fares, locale),
-        )
         # Live-times data is fetched only once a timetable is on screen, so
         # it adds nothing to the page itself. Without trip updates it still
-        # marks each running trip's next stop from the schedule
+        # marks each running trip's next stop from the schedule. One file
+        # serves every page set: it holds no text.
         live = bool(updates) or not rt.state
-        if live:
-            files[f"{view.slug}/{LIVE_FILE}"] = compact_json(
-                {
-                    "url": updates,
-                    "tz": feed.timezone(rt.route),
-                    "fmt": site.time_format,
-                    "tables": [table.live for day in days for table in day.tables],
-                    "parents": stop_parents(feed, rt.tables),
-                    **live_services(
-                        feed,
-                        trips_by_route.get(rt.route.route_id, []),
-                        [table.trip_ids for day in days for table in day.tables],
-                    ),
-                }
-            ).encode()
-        files[f"{view.slug}/index.html"] = render(
-            "route.html",
-            **common,
-            route=view,
-            fares=fare_lines(fares, locale, read.fares.timeframes, site.time_format),
-            fare_charts=fare_charts(fares, locale),
-            fares_page=bool(all_fares),
-            fares_by=(
-                t(locale, "fare.by_zone")
-                if isinstance(fares, ZoneFares) and fares.zones
-                else t(locale, "fare.by_stop")
-            ),
-            map=route_map,
-            live=LIVE_FILE if live else "",
-            days=days,
-            jsonld=[
-                breadcrumbs([*trail, (view.title, f"{base_url}{view.slug}/")]),
-                *place_jsonld(place, label, f"{base_url}{view.slug}/"),
-            ],
-            root="../",
-            noindex=f"{view.slug}/index.html" in noindex,
-        )
+        for s in sets:
+            locale = s.locale
+            common = commons[s.lang]
+            view = views[s.lang][i]
+            days = day_views(
+                feed,
+                rt.tables,
+                site.time_format,
+                common["marked"],
+                locale,
+                by_route[s.lang],
+                today,
+                fare_badges(fares, locale),
+            )
+            if live and not s.prefix:
+                files[f"{slug}/{LIVE_FILE}"] = compact_json(
+                    {
+                        "url": updates,
+                        "tz": feed.timezone(rt.route),
+                        "fmt": site.time_format,
+                        "tables": [table.live for day in days for table in day.tables],
+                        "parents": stop_parents(feed, rt.tables),
+                        **live_services(
+                            feed,
+                            trips_by_route.get(rt.route.route_id, []),
+                            [table.trip_ids for day in days for table in day.tables],
+                        ),
+                    }
+                ).encode()
+            route_url = f"{common['base_url']}{slug}/"
+            page(
+                s,
+                f"{slug}/",
+                "route.html",
+                route=view,
+                fares=fare_lines(
+                    fares, locale, read.fares.timeframes, site.time_format
+                ),
+                fare_charts=fare_charts(fares, locale),
+                fares_page=bool(all_fares),
+                fares_by=(
+                    t(locale, "fare.by_zone")
+                    if isinstance(fares, ZoneFares) and fares.zones
+                    else t(locale, "fare.by_stop")
+                ),
+                map=route_map,
+                live=(f"../../{slug}/{LIVE_FILE}" if s.prefix else LIVE_FILE)
+                if live
+                else "",
+                days=days,
+                jsonld=[
+                    breadcrumbs([*common["trail"], (view.title, route_url)]),
+                    *place_jsonld(place, common["place"], route_url),
+                ],
+            )
+    by_slug = {
+        view.slug: (view, rt) for view, rt in zip(routes, timetables, strict=True)
+    }
     if maps and shown:
         files["map.json"] = json.dumps(
             system_data(
@@ -439,10 +557,12 @@ def build_site(
             separators=(",", ":"),
             ensure_ascii=False,
         ).encode()
-    download_url = common["source"]["download_url"]
+    download_url = source["download_url"]
     files["site.json"] = summary_json(
         slug=site.slug,
-        title=with_locality(common["site_title"], site.locality),
+        title=with_locality(commons[sets[0].lang]["site_title"], site.locality),
+        # The page sets' languages, the default first.
+        languages=[s.lang for s in sets],
         source=source_label(download_url) if download_url else "",
         routes=len(routes),
         expired_routes=len(expired),
@@ -613,25 +733,68 @@ def unbuilt_summary(site: Site) -> dict:
     }
 
 
+SitemapUrl = tuple[str, str, list[tuple[str, str]]]
+
+
 def sitemap_urls(
-    pages: dict[str, dict[str, str]], noindex: dict[str, set[str]] | None = None
-) -> list[tuple[str, str]]:
-    """(url, lastmod) for each site's pages, from {slug: {path: YYYY-MM-DD}},
-    leaving out the paths in each site's `noindex`."""
+    pages: dict[str, dict[str, str]],
+    noindex: dict[str, set[str]] | None = None,
+    languages: dict[str, list[str]] | None = None,
+) -> list[SitemapUrl]:
+    """(url, lastmod, alternates) for each site's pages, from {slug: {path:
+    YYYY-MM-DD}}, leaving out the paths in each site's `noindex`; see
+    `site_sitemap` for alternates."""
     noindex = noindex or {}
+    languages = languages or {}
+    return [
+        url
+        for slug in sorted(pages)
+        for url in site_sitemap(
+            slug, pages[slug], noindex.get(slug, set()), languages.get(slug) or []
+        )
+    ]
+
+
+def site_sitemap(
+    slug: str, pages: dict[str, str], skip: set[str], codes: list[str]
+) -> list[SitemapUrl]:
+    """A site's sitemap entries, its index first. A page's alternates are
+    (hreflang, url) of the same page in each language of `codes` (the default
+    first, at the site root; the others under `<lang>/`) plus `x-default`,
+    when more than one of them is listed."""
+    prefixes = {f"{code.lower()}/": code for code in codes[1:]}
+    listed = [
+        path
+        for path in pages
+        if path not in skip and (path == "index.html" or path.endswith("/index.html"))
+    ]
+    same: dict[str, dict[str, str]] = {}
+    in_set = {}
+    for path in listed:
+        head = path.split("/", 1)[0] + "/"
+        if head in prefixes:
+            code, base = prefixes[head], path[len(head) :]
+        else:
+            code, base = (codes[0] if codes else ""), path
+        same.setdefault(base, {})[code] = path
+        in_set[path] = base
+    base_url = f"{BASE_URL}/{slug}/"
     urls = []
-    for slug in sorted(pages):
-        skip = noindex.get(slug, set())
-        # The site's index first, then its routes.
-        for path, modified in sorted(
-            pages[slug].items(), key=lambda item: (item[0] != "index.html", item[0])
-        ):
-            if path in skip:
-                continue
-            if path == "index.html" or path.endswith("/index.html"):
-                urls.append(
-                    (f"{BASE_URL}/{slug}/{path[: -len('index.html')]}", modified)
-                )
+    for path in sorted(listed, key=lambda p: (p != "index.html", p)):
+        versions = same[in_set[path]]
+        alternates = []
+        if len(versions) > 1:
+            alternates = [
+                (code, base_url + versions[code].removesuffix("index.html"))
+                for code in codes
+                if code in versions
+            ]
+            if codes[0] in versions:
+                default = versions[codes[0]].removesuffix("index.html")
+                alternates.append(("x-default", base_url + default))
+        urls.append(
+            (base_url + path.removesuffix("index.html"), pages[path], alternates)
+        )
     return urls
 
 
@@ -882,22 +1045,25 @@ def build_root(
         )
 
     # One sitemap per shard of sites, so each stays far below 50,000 URLs.
-    root_urls = [(f"{BASE_URL}/", None)] + [
-        (f"{BASE_URL}/countries/{c['key']}/", None) for c in countries
+    root_urls = [(f"{BASE_URL}/", None, [])] + [
+        (f"{BASE_URL}/countries/{c['key']}/", None, []) for c in countries
     ]
     maps = {"sitemaps/root.xml": root_urls}
     noindex = {s["slug"]: set(s.get("noindex", ())) for s in summaries}
+    languages = {s["slug"]: s.get("languages") or [] for s in summaries}
     shards: dict[int, dict[str, dict[str, str]]] = {}
     for slug, site_pages in (pages or {}).items():
         shards.setdefault(shard_of(slug), {})[slug] = site_pages
     for shard, shard_pages in sorted(shards.items()):
-        maps[f"sitemaps/{shard:02d}.xml"] = sitemap_urls(shard_pages, noindex)
+        maps[f"sitemaps/{shard:02d}.xml"] = sitemap_urls(
+            shard_pages, noindex, languages
+        )
     for path, urls in maps.items():
         files[path] = render("sitemap.xml", urls=urls)
     files["sitemap.xml"] = render(
         "sitemap-index.xml",
         sitemaps=[
-            (f"{BASE_URL}/{path}", max((m for _, m in urls if m), default=None))
+            (f"{BASE_URL}/{path}", max((u[1] for u in urls if u[1]), default=None))
             for path, urls in maps.items()
         ],
     )

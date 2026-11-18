@@ -35,11 +35,12 @@ class DayType:
     gives the dates of trips that do not run on every one of `dates`.
     """
 
-    name: str
     regular: bool
     weekdays: frozenset[int]
     dates: tuple[date, ...]
     trip_ids: frozenset[str]
+    # Every date of the window the day types were made over.
+    horizon: tuple[date, ...] = ()
     extra: tuple[date, ...] = ()
     missing: tuple[date, ...] = ()
     partial: tuple[tuple[str, tuple[date, ...]], ...] = ()
@@ -282,6 +283,13 @@ def exception_name(
     return f"{name}, {span_label(dates, within, locale)}"
 
 
+def day_name(day: DayType, locale: Locale = "en") -> str:
+    """'Weekday', 'Saturday', or an exception's dates ('Sat, Oct 10')."""
+    if day.regular:
+        return weekday_name(day.weekdays, locale=locale)
+    return exception_name(day.dates, day.horizon, locale)
+
+
 def missing_label(day: DayType, locale: Locale = "en") -> str:
     """The regular weekdays a day type skips, as ranges where they run on."""
     within = sorted(
@@ -357,7 +365,6 @@ def day_types(
     trip_ids: Iterable[str],
     start: date,
     days: int,
-    locale: Locale = "en",
     services: Services | None = None,
 ) -> tuple[DayType, ...]:
     """Group the horizon's dates by the set of trips running on each.
@@ -424,7 +431,7 @@ def day_types(
         if index >= 0:
             regular[index].add(weekday)
 
-    horizon = list(signatures)
+    horizon = tuple(signatures)
     result = []
     for index, cluster in enumerate(clusters):
         dates = sorted(day for signature in cluster for day in groups[signature])
@@ -443,13 +450,13 @@ def day_types(
             "dates": tuple(dates),
             "trip_ids": representatives(key_dates),
             "partial": partial,
+            "horizon": horizon,
         }
         weekdays = regular.get(index)
         if weekdays:
             member = set(dates)
             result.append(
                 DayType(
-                    name=weekday_name(weekdays, locale=locale),
                     regular=True,
                     weekdays=frozenset(weekdays),
                     extra=tuple(day for day in dates if day.weekday() not in weekdays),
@@ -464,7 +471,6 @@ def day_types(
         else:
             result.append(
                 DayType(
-                    name=exception_name(dates, horizon, locale),
                     regular=False,
                     weekdays=frozenset(day.weekday() for day in dates),
                     **common,

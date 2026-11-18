@@ -81,6 +81,11 @@ def test_route_slugs_are_unique():
     assert slugify("  Copake ") == "copake"
 
 
+def test_route_slugs_skip_reserved_names():
+    routes = [route("a", short="EN"), route("b", long="Fares")]
+    assert route_slugs(routes, {}, {"en", "fares"}) == {"a": "en-2", "b": "fares-2"}
+
+
 def test_headsign_spans_merge_adjacent_runs():
     heads = tuple(
         ColumnHead(number="", headsign=h, every="", shaded=shaded)

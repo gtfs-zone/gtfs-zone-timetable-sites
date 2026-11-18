@@ -2,7 +2,7 @@
 
 import re
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time
 from itertools import groupby
@@ -24,6 +24,7 @@ from gtfs_zone_timetable_sites.gtfs.reader import Feed, Route, Timeframe
 from gtfs_zone_timetable_sites.gtfs.service import (
     DayType,
     dates_label,
+    day_name,
     day_order,
     first_service_date,
     last_service_date,
@@ -751,7 +752,7 @@ def day_notes(day: DayType, locale: Locale = "en") -> tuple[str, ...]:
     if not day.regular:
         listed = dates_label(day.dates, locale)
         # A name like 'Weekday, Oct 12 to Oct 16' already says it all.
-        if day.name != capitalize(listed):
+        if day_name(day, locale) != capitalize(listed):
             return ()
         return (t(locale, "day.runs_only", dates=listed),)
     notes = []
@@ -857,7 +858,8 @@ def day_views(
     views = []
     anchors: set[str] = set()
     for day, group in ordered_days(tables):
-        anchor = slugify(day.name) or "day"
+        name = day_name(day, locale)
+        anchor = slugify(name) or "day"
         while anchor in anchors:
             anchor += "-2"
         anchors.add(anchor)
@@ -865,7 +867,7 @@ def day_views(
         views.append(
             DayView(
                 anchor=anchor,
-                name=day.name,
+                name=name,
                 notes=day_notes(day, locale),
                 tables=distinct_titles(
                     [
@@ -955,8 +957,8 @@ def route_view(
         name = f"{name} ({label})" if name else label
     days: list[str] = []
     for day in sorted({table.day_type for table in tables}, key=day_order):
-        if day.regular and day.name not in days:
-            days.append(day.name)
+        if day.regular and (day_text := day_name(day, locale)) not in days:
+            days.append(day_text)
     return RouteView(
         route_id=route.route_id,
         slug=slug,
@@ -974,10 +976,13 @@ def route_view(
     )
 
 
-def route_slugs(routes: list[Route], labels: dict[str, str]) -> dict[str, str]:
-    """route_id -> a unique URL slug from the route's name and label."""
+def route_slugs(
+    routes: list[Route], labels: dict[str, str], reserved: Iterable[str] = ()
+) -> dict[str, str]:
+    """route_id -> a unique URL slug from the route's name and label, never
+    one of `reserved` (the site's other directories)."""
     slugs: dict[str, str] = {}
-    taken: set[str] = set()
+    taken: set[str] = set(reserved)
     for route in routes:
         text = f"{route.name} {labels.get(route.route_id, '')}"
         base = slugify(text) or slugify(route.route_id) or "route"

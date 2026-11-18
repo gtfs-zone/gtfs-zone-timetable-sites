@@ -32,13 +32,17 @@ def test_feed_facts():
     assert facts["counts"]["stops"] > 0 and facts["counts"]["trips"] > 0
     assert facts["filtered"] is False
     assert "feedInfo" not in facts
-    assert facts["languages"] == {"default": "en", "offered": ["en"]}
+    assert facts["languages"] == {"default": "en", "offered": ["en"], "readings": []}
 
 
 def test_feed_facts_languages():
     body = fixture_zip("languages")
     facts = feed_facts(body, read_feed(body), filtered=False)
-    assert facts["languages"] == {"default": "fr", "offered": ["fr", "en"]}
+    assert facts["languages"] == {
+        "default": "fr",
+        "offered": ["fr", "en"],
+        "readings": [],
+    }
 
 
 def test_feed_facts_feed_info_and_calendar_dates():

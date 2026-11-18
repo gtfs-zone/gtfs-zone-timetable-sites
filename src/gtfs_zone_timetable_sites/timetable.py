@@ -16,6 +16,7 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     DAY_SECONDS,
     DayType,
     Services,
+    day_name,
     start_day_offset,
     timezone_shift,
     trip_note,
@@ -510,7 +511,7 @@ def to_text(table: Timetable, time_format: TimeFormat = "12h") -> str:
     """Plain-text grid for checking a timetable against a printed one."""
     rows = list(enumerate(table.rows))
     day = table.day_type
-    title = f"To {' / '.join(table.headsigns)} - {day.name}"
+    title = f"To {' / '.join(table.headsigns)} - {day_name(day)}"
     lines = [title, f"{day.start} to {day.end}"]
     if day.extra:
         lines.append("Also " + ", ".join(str(d) for d in day.extra))

@@ -78,8 +78,15 @@ renames it, and the old slug is kept in `aliases.json`, never reused, and its
 pages redirect to the new ones. A feed that feeds.json lists under `moved`
 (its members joined another feed) keeps its slug the same way, redirecting to
 the feed it joined; a page that feed lacks goes to its index. Its `time_format` comes from its country (12h
-in the US, Canada outside Quebec, Australia and a few others, 24h elsewhere),
-and France, Monaco and Quebec get `locale: fr`.
+in the US, Canada outside Quebec, Australia and a few others, 24h elsewhere).
+
+A site has a set of pages per language its feed is in: `feed_lang`, every
+`agency_lang` and every `translations.txt` language (kana readings such as
+`ja-Hrkt` excluded). The default is `feed_lang`, else the first `agency_lang`,
+else `en`, at `/<slug>/`; each other language is at `/<slug>/<lang>/`, with a
+language picker and `hreflang` links on every page and alternates in the
+sitemaps. Page text comes from the language's catalog under `locales/`, else
+English.
 
 Each listed site needs exactly one of `feed` or `url`, a `slug` when it has a
 `url` (optional for a `feed`), and may override any default. A listed `feed` is
@@ -90,7 +97,7 @@ built whatever the catalog filter says:
 | `map` | `maplibre`, `none` | `maplibre` |
 | `horizon_days` | days used to derive day types | `28` |
 | `time_format` | `12h`, `24h` | `12h` |
-| `locale` | a directory under `locales/` (`en`, `fr`): the language of the site's pages (the root and country pages stay English) | `en` |
+| `locale` | a language code (`fr`, `nl`): the site's default language, in place of the feed's (the root and country pages stay English) | the feed's |
 | `index` | `true`, `false`: whether search engines may index the site's pages; `false` adds a robots `noindex` to every page and leaves them out of the sitemap, as for expired routes | `true` |
 
 `title` names the site, and `routes` filters routes by `route_types`,

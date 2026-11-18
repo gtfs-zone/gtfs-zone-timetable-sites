@@ -78,13 +78,14 @@ def test_mul_without_any_language_raises():
         languages(feed_info=FEED_INFO + "mul\n")
 
 
-def test_kana_readings_are_their_own_language():
+def test_kana_readings_are_not_page_languages():
     translations = (
         TRANSLATIONS
         + "stops,stop_name,ja-Hrkt,えき,s1\nstops,stop_name,en,Station,s1\n"
+        + "stops,stop_name,ja-Latn,Eki,s1\n"
     )
     assert languages(feed_info=FEED_INFO + "ja\n", translations=translations) == (
-        FeedLanguages("ja", ("ja", "en", "ja-Hrkt"))
+        FeedLanguages("ja", ("ja", "en"), ("ja-Hrkt", "ja-Latn"))
     )
 
 

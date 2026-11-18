@@ -18,6 +18,10 @@ MULTIPLE = "mul"
 LANGUAGES = frozenset(Locale("en").languages) - {MULTIPLE, "und", "zxx", "mis"}
 SCRIPTS = frozenset(Locale("en").scripts)
 ALIASES: dict[str, str] = get_global("language_aliases")
+# Codes that write a reading of a language's text, not a language of their
+# own, so they get no page set: Japanese names in kana (17 of 21 measured
+# Japanese feeds) and in romaji (Muroto's agency name, f-0191bb2ecd).
+READINGS = frozenset({"ja-Hrkt", "ja-Latn"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +29,14 @@ class FeedLanguages:
     default: str
     # Every language the feed has text in, the default first, then sorted.
     offered: tuple[str, ...]
+    # Readings of the feed's text in another script (`ja-Hrkt`, `ja-Latn`),
+    # sorted.
+    readings: tuple[str, ...] = ()
+
+
+def is_reading(code: str) -> bool:
+    """Whether a normalized code is a reading (`ja-Hrkt`, `ja-Latn`)."""
+    return code in READINGS
 
 
 def normalize(code: str) -> str:
@@ -48,8 +60,9 @@ def feed_languages(feed: Feed) -> FeedLanguages:
     """The default language is feed_lang, else the first agency_lang, else
     `en`; with feed_lang `mul`, the first agency_lang, else the first
     translations.txt language. Offered is the default plus every agency_lang and
-    translations.txt language. translations.txt rows with no language are
-    skipped (Hofbus and Kajaani have rows with every field empty)."""
+    translations.txt language, less readings (`ja-Hrkt`, `ja-Latn`), which go in
+    `readings`. translations.txt rows with no language are skipped (Hofbus and
+    Kajaani have rows with every field empty)."""
     feed_lang = feed.feed_info.lang if feed.feed_info else ""
     agency_langs = [
         normalize(agency.lang) for agency in feed.agencies.values() if agency.lang
@@ -68,5 +81,10 @@ def feed_languages(feed: Feed) -> FeedLanguages:
         default = normalize(feed_lang)
     else:
         default = agency_langs[0] if agency_langs else "en"
-    rest = {*agency_langs, *translated} - {default}
-    return FeedLanguages(default=default, offered=(default, *sorted(rest)))
+    codes = {*agency_langs, *translated} - {default}
+    readings = {code for code in codes if is_reading(code)}
+    return FeedLanguages(
+        default=default,
+        offered=(default, *sorted(codes - readings)),
+        readings=tuple(sorted(readings)),
+    )

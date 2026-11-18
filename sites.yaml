@@ -2,13 +2,14 @@ defaults:
   map: maplibre            # maplibre | none
   horizon_days: 28         # window used to derive day types and effective dates
   time_format: 12h         # 12h | 24h
-  locale: en               # en | fr: the language of the site's pages
+  # locale: fr             # pins the default language; unset, it is the feed's
   index: true              # whether search engines may index the site's pages
 
 # Feeds from data.gtfs.zone/feeds.json that become sites on their own, with a
 # slug from the romanized feed name (plus its subtitle or place when several
 # feeds share the name) pinned in the bucket's slugs.json. Only feeds whose
-# schedule is up are taken. time_format and locale come from the feed's country.
+# schedule is up are taken. time_format comes from the feed's country, the
+# languages from the feed (feed_lang, agency_lang, translations.txt).
 catalog:
   countries: []            # ISO codes, empty for all
   exclude_countries: []    # ISO codes

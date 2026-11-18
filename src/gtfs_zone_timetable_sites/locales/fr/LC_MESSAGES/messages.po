@@ -554,6 +554,9 @@ msgstr "Plus d'outils GTFS sur {link}"
 msgid "nav.github"
 msgstr "Code source sur GitHub"
 
+msgid "nav.language"
+msgstr "Langue"
+
 msgid "nav.theme"
 msgstr "Thème clair ou sombre"
 

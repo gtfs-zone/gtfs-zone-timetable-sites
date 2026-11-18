@@ -34,6 +34,7 @@ def feed_facts(zip_bytes: bytes, feed: Feed, filtered: bool) -> dict:
         "languages": {
             "default": languages.default,
             "offered": list(languages.offered),
+            "readings": list(languages.readings),
         },
     }
     if info := feed.feed_info:

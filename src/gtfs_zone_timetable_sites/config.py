@@ -3,11 +3,13 @@
 from typing import Annotated, Any, Literal, Self
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
-from gtfs_zone_timetable_sites.i18n import Locale
+from gtfs_zone_timetable_sites.languages import normalize
 
 MapKind = Literal["maplibre", "none"]
+# A language code, normalized as `languages.normalize` does (`fr-CA` -> `fr`).
+Language = Annotated[str, AfterValidator(normalize)]
 TimeFormat = Literal["12h", "24h"]
 
 FEEDS_URL = "https://data.gtfs.zone/feeds.json"
@@ -33,7 +35,8 @@ class Options(Strict):
     map: MapKind = "maplibre"
     horizon_days: int = Field(28, gt=0, le=366)
     time_format: TimeFormat = "12h"
-    locale: Locale = "en"
+    # The site's default language; unset, the feed's (`feed_languages`).
+    locale: Language | None = None
     # Whether search engines may index the site's pages.
     index: bool = True
 

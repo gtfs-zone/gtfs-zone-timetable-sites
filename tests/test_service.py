@@ -5,6 +5,7 @@ from conftest import fixture_files, fixture_zip, make_zip
 from gtfs_zone_timetable_sites.gtfs.reader import read_feed
 from gtfs_zone_timetable_sites.gtfs.service import (
     Services,
+    day_name,
     day_types,
     exception_name,
     horizon_start,
@@ -34,7 +35,7 @@ def test_calendar_dates_only_day_types():
     assert Services(feed).active(date(2026, 10, 10)) == {"SAT"}
     types = day_types(feed, feed.trips, MONDAY, 14)
     saturday, special = types
-    assert saturday.name == "Saturday" and saturday.regular
+    assert day_name(saturday) == "Saturday" and saturday.regular
     assert saturday.dates == (
         date(2026, 10, 10),
         date(2026, 10, 14),
@@ -44,7 +45,7 @@ def test_calendar_dates_only_day_types():
     assert saturday.missing == ()
     assert not special.regular
     assert special.dates == (date(2026, 10, 12),)
-    assert special.name == "Mon, Oct 12"
+    assert day_name(special) == "Mon, Oct 12"
     assert special.trip_ids == {"special"}
 
 
@@ -97,7 +98,7 @@ def test_removed_date_is_missing_from_regular_day_type():
     feed = read_feed(fixture_zip("overnight"))
     feed.calendar_dates["DAILY"] = {date(2026, 10, 12): False}
     (daily,) = day_types(feed, feed.trips, MONDAY, 14)
-    assert daily.name == "Daily"
+    assert day_name(daily) == "Daily"
     assert daily.missing == (date(2026, 10, 12),)
     assert len(daily.dates) == 13
 
@@ -152,7 +153,7 @@ def weekday_feed() -> bytes:
 def test_near_identical_days_merge_with_trip_notes():
     feed = read_feed(weekday_feed())
     (weekday,) = day_types(feed, feed.trips, MONDAY, 14)
-    assert weekday.name == "Weekday" and weekday.regular
+    assert day_name(weekday) == "Weekday" and weekday.regular
     assert len(weekday.dates) == 10
     assert weekday.trip_ids == {"w1", "w2", "w3", "w4", "w5", "fri", "old", "new"}
     assert trip_note(weekday, "w2") == ""
