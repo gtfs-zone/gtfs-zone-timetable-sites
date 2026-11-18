@@ -1,0 +1,6 @@
+fare_product_id,fare_product_name,fare_media_id,amount,currency
+bus,Bus fare,cash,2.00,USD
+bus,Bus fare,card,1.70,USD
+rail_1,Zone 1 rail fare,card,2.40,USD
+rail_2,Zone 2 rail fare,card,3.70,USD
+rail_peak,Peak rail fare,card,4.25,USD

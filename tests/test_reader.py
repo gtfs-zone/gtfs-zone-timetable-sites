@@ -1,9 +1,20 @@
 from datetime import date
+from decimal import Decimal
 
 import pytest
-from conftest import fixture_zip, make_zip
+from conftest import fixture_files, fixture_zip, make_zip
 
-from gtfs_zone_timetable_sites.gtfs.reader import parse_color, parse_time, read_feed
+from gtfs_zone_timetable_sites.gtfs.reader import (
+    FareAttribute,
+    FareLegRule,
+    FareProduct,
+    FareRule,
+    FareTransferRule,
+    Timeframe,
+    parse_color,
+    parse_time,
+    read_feed,
+)
 
 
 def test_parse_time():
@@ -120,3 +131,90 @@ def test_distinct_and_single_route_colors_are_kept():
     assert (feed.routes["R1"].color, feed.routes["R2"].color) == ("FF0000", "0000FF")
     feed = read_feed(routes_feed("route_id,route_type,route_color\nR1,3,FF0000\n"))
     assert feed.routes["R1"].color == "FF0000"
+
+
+def test_flat_v1_fares():
+    fares = read_feed(fixture_zip("fares-flat-v1")).fares
+    assert fares.attributes["express"] == FareAttribute(
+        fare_id="express",
+        agency_id="a",
+        price=Decimal("2.00"),
+        currency="USD",
+        payment_method=0,
+        transfers=1,
+        transfer_duration=3600,
+    )
+    local = fares.attributes["local"]
+    assert (local.transfers, local.transfer_duration) == (0, None)
+    assert fares.rules[2] == FareRule("express", "X", "", "", "")
+    assert len(fares.rules) == 3
+    assert fares.products == {} and fares.leg_rules == ()
+
+
+def test_zone_v1_fares():
+    feed = read_feed(fixture_zip("fares-zone-v1"))
+    assert [feed.stops[s].zone_id for s in "ABC"] == ["1", "1", "2"]
+    near, near_ic = feed.fares.attributes["near"], feed.fares.attributes["near_ic"]
+    assert (near.payment_method, near.price) == (0, Decimal("200"))
+    assert (near_ic.payment_method, near_ic.price) == (1, Decimal("190"))
+    # No agency_id column reads as empty, empty transfers as unlimited.
+    assert near.agency_id == "" and near.transfers is None
+    assert FareRule("far", "", "2", "1", "") in feed.fares.rules
+    assert len(feed.fares.rules) == 8
+
+
+def test_v2_fares():
+    feed = read_feed(fixture_zip("fares-v2"))
+    fares = feed.fares
+    assert feed.routes["B1"].network_id == "bus"
+    assert feed.routes["CR"].network_id == ""
+    assert fares.route_networks == {"CR": "rail"}
+    assert fares.networks == {"bus": "Local Bus", "rail": "Commuter Rail"}
+    assert fares.areas == {"z1": "Zone 1", "z2": ""}
+    assert fares.stop_areas == {"z1": ("A", "B"), "z2": ("C",)}
+    assert fares.media["card"].name == "Smart card"
+    assert fares.media["card"].media_type == 2
+    assert fares.products["bus"] == (
+        FareProduct("bus", "Bus fare", "cash", Decimal("2.00"), "USD"),
+        FareProduct("bus", "Bus fare", "card", Decimal("1.70"), "USD"),
+    )
+    assert fares.leg_rules[0] == FareLegRule(
+        leg_group_id="leg_bus",
+        network_id="bus",
+        from_area_id="",
+        to_area_id="",
+        from_timeframe_group_id="any",
+        to_timeframe_group_id="",
+        fare_product_id="bus",
+        rule_priority=None,
+    )
+    assert fares.leg_rules[3].rule_priority == 1
+    assert fares.transfer_rules == (
+        FareTransferRule("leg_bus", "leg_rail", None, 7200, 1, 0, ""),
+        FareTransferRule("leg_bus", "leg_bus", -1, None, None, 1, "bus"),
+    )
+    assert fares.timeframes == {
+        "any": (Timeframe(None, None, "DAILY"),),
+        "peak": (Timeframe(7 * 3600, 9 * 3600, "DAILY"),),
+    }
+    assert fares.attributes == {} and fares.rules == ()
+
+
+def test_missing_fare_files_are_empty():
+    feed = read_feed(fixture_zip("branching"))
+    assert all(not getattr(feed.fares, name) for name in feed.fares.__slots__)
+    assert all(stop.zone_id == "" for stop in feed.stops.values())
+
+
+def test_header_only_fare_files_are_empty():
+    # BC Ferries ships fare files with headers and no rows, and an areas.txt
+    # with a non-standard wkt column.
+    files = fixture_files("branching") | {
+        "fare_attributes.txt": "agency_id,fare_id,price,currency_type,"
+        "payment_method,transfers,transfer_duration\n",
+        "fare_rules.txt": "fare_id,route_id,origin_id,destination_id,contains_id\n",
+        "areas.txt": "area_id,wkt\n",
+        "farezone_attributes.txt": "zone_id,zone_name\n",
+    }
+    fares = read_feed(make_zip(files)).fares
+    assert all(not getattr(fares, name) for name in fares.__slots__)

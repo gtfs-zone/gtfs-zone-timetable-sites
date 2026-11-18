@@ -8,6 +8,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
 from datetime import date
+from decimal import Decimal
 
 REQUIRED_FILES = ("agency", "routes", "trips", "stop_times", "stops")
 log = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ class Route:
     text_color: str | None
     sort_order: int | None
     url: str
+    network_id: str = ""
 
     @property
     def name(self) -> str:
@@ -57,6 +59,7 @@ class Stop:
     parent_station: str
     wheelchair_boarding: int
     platform: str = ""
+    zone_id: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,6 +117,93 @@ class FeedInfo:
 
 
 @dataclass(frozen=True, slots=True)
+class FareAttribute:
+    fare_id: str
+    agency_id: str
+    price: Decimal
+    currency: str
+    payment_method: int
+    # None is unlimited transfers.
+    transfers: int | None
+    transfer_duration: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class FareRule:
+    fare_id: str
+    route_id: str
+    origin_id: str
+    destination_id: str
+    contains_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class FareMedia:
+    fare_media_id: str
+    name: str
+    media_type: int
+
+
+@dataclass(frozen=True, slots=True)
+class FareProduct:
+    fare_product_id: str
+    name: str
+    fare_media_id: str
+    amount: Decimal
+    currency: str
+
+
+@dataclass(frozen=True, slots=True)
+class FareLegRule:
+    leg_group_id: str
+    network_id: str
+    from_area_id: str
+    to_area_id: str
+    from_timeframe_group_id: str
+    to_timeframe_group_id: str
+    fare_product_id: str
+    rule_priority: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class FareTransferRule:
+    from_leg_group_id: str
+    to_leg_group_id: str
+    transfer_count: int | None
+    duration_limit: int | None
+    duration_limit_type: int | None
+    fare_transfer_type: int
+    fare_product_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class Timeframe:
+    start: int | None
+    end: int | None
+    service_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class Fares:
+    """Fares v1 and v2 tables; each is empty when its file is missing or has
+    no rows."""
+
+    # v1
+    attributes: dict[str, FareAttribute]
+    rules: tuple[FareRule, ...]
+    # v2
+    areas: dict[str, str]  # area_id -> area_name
+    stop_areas: dict[str, tuple[str, ...]]  # area_id -> stop_ids
+    networks: dict[str, str]  # network_id -> network_name
+    route_networks: dict[str, str]  # route_id -> network_id
+    media: dict[str, FareMedia]
+    products: dict[str, tuple[FareProduct, ...]]  # one row per media
+    leg_rules: tuple[FareLegRule, ...]
+    transfer_rules: tuple[FareTransferRule, ...]
+    timeframes: dict[str, tuple[Timeframe, ...]]
+
+
+@dataclass(frozen=True, slots=True)
 class Feed:
     agencies: dict[str, Agency]
     routes: dict[str, Route]
@@ -125,6 +215,7 @@ class Feed:
     shapes: dict[str, tuple[tuple[float, float], ...]]
     frequencies: dict[str, tuple[Frequency, ...]]
     feed_info: FeedInfo | None
+    fares: Fares
 
     def timezone(self, route: Route) -> str:
         agency = self.agencies.get(route.agency_id)
@@ -253,6 +344,7 @@ def read_routes(archive: Archive) -> dict[str, Route]:
         "route_text_color",
         "route_sort_order",
         "route_url",
+        "network_id",
     )
     routes = {
         row["route_id"]: Route(
@@ -266,6 +358,7 @@ def read_routes(archive: Archive) -> dict[str, Route]:
             text_color=parse_color(row["route_text_color"]),
             sort_order=parse_int(row["route_sort_order"]),
             url=row["route_url"],
+            network_id=row["network_id"],
         )
         for row in archive.rows("routes", columns)
     }
@@ -293,6 +386,7 @@ def read_stops(archive: Archive) -> dict[str, Stop]:
         "parent_station",
         "wheelchair_boarding",
         "platform_code",
+        "zone_id",
     )
     return {
         row["stop_id"]: Stop(
@@ -305,6 +399,7 @@ def read_stops(archive: Archive) -> dict[str, Stop]:
             parent_station=row["parent_station"],
             wheelchair_boarding=parse_int(row["wheelchair_boarding"]) or 0,
             platform=row["platform_code"],
+            zone_id=row["zone_id"],
         )
         for row in archive.rows("stops", columns)
     }
@@ -482,6 +577,150 @@ def read_feed_info(archive: Archive) -> FeedInfo | None:
     return None
 
 
+def read_fares(archive: Archive) -> Fares:
+    attributes = {
+        row["fare_id"]: FareAttribute(
+            fare_id=row["fare_id"],
+            agency_id=row["agency_id"],
+            price=Decimal(row["price"].strip()),
+            currency=row["currency_type"].strip(),
+            payment_method=int(row["payment_method"]),
+            transfers=parse_int(row["transfers"]),
+            transfer_duration=parse_int(row["transfer_duration"]),
+        )
+        for row in archive.rows(
+            "fare_attributes",
+            (
+                "fare_id",
+                "agency_id",
+                "price",
+                "currency_type",
+                "payment_method",
+                "transfers",
+                "transfer_duration",
+            ),
+        )
+    }
+    rules = tuple(
+        FareRule(
+            fare_id=row["fare_id"],
+            route_id=row["route_id"],
+            origin_id=row["origin_id"],
+            destination_id=row["destination_id"],
+            contains_id=row["contains_id"],
+        )
+        for row in archive.rows(
+            "fare_rules",
+            ("fare_id", "route_id", "origin_id", "destination_id", "contains_id"),
+        )
+    )
+    stop_areas: dict[str, list[str]] = defaultdict(list)
+    for row in archive.rows("stop_areas", ("area_id", "stop_id")):
+        stop_areas[row["area_id"]].append(row["stop_id"])
+    products: dict[str, list[FareProduct]] = defaultdict(list)
+    for row in archive.rows(
+        "fare_products",
+        ("fare_product_id", "fare_product_name", "fare_media_id", "amount", "currency"),
+    ):
+        products[row["fare_product_id"]].append(
+            FareProduct(
+                fare_product_id=row["fare_product_id"],
+                name=row["fare_product_name"],
+                fare_media_id=row["fare_media_id"],
+                amount=Decimal(row["amount"].strip()),
+                currency=row["currency"].strip(),
+            )
+        )
+    timeframes: dict[str, list[Timeframe]] = defaultdict(list)
+    for row in archive.rows(
+        "timeframes", ("timeframe_group_id", "start_time", "end_time", "service_id")
+    ):
+        timeframes[row["timeframe_group_id"]].append(
+            Timeframe(
+                start=parse_time(row["start_time"]),
+                end=parse_time(row["end_time"]),
+                service_id=row["service_id"],
+            )
+        )
+    return Fares(
+        attributes=attributes,
+        rules=rules,
+        areas={
+            row["area_id"]: row["area_name"]
+            for row in archive.rows("areas", ("area_id", "area_name"))
+        },
+        stop_areas={area: tuple(stops) for area, stops in stop_areas.items()},
+        networks={
+            row["network_id"]: row["network_name"]
+            for row in archive.rows("networks", ("network_id", "network_name"))
+        },
+        route_networks={
+            row["route_id"]: row["network_id"]
+            for row in archive.rows("route_networks", ("network_id", "route_id"))
+        },
+        media={
+            row["fare_media_id"]: FareMedia(
+                fare_media_id=row["fare_media_id"],
+                name=row["fare_media_name"],
+                media_type=int(row["fare_media_type"]),
+            )
+            for row in archive.rows(
+                "fare_media", ("fare_media_id", "fare_media_name", "fare_media_type")
+            )
+        },
+        products={key: tuple(rows) for key, rows in products.items()},
+        leg_rules=tuple(
+            FareLegRule(
+                leg_group_id=row["leg_group_id"],
+                network_id=row["network_id"],
+                from_area_id=row["from_area_id"],
+                to_area_id=row["to_area_id"],
+                from_timeframe_group_id=row["from_timeframe_group_id"],
+                to_timeframe_group_id=row["to_timeframe_group_id"],
+                fare_product_id=row["fare_product_id"],
+                rule_priority=parse_int(row["rule_priority"]),
+            )
+            for row in archive.rows(
+                "fare_leg_rules",
+                (
+                    "leg_group_id",
+                    "network_id",
+                    "from_area_id",
+                    "to_area_id",
+                    "from_timeframe_group_id",
+                    "to_timeframe_group_id",
+                    "fare_product_id",
+                    "rule_priority",
+                ),
+            )
+        ),
+        transfer_rules=tuple(
+            FareTransferRule(
+                from_leg_group_id=row["from_leg_group_id"],
+                to_leg_group_id=row["to_leg_group_id"],
+                transfer_count=parse_int(row["transfer_count"]),
+                duration_limit=parse_int(row["duration_limit"]),
+                duration_limit_type=parse_int(row["duration_limit_type"]),
+                fare_transfer_type=int(row["fare_transfer_type"]),
+                fare_product_id=row["fare_product_id"],
+            )
+            for row in archive.rows(
+                "fare_transfer_rules",
+                (
+                    "from_leg_group_id",
+                    "to_leg_group_id",
+                    "transfer_count",
+                    "duration_limit",
+                    "duration_limit_type",
+                    "fare_transfer_type",
+                    "fare_product_id",
+                ),
+            )
+        ),
+        timeframes={key: tuple(rows) for key, rows in timeframes.items()},
+    )
+
+
 def read_feed(
     zip_bytes: bytes, keep_route: Callable[[Route], bool] | None = None
 ) -> Feed:
@@ -511,4 +750,5 @@ def read_feed(
             shapes=read_shapes(archive, {t.shape_id for t in trips.values()} - {""}),
             frequencies=read_frequencies(archive, set(trips)),
             feed_info=read_feed_info(archive),
+            fares=read_fares(archive),
         )

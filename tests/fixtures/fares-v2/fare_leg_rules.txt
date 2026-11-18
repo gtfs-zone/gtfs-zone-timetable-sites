@@ -1,0 +1,5 @@
+leg_group_id,network_id,from_area_id,to_area_id,fare_product_id,from_timeframe_group_id,to_timeframe_group_id,rule_priority
+leg_bus,bus,,,bus,any,,
+leg_rail,rail,z1,z1,rail_1,,,0
+leg_rail,rail,z1,z2,rail_2,,,0
+leg_rail,rail,z1,,rail_peak,peak,,1

@@ -1,0 +1,9 @@
+fare_id,route_id,origin_id,destination_id,contains_id
+near,,1,1,
+near_ic,,1,1,
+far,,1,2,
+far_ic,,1,2,
+far,,2,1,
+far_ic,,2,1,
+near,,2,2,
+near_ic,,2,2,

@@ -1,0 +1,4 @@
+area_id,stop_id
+z1,A
+z1,B
+z2,C

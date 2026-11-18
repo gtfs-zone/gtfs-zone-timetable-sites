@@ -1,0 +1,3 @@
+area_id,area_name
+z1,Zone 1
+z2,
