@@ -6,6 +6,7 @@ from gtfs_zone_timetable_sites.languages import (
     FeedLanguages,
     feed_languages,
     normalize,
+    translate,
 )
 
 AGENCY = "agency_id,agency_name,agency_url,agency_timezone,agency_lang\n"
@@ -94,3 +95,49 @@ def test_translation_rows_without_language_are_skipped():
     assert languages(feed_info=FEED_INFO + "de\n", translations=translations) == (
         FeedLanguages("de", ("de",))
     )
+
+
+def test_translate_by_record_id_and_field_value():
+    feed = read_feed(fixture_zip("languages"))
+    en = translate(feed, "en")
+    # By record_id, with the row's language in another case (EN).
+    assert en.stops["A"].name == "Central Station"
+    assert en.stops["B"].name == "City Hall"
+    assert en.routes["R1"].long_name == "Downtown"
+    assert en.agencies["a"].name == "Transit Corporation"
+    # By field_value.
+    assert en.trips["r1"].headsign == "City Hall"
+    # Untranslated fields keep the feed's text.
+    assert en.stops["Q1"].name == "Quai nord"
+    assert en.trips["f1"].headsign == "Quai sud"
+    assert en.agencies["b"].name == "Traverse du lac"
+    assert en.routes["R1"].short_name == "1"
+
+
+def test_translate_without_rows_is_the_same_feed():
+    feed = read_feed(fixture_zip("languages"))
+    assert translate(feed, "fr") is feed
+
+
+def test_translate_record_id_over_field_value():
+    translations = (
+        "table_name,field_name,language,translation,record_id,field_value\n"
+        "stops,stop_name,de,Wert,,Gare centrale\n"
+        "stops,stop_name,de,Kennung,A,\n"
+        "feed_info,feed_publisher_name,de,Verkehrsbetrieb,,\n"
+    )
+    body = fixture_files("languages") | {"translations.txt": translations}
+    de = translate(read_feed(make_zip(body)), "de")
+    assert de.stops["A"].name == "Kennung"
+    assert de.feed_info and de.feed_info.publisher_name == "Verkehrsbetrieb"
+
+
+def test_translate_ignores_unread_fields_and_raises_on_unknown():
+    ignored = TRANSLATIONS + "stops,tts_stop_name,en,Central,A\n"
+    body = fixture_files("languages") | {"translations.txt": ignored}
+    feed = read_feed(make_zip(body))
+    assert translate(feed, "en") is feed
+    unknown = TRANSLATIONS + "calendar,service_id,en,Daily,DAILY\n"
+    body = fixture_files("languages") | {"translations.txt": unknown}
+    with pytest.raises(ValueError, match=r"calendar\.service_id not handled"):
+        translate(read_feed(make_zip(body)), "en")

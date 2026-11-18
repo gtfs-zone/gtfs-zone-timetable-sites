@@ -904,6 +904,37 @@ def test_a_page_set_per_feed_language():
     assert "en/1/live.json" not in files
 
 
+def test_page_sets_show_translated_feed_text():
+    files = build("languages")
+    fr, en = files["1/index.html"], files["en/1/index.html"]
+    assert "Gare centrale" in fr and "Central Station" not in fr
+    assert "Central Station" in en and "City Hall" in en and "Downtown" in en
+    assert "Gare centrale" not in en and "Hôtel de ville" not in en
+    # Untranslated text stays the feed's.
+    assert "Quai nord" in files["en/traverse/index.html"]
+    assert "Transit Corporation" in files["en/index.html"]
+    assert "Société de transport" in files["index.html"]
+    # The shared system map keeps the default language's text.
+    assert '"title":"1 Centre-ville"' in files["map.json"]
+
+
+def test_kana_readings_beside_names():
+    translations = (
+        "table_name,field_name,language,translation,record_id\n"
+        "stops,stop_name,ja-Hrkt,がーる,A\n"
+        "stops,stop_name,en,Central Station,A\n"
+        "stops,stop_name,ja-Hrkt,おてる,B\n"
+    )
+    body = fixture_files("languages") | {"translations.txt": translations}
+    files = build_site(make_zip(body), Site(slug="test", url="u"), today=MONDAY)
+    fr, en = files["1/index.html"].decode(), files["en/1/index.html"].decode()
+    assert '<small class="text-base-content/70" lang="ja-Hrkt">がーる</small>' in fr
+    assert "おてる" in fr
+    # A name shown translated has no reading; an untranslated one keeps it.
+    assert "がーる" not in en and "おてる" in en
+    assert json.loads(files["site.json"])["languages"] == ["fr", "en"]
+
+
 def test_a_language_without_a_catalog_has_english_text():
     files = build("languages", locale="nl")
     home = files["index.html"]

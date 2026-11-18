@@ -264,6 +264,9 @@ class RowView:
     platform: str = ""
     # Fare zone badge text, shown when the route's fares are by zone.
     fare_zone: str = ""
+    # The name's reading (kana) and its language code.
+    reading: str = ""
+    reading_lang: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -654,6 +657,8 @@ def table_view(
             code=tidy(row.code),
             platform=tidy(row.platform),
             fare_zone=(fare_zones or {}).get(row.stop_id, ""),
+            reading=tidy(row.reading) if row.reading != row.name else "",
+            reading_lang=row.reading_lang,
         )
         for k, row in enumerate(table.rows)
     )

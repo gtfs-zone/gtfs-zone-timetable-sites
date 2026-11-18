@@ -2,7 +2,7 @@
 
 import logging
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
 from functools import cache, cmp_to_key
@@ -119,6 +119,10 @@ class Row:
     # stop_code and platform_code shared by every stop served here, else "".
     code: str = ""
     platform: str = ""
+    # The name's reading in another script (kana) and that script's language
+    # code (`ja-Hrkt`), else "".
+    reading: str = ""
+    reading_lang: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -459,6 +463,38 @@ def build_timetable(
             for row, stop_id in enumerate(merged)
         ),
         columns=tuple(columns),
+    )
+
+
+def relabel(
+    table: Timetable,
+    feed: Feed,
+    readings: Mapping[str, tuple[str, str]] | None = None,
+) -> Timetable:
+    """The table with its stop names and headsigns read from `feed`, which has
+    the same records as the table's feed with other text, and each stop's
+    (reading, language) from `readings` by stop_id."""
+    readings = readings or {}
+    columns = tuple(
+        replace(column, headsign=headsign(feed, feed.trips[column.trip_id]))
+        for column in table.columns
+    )
+    names = Counter(column.headsign for column in columns)
+    return replace(
+        table,
+        headsigns=tuple(name for name, _ in names.most_common()),
+        rows=tuple(
+            replace(
+                row,
+                name=feed.stops[row.stop_id].name,
+                reading=readings.get(row.stop_id, ("", ""))[0],
+                reading_lang=readings.get(row.stop_id, ("", ""))[1],
+            )
+            if row.stop_id in feed.stops
+            else row
+            for row in table.rows
+        ),
+        columns=columns,
     )
 
 

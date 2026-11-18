@@ -46,7 +46,7 @@ from gtfs_zone_timetable_sites.i18n import (
     plural_forms,
     t,
 )
-from gtfs_zone_timetable_sites.languages import feed_languages
+from gtfs_zone_timetable_sites.languages import feed_languages, translate
 from gtfs_zone_timetable_sites.maps.geo import SystemRoute, route_data, system_data
 from gtfs_zone_timetable_sites.pages import (
     RouteView,
@@ -73,7 +73,12 @@ from gtfs_zone_timetable_sites.pages import (
 )
 from gtfs_zone_timetable_sites.places import feed_place, place_label
 from gtfs_zone_timetable_sites.render import asset, compact_json, render
-from gtfs_zone_timetable_sites.timetable import Blocks, Timetable, route_timetables
+from gtfs_zone_timetable_sites.timetable import (
+    Blocks,
+    Timetable,
+    relabel,
+    route_timetables,
+)
 
 BASE_URL = "https://sites.gtfs.zone"
 LIST_URL = "https://list.gtfs.zone"
@@ -260,6 +265,18 @@ def page_sets(feed: Feed, site: Site) -> list[PageSet]:
     ]
 
 
+def stop_readings(feed: Feed, codes: tuple[str, ...]) -> dict[str, tuple[str, str]]:
+    """stop_id -> (reading, its code) for stops whose name translations.txt
+    gives in a reading code (`ja-Hrkt`), the first code in `codes` first."""
+    readings: dict[str, tuple[str, str]] = {}
+    for code in codes:
+        text = translate(feed, code)
+        for stop_id, stop in text.stops.items():
+            if stop.name != feed.stops[stop_id].name:
+                readings.setdefault(stop_id, (stop.name, code))
+    return readings
+
+
 def language_name(code: str) -> str:
     """A language named in itself ('Français', '日本語'), else in English."""
     try:
@@ -305,13 +322,12 @@ def build_site(
     if not timetables:
         raise EmptyFeed("no route has scheduled trips")
     sets = page_sets(read, site)
+    readings = stop_readings(feed, feed_languages(read).readings)
     labels = route_labels(feed, [rt.route for rt in timetables])
     reserved = {"fares", *(s.prefix.rstrip("/") for s in sets if s.prefix)}
     slugs = route_slugs([rt.route for rt in timetables], labels, reserved)
-    agencies = agencies_by_routes(feed)
     site_url = f"{BASE_URL}/{site.slug}/"
     place = feed_place(feed)
-    source = data_source(feed, site)
     all_tables = [table for rt in timetables for table in rt.tables]
     start, end = service_range(feed)
     maps = site.map == "maplibre"
@@ -319,26 +335,47 @@ def build_site(
     updates = site.trip_updates_url()
     all_fares = site_fares(read)
 
-    # Per page set: its route views and what every one of its pages shares.
+    # Per page set: the feed with its text in the set's language, the
+    # timetables relabeled from it, its route views and what every one of its
+    # pages shares. Slugs stay those of the feed's own text.
+    texts: dict[str, Feed] = {}
+    set_tables: dict[str, list[list[Timetable]]] = {}
     views: dict[str, list[RouteView]] = {}
     commons: dict[str, dict] = {}
     for s in sets:
         locale = s.locale
+        text = texts[s.lang] = translate(feed, s.lang)
+        # Readings of the names the set shows untranslated or in the default
+        # language.
+        default_text = texts[sets[0].lang]
+        set_readings = {
+            stop_id: reading
+            for stop_id, reading in readings.items()
+            if text.stops[stop_id].name
+            in (feed.stops[stop_id].name, default_text.stops[stop_id].name)
+        }
+        set_tables[s.lang] = [
+            rt.tables
+            if text is feed and not set_readings
+            else [relabel(table, text, set_readings) for table in rt.tables]
+            for rt in timetables
+        ]
+        set_labels = route_labels(text, [rt.route for rt in timetables])
         feed_notes, marked = feed_amenities(all_tables, locale)
-        title = site_title(feed, site, locale)
+        title = site_title(text, site, locale)
         label = place_label(place, title, site.locality)
         base_url = f"{site_url}{s.prefix}"
         views[s.lang] = [
             route_view(
-                rt.route,
+                text.routes[rt.route.route_id],
                 slugs[rt.route.route_id],
-                rt.tables,
-                labels.get(rt.route.route_id, ""),
+                tables,
+                set_labels.get(rt.route.route_id, ""),
                 rt.state,
                 rt.state_date,
                 locale,
             )
-            for rt in timetables
+            for rt, tables in zip(timetables, set_tables[s.lang], strict=True)
         ]
         commons[s.lang] = {
             "locale": locale,
@@ -353,7 +390,7 @@ def build_site(
             "generated": today,
             "feed_notes": feed_notes,
             "marked": marked,
-            "source": source,
+            "source": data_source(text, site),
             "map_text": map_text(locale, [view.mode for view in views[s.lang]]),
             "trail": [
                 (ROOT_TITLE, f"{BASE_URL}/"),
@@ -409,7 +446,7 @@ def build_site(
             s,
             "",
             "index.html",
-            agencies=agencies,
+            agencies=agencies_by_routes(texts[s.lang]),
             routes=set_routes,
             groups=groups,
             expired=[view for view in set_routes if view.state == "expired"],
@@ -458,19 +495,8 @@ def build_site(
     for i, rt in enumerate(timetables):
         slug = routes[i].slug
         numbers = stop_numbers(rt.tables)
-        data = (
-            route_data(
-                feed,
-                rt.tables,
-                numbers,
-                routes[i].colors,
-                {"url": vehicles, **route_ids(read, rt.tables)} if vehicles else None,
-                served,
-            )
-            if maps
-            else None
-        )
-        route_map = script_json(data) if data and data["lines"] else ""
+        # The route map per feed text, shared by sets whose text is the same.
+        route_maps: dict[int, str] = {}
         trip_ids = {c.trip_id for table in rt.tables for c in table.columns} - {""}
         fares = route_fares(read, trip_ids)
         # Live-times data is fetched only once a timetable is on screen, so
@@ -482,9 +508,25 @@ def build_site(
             locale = s.locale
             common = commons[s.lang]
             view = views[s.lang][i]
+            text = texts[s.lang]
+            tables = set_tables[s.lang][i]
+            if maps and id(text) not in route_maps:
+                data = route_data(
+                    text,
+                    tables,
+                    numbers,
+                    view.colors,
+                    {"url": vehicles, **route_ids(read, rt.tables)}
+                    if vehicles
+                    else None,
+                    served,
+                )
+                route_maps[id(text)] = (
+                    script_json(data) if data and data["lines"] else ""
+                )
             days = day_views(
-                feed,
-                rt.tables,
+                text,
+                tables,
                 site.time_format,
                 common["marked"],
                 locale,
@@ -523,7 +565,7 @@ def build_site(
                     if isinstance(fares, ZoneFares) and fares.zones
                     else t(locale, "fare.by_stop")
                 ),
-                map=route_map,
+                map=route_maps.get(id(text), ""),
                 live=(f"../../{slug}/{LIVE_FILE}" if s.prefix else LIVE_FILE)
                 if live
                 else "",
@@ -533,13 +575,15 @@ def build_site(
                     *place_jsonld(place, common["place"], route_url),
                 ],
             )
+    # map.json is shared by the page sets: its text is the default set's.
     by_slug = {
-        view.slug: (view, rt) for view, rt in zip(routes, timetables, strict=True)
+        view.slug: (view, tables)
+        for view, tables in zip(routes, set_tables[sets[0].lang], strict=True)
     }
     if maps and shown:
         files["map.json"] = json.dumps(
             system_data(
-                feed,
+                texts[sets[0].lang],
                 [
                     SystemRoute(
                         slug=view.slug,
@@ -547,17 +591,17 @@ def build_site(
                         title=view.title,
                         colors=view.colors,
                         mode=view.mode,
-                        tables=rt.tables,
-                        route_ids=route_ids(read, rt.tables)["routes"],
+                        tables=tables,
+                        route_ids=route_ids(read, tables)["routes"],
                     )
-                    for view, rt in (by_slug[slug] for slug in shown)
+                    for view, tables in (by_slug[slug] for slug in shown)
                 ],
                 vehicles,
             ),
             separators=(",", ":"),
             ensure_ascii=False,
         ).encode()
-    download_url = source["download_url"]
+    download_url = commons[sets[0].lang]["source"]["download_url"]
     files["site.json"] = summary_json(
         slug=site.slug,
         title=with_locality(commons[sets[0].lang]["site_title"], site.locality),

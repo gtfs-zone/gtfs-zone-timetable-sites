@@ -86,7 +86,10 @@ A site has a set of pages per language its feed is in: `feed_lang`, every
 else `en`, at `/<slug>/`; each other language is at `/<slug>/<lang>/`, with a
 language picker and `hreflang` links on every page and alternates in the
 sitemaps. Page text comes from the language's catalog under `locales/`, else
-English.
+English. Feed text (stop, route, trip headsign, agency and feed_info names) is
+replaced by its `translations.txt` row in that language, by `record_id` or by
+`field_value`, else kept; slugs and the shared system map `map.json` keep the
+default language's. Kana readings show beside stop names they read.
 
 Each listed site needs exactly one of `feed` or `url`, a `slug` when it has a
 `url` (optional for a `feed`), and may override any default. A listed `feed` is
