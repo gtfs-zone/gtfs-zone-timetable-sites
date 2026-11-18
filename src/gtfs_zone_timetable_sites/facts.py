@@ -38,7 +38,7 @@ def feed_facts(source: ZipSource, feed: Feed, filtered: bool) -> dict:
         "counts": {
             "routes": len(feed.routes),
             "stops": len(feed.stops),
-            "trips": len(feed.trips),
+            "trips": feed.trip_count,
         },
         "routeTypes": sorted({route.route_type for route in feed.routes.values()}),
         "filtered": filtered,

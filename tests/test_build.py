@@ -6,6 +6,7 @@ from datetime import date
 import pytest
 from conftest import fixture_files, fixture_zip, make_zip
 
+from gtfs_zone_timetable_sites import build as build_module
 from gtfs_zone_timetable_sites.build import (
     ROOT_LOCALES,
     build_root,
@@ -13,11 +14,13 @@ from gtfs_zone_timetable_sites.build import (
     country_languages,
     merge_routes,
     page_digest,
+    site_feed,
     site_status,
     site_timetables,
     site_title,
     source_label,
     unavailable_reason,
+    window_services,
 )
 from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import CatalogFeed, Site
@@ -28,6 +31,7 @@ MONDAY = date(2026, 10, 5)
 # The root page in each UI language.
 ROOT_PAGES = {"index.html"} | {f"lang/{lang}/index.html" for lang in ROOT_LOCALES[1:]}
 NOINDEX = '<meta name="robots" content="noindex">'
+GEO = re.compile(rb'"geo": ?\{[^}]*\}')
 
 
 def build(name: str, **options) -> dict[str, str]:
@@ -1105,3 +1109,74 @@ def test_country_languages_most_offered_first():
         "en",
         "fr",
     ]
+
+
+def windows_files() -> dict[str, str]:
+    """expired_files, plus copies of route R's trips a minute later on a
+    service that ended in March and one that starts next March, and a route
+    that starts in December."""
+    files = expired_files()
+    stop = files["stops.txt"].splitlines()[1].split(",")
+    files["stops.txt"] += ",".join(["X", "Xray", *stop[2:]]) + "\n"
+    files["calendar.txt"] += (
+        "PAST,1,1,1,1,1,1,1,20260101,20260331\n"
+        "NEXT,1,1,1,1,1,1,1,20270301,20271231\n"
+        "WINTER,1,1,1,1,1,0,0,20261201,20261231\n"
+    )
+    files["routes.txt"] += "NEW,7,New Line,3\n"
+    trips = files["trips.txt"].splitlines()
+    times = files["stop_times.txt"].splitlines()
+    for service, suffix in (("PAST", "_p"), ("NEXT", "_n")):
+        for line in trips[1:]:
+            route, _, trip, *rest = line.split(",")
+            if route == "R":
+                files["trips.txt"] += ",".join([route, service, trip + suffix, *rest])
+                files["trips.txt"] += "\n"
+        for line in times[1:]:
+            trip, arrival, _, *rest = line.split(",")
+            if trip == "old1":
+                continue
+            later = arrival[:4] + "1" + arrival[5:]
+            files["stop_times.txt"] += ",".join([trip + suffix, later, later, *rest])
+            files["stop_times.txt"] += "\n"
+    files["trips.txt"] += "NEW,WINTER,new1,North,0\n"
+    files["stop_times.txt"] += (
+        "new1,06:00:00,06:00:00,A,1\nnew1,06:30:00,06:30:00,X,2\n"
+    )
+    return files
+
+
+def test_date_filter_reads_only_trips_in_route_windows():
+    site = Site(slug="test", url="https://example.org/g.zip")
+    feed = site_feed(make_zip(windows_files()), site, MONDAY)
+    route_r = {"north1", "north2", "east1", "back_full", "back_short", "back_skip"}
+    assert set(feed.trips) == route_r | {"old1", "new1"}
+    assert feed.route_services["R"] == {"DAILY", "PAST", "NEXT"}
+    assert feed.trip_count == 20
+    assert {"PAST", "NEXT"} <= set(feed.calendars)
+    assert window_services(feed, MONDAY, 28) == {"DAILY", "SPRING", "WINTER"}
+
+
+def test_date_filter_builds_the_same_files(monkeypatch):
+    site = Site(slug="test", url="https://example.org/g.zip")
+    body = make_zip(windows_files())
+    filtered = build_site(body, site, today=MONDAY)
+    states = {
+        rt.route.route_id: rt.state
+        for rt in site_timetables(site_feed(body, site, MONDAY), site, MONDAY)
+    }
+    assert states == {"R": "", "OLD": "expired", "NEW": "upcoming"}
+
+    def unfiltered(source, site, today):
+        return read_feed(
+            source, keep_route=lambda r: site.routes.accepts(r.route_id, r.route_type)
+        )
+
+    # The place's center is weighted by the stop_times read, so it moves.
+    def without_center(files: dict[str, bytes]) -> dict[str, bytes]:
+        return {path: GEO.sub(b"", body) for path, body in files.items()}
+
+    monkeypatch.setattr(build_module, "site_feed", unfiltered)
+    whole = build_site(body, site, today=MONDAY)
+    assert whole != filtered
+    assert without_center(whole) == without_center(filtered)

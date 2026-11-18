@@ -146,7 +146,7 @@ def test_google_link():
 
 def test_rows_link_stops_to_google_maps():
     site = Site(slug="t", url="https://example.org/g.zip")
-    feed = site_feed(fixture_zip("branching"), site)
+    feed = site_feed(fixture_zip("branching"), site, date(2026, 10, 5))
     [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
     days = day_views(feed, tables, "12h")
     rows = [row for day in days for table in day.tables for row in table.rows]
@@ -156,7 +156,7 @@ def test_rows_link_stops_to_google_maps():
 
 def test_tables_sharing_a_title_name_their_ends():
     site = Site(slug="t", url="https://example.org/g.zip")
-    feed = site_feed(fixture_zip("shared-terminus"), site)
+    feed = site_feed(fixture_zip("shared-terminus"), site, date(2026, 10, 5))
     [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
     [day] = day_views(feed, tables, "12h")
     titles = [table.title for table in day.tables]
@@ -165,7 +165,7 @@ def test_tables_sharing_a_title_name_their_ends():
 
 def test_approximate_rows_are_dimmed_with_a_legend_key():
     site = Site(slug="t", url="https://example.org/g.zip")
-    feed = site_feed(fixture_zip("end-timepoints"), site)
+    feed = site_feed(fixture_zip("end-timepoints"), site, date(2026, 10, 5))
     [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
     [day] = day_views(feed, tables, "12h")
     [table] = day.tables
@@ -175,7 +175,7 @@ def test_approximate_rows_are_dimmed_with_a_legend_key():
 
 def test_no_approximate_key_without_timepoint_values():
     site = Site(slug="t", url="https://example.org/g.zip")
-    feed = site_feed(fixture_zip("missing-timepoints"), site)
+    feed = site_feed(fixture_zip("missing-timepoints"), site, date(2026, 10, 5))
     [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
     [day] = day_views(feed, tables, "12h")
     [table] = day.tables
@@ -185,7 +185,7 @@ def test_no_approximate_key_without_timepoint_values():
 
 def test_days_sorted_by_runs():
     site = Site(slug="t", url="https://example.org/g.zip")
-    feed = site_feed(fixture_zip("calendar-dates-only"), site)
+    feed = site_feed(fixture_zip("calendar-dates-only"), site, date(2026, 10, 5))
     [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
     views = day_views(feed, tables, "12h")
     assert [v.runs for v in views] == sorted((v.runs for v in views), reverse=True)
@@ -228,7 +228,7 @@ def test_every_mode_is_ordered_and_named():
 
 def test_endpoints_and_first_and_last_trips():
     site = Site(slug="t", url="https://example.org/g.zip")
-    feed = site_feed(fixture_zip("overnight"), site)
+    feed = site_feed(fixture_zip("overnight"), site, date(2026, 10, 5))
     [(night_owl, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
     view = route_view(night_owl, "1", tables)
     assert view.mode == "bus"
@@ -239,7 +239,7 @@ def test_endpoints_and_first_and_last_trips():
 
 def test_frequency_trips_last_start_before_headway_end():
     site = Site(slug="t", url="https://example.org/g.zip")
-    feed = site_feed(fixture_zip("frequencies"), site)
+    feed = site_feed(fixture_zip("frequencies"), site, date(2026, 10, 5))
     [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
     [day] = day_views(feed, tables, "24h")
     assert (day.first, day.last) == ("07:00", "17:40")
@@ -247,7 +247,7 @@ def test_frequency_trips_last_start_before_headway_end():
 
 def amenity_table():
     site = Site(slug="t", url="https://example.org/g.zip")
-    feed = site_feed(fixture_zip("amenities"), site)
+    feed = site_feed(fixture_zip("amenities"), site, date(2026, 10, 5))
     [(_, tables, _, _)] = site_timetables(feed, site, date(2026, 10, 5))
     _, marked = feed_amenities(tables)
     [day] = day_views(feed, tables, "12h", marked)

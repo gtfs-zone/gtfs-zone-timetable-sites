@@ -211,6 +211,54 @@ def horizon_start(feed: Feed, today: date, services: Services | None = None) -> 
     return max(today, first) if first is not None else today
 
 
+@dataclass(frozen=True, slots=True)
+class Window:
+    """The first of the `horizon_days` dates a route's timetables are made over."""
+
+    start: date
+    # "expired" or "upcoming" when the window is outside the horizon.
+    state: str = ""
+    state_date: date | None = None
+
+
+def route_windows(
+    services: Services, service_ids: Iterable[str], start: date, days: int
+) -> list[Window]:
+    """The windows to try in turn for a route's timetables: the horizon from
+    `start`, then, when the route's service ended before it, its last `days`
+    of service, or when it starts later, its first."""
+    windows = [Window(start)]
+    service_ids = set(service_ids)
+    first, last = services.first(service_ids), services.last(service_ids)
+    if first is None or last is None:
+        return windows
+    if last < start:
+        windows.append(
+            Window(max(first, last - timedelta(days=days - 1)), "expired", last)
+        )
+    elif first > start:
+        windows.append(Window(first, "upcoming", first))
+    return windows
+
+
+def max_day_shift(feed: Feed, day: date) -> int:
+    """Days a trip's service date can fall after the local date `day_types`
+    places it on (the most negative `start_day_offset`, negated), from the
+    stop and route timezones on `day`."""
+    stop_zones = {feed.stop_timezone(stop_id) for stop_id in feed.stops} - {""}
+    route_zones = {feed.timezone(route) for route in feed.routes.values()}
+    shift = min(
+        (
+            timezone_shift(stop_zone, route_zone, day)
+            for stop_zone in stop_zones
+            for route_zone in route_zones
+            if stop_zone != route_zone
+        ),
+        default=0,
+    )
+    return -min(0, shift // DAY_SECONDS)
+
+
 def weekday_name(
     weekdays: Iterable[int], plural: bool = False, locale: Locale = "en"
 ) -> str:

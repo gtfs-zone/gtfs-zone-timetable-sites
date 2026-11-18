@@ -10,6 +10,8 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     exception_name,
     horizon_start,
     key_services,
+    max_day_shift,
+    route_windows,
     service_rule,
     span_label,
     start_day_offset,
@@ -221,6 +223,26 @@ def test_start_day_offset_can_span_two_days():
         )
     )
     assert start_day_offset(feed, "late", MONDAY) == -2
+    assert max_day_shift(feed, MONDAY) == 2
+
+
+def test_max_day_shift():
+    assert max_day_shift(read_feed(fixture_zip("branching")), MONDAY) == 0
+    # A stop an hour behind the route's zone.
+    assert max_day_shift(read_feed(fixture_zip("overnight")), MONDAY) == 1
+
+
+def test_route_windows():
+    feed = read_feed(weekday_feed())
+    services = Services(feed)
+    [horizon] = route_windows(services, ["WK"], MONDAY, 28)
+    assert horizon.start == MONDAY and horizon.state == ""
+    _, expired = route_windows(services, ["WK_A"], date(2027, 1, 4), 28)
+    assert (expired.state, expired.state_date) == ("expired", date(2026, 10, 11))
+    assert expired.start == date(2026, 9, 14)
+    _, upcoming = route_windows(services, ["WK_B"], MONDAY, 28)
+    assert (upcoming.state, upcoming.start) == ("upcoming", date(2026, 10, 12))
+    assert route_windows(services, [], MONDAY, 28) == [horizon]
 
 
 def test_key_services_join_trip_ids_of_one_trip():

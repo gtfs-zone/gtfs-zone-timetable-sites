@@ -191,9 +191,9 @@ def build(args: argparse.Namespace) -> None:
 
 def dump(args: argparse.Namespace) -> None:
     site = find_site(load_sites(args.config, None), args.site)
-    with feed_zip(site, args.zip) as source:
-        feed = site_feed(source, site)
     today = args.date or date.today()
+    with feed_zip(site, args.zip) as source:
+        feed = site_feed(source, site, today)
     for route, tables, state, state_date in site_timetables(feed, site, today):
         print(f"# {route.name}" + (f" ({state} {state_date})" if state else ""))
         for table in tables:

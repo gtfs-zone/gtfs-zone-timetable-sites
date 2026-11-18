@@ -39,6 +39,8 @@ from gtfs_zone_timetable_sites.gtfs.service import (
     day_types,
     horizon_start,
     key_services,
+    max_day_shift,
+    route_windows,
     service_rule,
 )
 from gtfs_zone_timetable_sites.i18n import (
@@ -100,10 +102,13 @@ def page_digest(body: bytes) -> str:
     return hashlib.sha256(GENERATED.sub(b"", body)).hexdigest()
 
 
-def site_feed(source: ZipSource, site: Site) -> Feed:
-    """The feed with only the routes the site's filter accepts."""
+def site_feed(source: ZipSource, site: Site, today: date) -> Feed:
+    """The feed with only the routes the site's filter accepts, and only the
+    trips that can run in their routes' windows from `today`."""
     return read_feed(
-        source, keep_route=lambda r: site.routes.accepts(r.route_id, r.route_type)
+        source,
+        keep_route=lambda r: site.routes.accepts(r.route_id, r.route_type),
+        keep_services=lambda feed: window_services(feed, today, site.horizon_days),
     )
 
 
@@ -118,13 +123,12 @@ def route_order(route: Route) -> tuple[int, int, str, str]:
     )
 
 
-def merge_routes(feed: Feed) -> Feed:
-    """The feed with routes that share agency, type, names and colors merged
-    into the first by `route_order`, their trips moved onto it; e.g. a feed
-    with a route per train per date."""
+def merge_map(routes: dict[str, Route]) -> dict[str, str]:
+    """route_id -> the route it merges into: the first by `route_order` of
+    the routes sharing its agency, type, names and colors."""
     keep: dict[tuple, str] = {}
     into: dict[str, str] = {}
-    for route in sorted(feed.routes.values(), key=route_order):
+    for route in sorted(routes.values(), key=route_order):
         key = (
             route.agency_id,
             route.route_type,
@@ -134,7 +138,22 @@ def merge_routes(feed: Feed) -> Feed:
             route.text_color,
         )
         into[route.route_id] = keep.setdefault(key, route.route_id)
-    if len(keep) == len(feed.routes):
+    return into
+
+
+def merged_services(feed: Feed, into: dict[str, str]) -> dict[str, frozenset[str]]:
+    """Each merged route's service_ids, from every route merged into it."""
+    services: dict[str, set[str]] = {}
+    for route_id, target in into.items():
+        services.setdefault(target, set()).update(feed.route_services.get(route_id, ()))
+    return {route_id: frozenset(ids) for route_id, ids in services.items()}
+
+
+def merge_routes(feed: Feed) -> Feed:
+    """The feed with routes merged by `merge_map`, their trips and services
+    moved onto the route kept; e.g. a feed with a route per train per date."""
+    into = merge_map(feed.routes)
+    if all(into[rid] == rid for rid in into):
         return feed
     return replace(
         feed,
@@ -145,7 +164,26 @@ def merge_routes(feed: Feed) -> Feed:
             else replace(trip, route_id=into[trip.route_id])
             for tid, trip in feed.trips.items()
         },
+        route_services=merged_services(feed, into),
     )
+
+
+def window_services(feed: Feed, today: date, days: int) -> set[str]:
+    """The services running on some date of a merged route's windows (see
+    `route_windows`), or as many days after as `day_types` can shift a trip
+    back into it: the services `site_timetables` can show."""
+    services = Services(feed)
+    start = horizon_start(feed, today, services)
+    starts = {
+        window.start
+        for service_ids in merged_services(feed, merge_map(feed.routes)).values()
+        for window in route_windows(services, service_ids, start, days)
+    }
+    running: set[str] = set()
+    for first in starts:
+        for offset in range(days + max_day_shift(feed, first)):
+            running |= services.active(first + timedelta(days=offset))
+    return running
 
 
 def agencies_by_routes(feed: Feed) -> list[Agency]:
@@ -178,27 +216,15 @@ def site_timetables(feed: Feed, site: Site, today: date) -> list[RouteTables]:
     result = []
     for route in sorted(feed.routes.values(), key=route_order):
         trip_ids = trips_by_route.get(route.route_id, [])
-        types = day_types(feed, trip_ids, start, days, services)
-        tables = route_timetables(feed, route.route_id, types, blocks)
-        if tables:
-            result.append(RouteTables(route, tables))
-            continue
-        service_ids = {feed.trips[t].service_id for t in trip_ids}
-        first = services.first(service_ids)
-        last = services.last(service_ids)
-        if first is None or last is None:
-            continue
-        if last < start:
-            state, state_date = "expired", last
-            window = max(first, last - timedelta(days=days - 1))
-        elif first > start:
-            state, state_date, window = "upcoming", first, first
-        else:
-            continue
-        types = day_types(feed, trip_ids, window, days, services)
-        tables = route_timetables(feed, route.route_id, types, blocks)
-        if tables:
-            result.append(RouteTables(route, tables, state, state_date))
+        service_ids = feed.route_services.get(route.route_id, ())
+        for window in route_windows(services, service_ids, start, days):
+            types = day_types(feed, trip_ids, window.start, days, services)
+            tables = route_timetables(feed, route.route_id, types, blocks)
+            if tables:
+                result.append(
+                    RouteTables(route, tables, window.state, window.state_date)
+                )
+                break
     return result
 
 
@@ -322,7 +348,7 @@ def build_site(
     if bad is not None:
         raise ValueError(f"corrupt member in GTFS zip: {bad}")
     today = today or date.today()
-    read = site_feed(source, site)
+    read = site_feed(source, site, today)
     feed = merge_routes(read)
     timetables = site_timetables(feed, site, today)
     if not timetables:

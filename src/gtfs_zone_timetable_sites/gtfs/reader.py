@@ -5,8 +5,8 @@ import io
 import logging
 import zipfile
 from collections import defaultdict
-from collections.abc import Callable, Iterator
-from dataclasses import dataclass, replace
+from collections.abc import Callable, Collection, Iterator
+from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import Decimal
 from typing import BinaryIO
@@ -238,6 +238,10 @@ class Feed:
     feed_info: FeedInfo | None
     fares: Fares
     translations: tuple[Translation, ...] = ()
+    # Each route's service_ids and the trip count, before trips are dropped
+    # by date.
+    route_services: dict[str, frozenset[str]] = field(default_factory=dict)
+    trip_count: int = 0
 
     def timezone(self, route: Route) -> str:
         agency = self.agencies.get(route.agency_id)
@@ -434,7 +438,23 @@ def read_stops(archive: Archive) -> dict[str, Stop]:
     }
 
 
-def read_trips(archive: Archive, route_ids: set[str]) -> dict[str, Trip]:
+def read_route_services(
+    archive: Archive, route_ids: set[str]
+) -> tuple[dict[str, frozenset[str]], int]:
+    """Each route's service_ids and the number of trips of the routes."""
+    services: dict[str, set[str]] = defaultdict(set)
+    count = 0
+    for row in archive.rows("trips", ("route_id", "service_id")):
+        if row["route_id"] in route_ids:
+            services[row["route_id"]].add(row["service_id"])
+            count += 1
+    return {key: frozenset(ids) for key, ids in services.items()}, count
+
+
+def read_trips(
+    archive: Archive, route_ids: set[str], service_ids: Collection[str] | None = None
+) -> dict[str, Trip]:
+    """Trips of the routes, and of the services when given."""
     columns = (
         "trip_id",
         "route_id",
@@ -469,6 +489,7 @@ def read_trips(archive: Archive, route_ids: set[str]) -> dict[str, Trip]:
         )
         for row in archive.rows("trips", columns)
         if row["route_id"] in route_ids
+        and (service_ids is None or row["service_id"] in service_ids)
     }
 
 
@@ -795,9 +816,16 @@ def read_fares(archive: Archive) -> Fares:
 
 
 def read_feed(
-    source: ZipSource, keep_route: Callable[[Route], bool] | None = None
+    source: ZipSource,
+    keep_route: Callable[[Route], bool] | None = None,
+    keep_services: Callable[[Feed], Collection[str]] | None = None,
 ) -> Feed:
-    """Parse a GTFS zip, keeping only routes accepted by `keep_route`."""
+    """Parse a GTFS zip, keeping only routes accepted by `keep_route`.
+
+    With `keep_services`, trips are read twice: first each route's
+    service_ids, then, from the feed without trips (calendars of every
+    service), `keep_services` names the services whose trips, stop_times,
+    frequencies and shapes are read."""
     with open_zip(source) as raw:
         archive = Archive(raw)
         missing = [table for table in REQUIRED_FILES if not archive.has(table)]
@@ -809,20 +837,40 @@ def read_feed(
         routes = read_routes(archive)
         if keep_route is not None:
             routes = {key: route for key, route in routes.items() if keep_route(route)}
-        trips = read_trips(archive, set(routes))
-        stop_times = read_stop_times(archive, set(trips))
-        service_ids = {trip.service_id for trip in trips.values()}
-        return Feed(
+        trips: dict[str, Trip] = {}
+        if keep_services is None:
+            trips = read_trips(archive, set(routes))
+            by_route: dict[str, set[str]] = defaultdict(set)
+            for trip in trips.values():
+                by_route[trip.route_id].add(trip.service_id)
+            route_services = {key: frozenset(ids) for key, ids in by_route.items()}
+            trip_count = len(trips)
+        else:
+            route_services, trip_count = read_route_services(archive, set(routes))
+        service_ids = {sid for ids in route_services.values() for sid in ids}
+        feed = Feed(
             agencies=read_agencies(archive),
             routes=routes,
             stops=read_stops(archive),
-            trips=trips,
-            stop_times=stop_times,
+            trips={},
+            stop_times={},
             calendars=read_calendars(archive, service_ids),
             calendar_dates=read_calendar_dates(archive, service_ids),
-            shapes=read_shapes(archive, {t.shape_id for t in trips.values()} - {""}),
-            frequencies=read_frequencies(archive, set(trips)),
+            shapes={},
+            frequencies={},
             feed_info=read_feed_info(archive),
             fares=read_fares(archive),
             translations=read_translations(archive),
+            route_services=route_services,
+            trip_count=trip_count,
+        )
+        if keep_services is not None:
+            trips = read_trips(archive, set(routes), set(keep_services(feed)))
+        shape_ids = {t.shape_id for t in trips.values()} - {""}
+        return replace(
+            feed,
+            trips=trips,
+            stop_times=read_stop_times(archive, set(trips)),
+            shapes=read_shapes(archive, shape_ids),
+            frequencies=read_frequencies(archive, set(trips)),
         )
