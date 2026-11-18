@@ -8,7 +8,7 @@ from babel.messages.frontend import parse_mapping_cfg
 from babel.messages.pofile import read_po
 
 from gtfs_zone_timetable_sites import i18n
-from gtfs_zone_timetable_sites.gtfs.service import exception_name, weekday_name
+from gtfs_zone_timetable_sites.gtfs.service import exception_name, in_text, weekday_name
 from gtfs_zone_timetable_sites.i18n import (
     UI_LOCALES,
     join_and,
@@ -171,3 +171,9 @@ def test_japanese_day_types_and_dates():
     assert long_date(date(2026, 11, 14), "ja") == "2026年11月14日"
     assert weekday_date(date(2026, 10, 31), "ja") == "10月31日(土)"
     assert t("ja", "route.trips", n=3) == "3便"
+
+
+def test_day_labels_in_text_follow_the_case_of_weekday_names():
+    assert in_text("Fridays", "en") == "Fridays"
+    assert in_text("Vendredis", "fr") == "vendredis"
+    assert in_text("Freitags", "de") == "Freitags"

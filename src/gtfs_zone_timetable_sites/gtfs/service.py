@@ -232,6 +232,14 @@ def weekday_name(
     return capitalize(join_and(names, locale))
 
 
+def in_text(label: str, locale: Locale = "en") -> str:
+    """A day label inside a sentence: first letter in lower case where the
+    locale writes weekday names in lower case ('Solo venerdì')."""
+    if weekday_names(locale)[0][:1].islower():
+        return label[:1].lower() + label[1:]
+    return label
+
+
 def dates_label(dates: Iterable[date], locale: Locale = "en") -> str:
     return ", ".join(weekday_date(day, locale) for day in dates)
 
@@ -306,7 +314,7 @@ def trip_note(day: DayType, trip_id: str, locale: Locale = "en") -> str:
         return ""
     weekdays = {d.weekday() for d in runs}
     if runs == {d for d in day.dates if d.weekday() in weekdays}:
-        days = weekday_name(weekdays, plural=True, locale=locale)
+        days = in_text(weekday_name(weekdays, plural=True, locale=locale), locale)
         return t(locale, "note.only_days", days=days)
     spans = date_runs(runs, day.dates)
     if len(spans) == 1 and spans[0][0] == day.start:
