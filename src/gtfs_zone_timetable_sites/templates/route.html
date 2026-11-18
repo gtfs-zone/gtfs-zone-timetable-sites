@@ -53,6 +53,7 @@
 {% for line in fares %}<li>{{ line }}</li>
 {% endfor %}</ul>
 {% endif %}
+{% if fares_page %}<p><a class="link" href="../fares/">{{ t("fares.all") }}</a></p>{% endif %}
 </div>
 </section>
 {% elif fare_charts %}
@@ -71,6 +72,7 @@
 </table>
 </div>
 {% endfor %}
+{% if fares_page %}<p><a class="link" href="../fares/">{{ t("fares.all") }}</a></p>{% endif %}
 </details>
 </section>
 {% endif %}

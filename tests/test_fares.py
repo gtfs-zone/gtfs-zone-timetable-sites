@@ -5,11 +5,16 @@ from conftest import fixture_files, fixture_zip, make_zip
 
 from gtfs_zone_timetable_sites.fares import (
     Fare,
+    FareGroup,
     FlatFare,
+    LegGroup,
     NoFares,
+    SiteFares,
+    TransferRule,
     Transfers,
     ZoneFares,
     route_fares,
+    site_fares,
 )
 from gtfs_zone_timetable_sites.gtfs.reader import read_feed
 from gtfs_zone_timetable_sites.pages import (
@@ -17,6 +22,7 @@ from gtfs_zone_timetable_sites.pages import (
     fare_charts,
     fare_lines,
     fare_text,
+    transfer_text,
     transfers_text,
 )
 
@@ -342,3 +348,91 @@ def test_v2_unknown_product_raises():
     files["fare_leg_rules.txt"] += "leg_bus,bus,,,missing,,,,\n"
     with pytest.raises(KeyError, match="missing"):
         fares_of(files, ["b1"])
+
+
+def test_site_fares_v1_by_agency():
+    fares = site_fares(read_feed(fixture_zip("fares-flat-v1")))
+    assert fares == SiteFares(
+        (
+            FareGroup(
+                "Test Transit",
+                (
+                    Fare(Decimal("1.25"), "USD", 0, Transfers(0, None)),
+                    Fare(Decimal("2.00"), "USD", 0, Transfers(1, 3600)),
+                ),
+            ),
+        )
+    )
+
+
+def test_site_fares_v1_skips_fares_for_other_routes():
+    files = fixture_files("fares-flat-v1")
+    files["fare_rules.txt"] = "fare_id,route_id\nlocal,R1\nexpress,GONE\n"
+    fares = site_fares(read_feed(make_zip(files)))
+    assert fares is not None
+    assert [f.price for f in fares.groups[0].fares] == [Decimal("1.25")]
+
+
+def test_site_fares_v1_zones_list_each_payment_method():
+    fares = site_fares(read_feed(fixture_zip("fares-zone-v1")))
+    assert fares is not None
+    assert [(f.price, f.payment_method) for f in fares.groups[0].fares] == [
+        (Decimal("190"), 1),
+        (Decimal("200"), 0),
+        (Decimal("280"), 1),
+        (Decimal("300"), 0),
+    ]
+    assert fares.transfers == ()
+
+
+def test_site_fares_v2_by_network_with_every_media():
+    fares = site_fares(read_feed(fixture_zip("fares-v2")))
+    assert fares is not None
+    assert [group.name for group in fares.groups] == ["Commuter Rail", "Local Bus"]
+    bus = fares.groups[1].fares
+    assert [(f.price, f.media, f.product) for f in bus] == [
+        (Decimal("1.70"), ("Smart card",), "Bus fare"),
+        (Decimal("2.00"), ("Cash",), "Bus fare"),
+    ]
+    assert fares.groups[0].fares[-1].timeframe == "peak"
+    rail = LegGroup(
+        ("Commuter Rail",),
+        ("Peak rail fare", "Zone 1 rail fare", "Zone 2 rail fare"),
+        "Zone 1",
+    )
+    bus_legs = LegGroup(("Local Bus",), ("Bus fare",))
+    assert fares.transfers[0] == TransferRule(bus_legs, rail, None, 7200, 0, ())
+    assert fares.transfers[1].count == -1
+    assert [f.price for f in fares.transfers[1].fee] == [
+        Decimal("1.70"),
+        Decimal("2.00"),
+    ]
+
+
+def test_site_fares_none_without_fare_files():
+    assert site_fares(read_feed(fixture_zip("overnight"))) is None
+
+
+def test_site_fares_unknown_leg_group_raises():
+    files = fixture_files("fares-v2")
+    files["fare_transfer_rules.txt"] += "missing,leg_bus,,,,0,\n"
+    with pytest.raises(KeyError, match="missing"):
+        site_fares(read_feed(make_zip(files)))
+
+
+def test_transfer_text():
+    fares = site_fares(read_feed(fixture_zip("fares-v2")))
+    assert fares is not None
+    assert [transfer_text(rule) for rule in fares.transfers] == [
+        "Bus fare (Local Bus) to Peak rail fare / Zone 1 rail fare / Zone 2 rail"
+        " fare (Commuter Rail, from Zone 1): free, within 120 min",
+        "Bus fare (Local Bus) to Bus fare (Local Bus): both fares plus $1.70 with"
+        " Smart card (Bus fare) / $2.00 with Cash (Bus fare), any number of"
+        " transfers",
+    ]
+    fee = Fare(Decimal("0.70"), "USD", product="Subway transfer")
+    rule = TransferRule(None, None, 3, 3600, 2, (fee,))
+    assert transfer_text(rule) == (
+        "any fare to any fare: $0.70 (Subway transfer) for both, up to 3"
+        " transfers, within 60 min"
+    )

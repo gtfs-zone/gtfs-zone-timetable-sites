@@ -25,7 +25,7 @@ from gtfs_zone_timetable_sites.boundaries import (
 from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import RouteFilter, Site
 from gtfs_zone_timetable_sites.facts import feed_facts
-from gtfs_zone_timetable_sites.fares import ZoneFares, route_fares
+from gtfs_zone_timetable_sites.fares import ZoneFares, route_fares, site_fares
 from gtfs_zone_timetable_sites.gtfs.reader import Agency, Feed, Route, read_feed
 from gtfs_zone_timetable_sites.gtfs.service import (
     Services,
@@ -43,6 +43,7 @@ from gtfs_zone_timetable_sites.pages import (
     fare_badges,
     fare_charts,
     fare_lines,
+    fare_sections,
     feed_amenities,
     mode_groups,
     mode_label,
@@ -55,6 +56,7 @@ from gtfs_zone_timetable_sites.pages import (
     service_range,
     stop_numbers,
     tidy,
+    transfer_text,
 )
 from gtfs_zone_timetable_sites.places import feed_place, place_label
 from gtfs_zone_timetable_sites.render import asset, compact_json, render
@@ -293,8 +295,11 @@ def build_site(
         for view in routes
         if not indexed or view.state == "expired"
     }
+    all_fares = site_fares(read)
     if not indexed:
         noindex.add("index.html")
+        if all_fares:
+            noindex.add("fares/index.html")
     files = {
         "index.html": render(
             "index.html",
@@ -308,11 +313,28 @@ def build_site(
             system_map=maps and bool(shown),
             valid=date_range(start, end, locale, "valid"),
             feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
+            fares_page=bool(all_fares),
             jsonld=[breadcrumbs(trail), *place_jsonld(place, label, base_url)],
             root="",
             noindex="index.html" in noindex,
         )
     }
+    if all_fares:
+        files["fares/index.html"] = render(
+            "fares.html",
+            **common,
+            sections=fare_sections(
+                all_fares, locale, read.fares.timeframes, site.time_format
+            ),
+            transfers=sorted(
+                transfer_text(rule, locale) for rule in all_fares.transfers
+            ),
+            jsonld=[
+                breadcrumbs([*trail, (t(locale, "fares.heading"), f"{base_url}fares/")])
+            ],
+            root="../",
+            noindex="fares/index.html" in noindex,
+        )
     trips_by_route: dict[str, list[str]] = {}
     for trip in feed.trips.values():
         trips_by_route.setdefault(trip.route_id, []).append(trip.trip_id)
@@ -373,6 +395,7 @@ def build_site(
             route=view,
             fares=fare_lines(fares, locale, read.fares.timeframes, site.time_format),
             fare_charts=fare_charts(fares, locale),
+            fares_page=bool(all_fares),
             fares_by=t(
                 locale,
                 "fare.by_zone"

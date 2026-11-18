@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ t("fares.title", site=site_place) }}{% endblock %}
+{% block description %}{{ t("fares.description", site=site_place) }}{% endblock %}
+{% block canonical %}{{ base_url }}fares/{% endblock %}
+{% block main %}
+<h1 class="text-3xl font-bold">{{ t("fares.heading") }}</h1>
+{% for section in sections %}
+<section class="card bg-base-100 shadow-sm">
+<div class="card-body gap-2 p-4">
+{% if section.heading %}<h2 class="card-title">{{ section.heading }}</h2>{% endif %}
+<ul class="list-inside list-disc">
+{% for line in section.lines %}<li>{{ line }}</li>
+{% endfor %}</ul>
+</div>
+</section>
+{% endfor %}
+{% if transfers %}
+<section class="card bg-base-100 shadow-sm">
+<div class="card-body gap-2 p-4">
+<h2 class="card-title">{{ t("fares.transfers") }}</h2>
+<ul class="list-inside list-disc">
+{% for line in transfers %}<li>{{ line }}</li>
+{% endfor %}</ul>
+</div>
+</section>
+{% endif %}
+{% endblock %}

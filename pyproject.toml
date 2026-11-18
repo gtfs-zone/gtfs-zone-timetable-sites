@@ -91,16 +91,8 @@ ignore_names = [
     "state_label",
     "valid",
     # Fare fields on Feed, read only by the tests so far
-    "duration_limit",
     "duration_limit_type",
-    "fare_transfer_type",
-    "from_leg_group_id",
-    "leg_group_id",
     "media_type",
-    "networks",
-    "to_leg_group_id",
-    "transfer_count",
-    "transfer_rules",
 ]
 
 [tool.deptry]

@@ -13,7 +13,10 @@ from gtfs_zone_timetable_sites.config import TimeFormat
 from gtfs_zone_timetable_sites.fares import (
     Fare,
     FlatFare,
+    LegGroup,
     RouteFares,
+    SiteFares,
+    TransferRule,
     Transfers,
     ZoneFares,
 )
@@ -1187,3 +1190,81 @@ def fare_badges(fares: RouteFares, locale: Locale = "en") -> dict[str, str]:
         for station, zone in fares.stations.items()
         if zone in labels
     }
+
+
+@dataclass(frozen=True, slots=True)
+class FareSection:
+    """A network's or agency's fares on the site fares page; no heading
+    when the site has one section."""
+
+    heading: str
+    lines: tuple[str, ...]
+
+
+def fare_sections(
+    fares: SiteFares,
+    locale: Locale = "en",
+    timeframes: Mapping[str, Sequence[Timeframe]] | None = None,
+    time_format: TimeFormat = "24h",
+) -> tuple[FareSection, ...]:
+    """A section per fare group, a line per fare."""
+    one = len(fares.groups) == 1
+    return tuple(
+        FareSection(
+            "" if one else group.name or t(locale, "fares.any_routes"),
+            tuple(
+                fare_text(fare, len(group.fares) > 1, locale, timeframes, time_format)
+                for fare in group.fares
+            ),
+        )
+        for group in fares.groups
+    )
+
+
+def legs_text(legs: LegGroup | None, locale: Locale = "en") -> str:
+    """'Subway one-way fare (rapid_transit, from Airport)', or 'any fare'."""
+    if legs is None:
+        return t(locale, "fare.any_leg")
+    products = " / ".join(legs.products)
+    where = list(legs.networks)
+    if legs.from_area:
+        where.append(t(locale, "fare.from_area", area=legs.from_area))
+    if not where:
+        return products
+    return t(locale, "fare.legs", products=products, networks=", ".join(where))
+
+
+def transfer_text(rule: TransferRule, locale: Locale = "en") -> str:
+    """'Local Bus one-way fare (local_bus) to Subway one-way fare
+    (rapid_transit): $0.70 (Subway transfer) extra, within 120 min'."""
+    fee = " / ".join(fare_text(fare, False, locale) for fare in rule.fee)
+    if rule.fare_transfer_type == 1:
+        terms = [
+            t(locale, "fare.both_fares_fee", fee=fee)
+            if fee
+            else t(locale, "fare.both_fares")
+        ]
+    elif fee:
+        key = "fare.fee_only" if rule.fare_transfer_type == 2 else "fare.transfer_fee"
+        terms = [t(locale, key, fee=fee)]
+    else:
+        terms = [t(locale, "fare.transfer_free")]
+    if rule.count == -1:
+        terms.append(t(locale, "fare.transfer_any"))
+    elif rule.count and rule.count > 1:
+        terms.append(t(locale, "fare.transfer_up_to", n=rule.count))
+    if rule.duration:
+        terms.append(
+            t(
+                locale,
+                "fare.transfer_within",
+                duration=duration_text(rule.duration, locale),
+            )
+        )
+    return t(
+        locale,
+        "fare.transfer",
+        from_legs=legs_text(rule.from_legs, locale),
+        to_legs=legs_text(rule.to_legs, locale),
+        terms=", ".join(terms),
+    )

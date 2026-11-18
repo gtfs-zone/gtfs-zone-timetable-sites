@@ -4,6 +4,7 @@
 {% block main %}
 <h1 class="text-3xl font-bold">{{ site_title }}</h1>
 {% if local %}<p class="text-base-content/80">{{ t("index.serves", modes=modes, modes_lower=modes_lower, place=place) }}</p>{% endif %}
+{% if fares_page %}<p><a class="link" href="fares/">{{ t("fares.link") }}</a></p>{% endif %}
 {% if system_map %}
 <section class="card system bg-base-100 shadow-sm" data-src="map.json">
 <div class="card-body gap-3 p-4">

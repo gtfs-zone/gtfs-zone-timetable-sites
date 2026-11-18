@@ -789,7 +789,7 @@ def test_route_page_fare_card_lists_prices():
     html = next(
         body.decode()
         for path, body in page.items()
-        if path.endswith("/index.html") and path != "index.html"
+        if path.endswith("/index.html") and path != "fares/index.html"
     )
     assert "<p>Tarifs :</p>" in html
     assert "<li>190\xa0JPY payé avant de monter</li>" in html
@@ -800,8 +800,40 @@ def test_route_page_zone_fare_chart_and_badges():
     page = next(
         body
         for path, body in files.items()
-        if path.endswith("/index.html") and path != "index.html"
+        if path.endswith("/index.html") and path != "fares/index.html"
     )
     assert "<summary" in page and "Fares by zone</summary>" in page
     assert '<th scope="col"><span>Zone 2</span></th>' in page
     assert '<small class="code fare-zone">Zone 1</small>' in page
+
+
+def test_fares_page_linked_from_index_and_route():
+    files = build("fares-flat-v1")
+    page = files["fares/index.html"]
+    assert "<li>$1.25 paid on board, no free transfers</li>" in page
+    assert "<li>$2.00 paid on board, 1 free transfer within 60 min</li>" in page
+    assert NOINDEX not in page
+    assert '<a class="link" href="fares/">Fares</a>' in files["index.html"]
+    assert '<a class="link" href="../fares/">All fares</a>' in files["1/index.html"]
+
+
+def test_fares_page_v2_by_network_with_transfers():
+    page = build("fares-v2")["fares/index.html"]
+    assert '<h2 class="card-title">Local Bus</h2>' in page
+    assert "<li>$2.00 with Cash (Bus fare)</li>" in page
+    assert (
+        "<li>Bus fare (Local Bus) to Peak rail fare / Zone 1 rail fare / Zone 2"
+        " rail fare (Commuter Rail, from Zone 1): free, within 120 min</li>"
+    ) in page
+
+
+def test_no_fares_page_without_fares():
+    files = build("overnight")
+    assert "fares/index.html" not in files
+    assert 'href="fares/"' not in files["index.html"]
+
+
+def test_fares_page_noindex_when_site_is_not_indexed():
+    files = build("fares-flat-v1", index=False)
+    assert NOINDEX in files["fares/index.html"]
+    assert "fares/index.html" in json.loads(files["site.json"])["noindex"]

@@ -344,28 +344,39 @@ def leg_rules(
 
 
 def product_fares(
-    fares: Fares, rules: Iterable[FareLegRule], timeframe: Callable[[FareLegRule], str]
+    fares: Fares,
+    rules: Iterable[FareLegRule],
+    timeframe: Callable[[FareLegRule], str],
+    all_media: bool = False,
 ) -> tuple[Fare, ...]:
-    """The products of `rules`, cheapest first: one fare per product name and
-    timeframe, or per price with its media when the price depends on the
-    media. Unknown product or media ids raise KeyError."""
+    """The products of `rules`, cheapest first, as `priced_products`."""
+    return priced_products(
+        fares, ((rule.fare_product_id, timeframe(rule)) for rule in rules), all_media
+    )
+
+
+def priced_products(
+    fares: Fares, products: Iterable[tuple[str, str]], all_media: bool = False
+) -> tuple[Fare, ...]:
+    """The (fare_product_id, timeframe) products, cheapest first: one fare
+    per product name and timeframe, or per price with its media when the
+    price depends on the media (or always with `all_media`). Unknown product
+    or media ids raise KeyError."""
     prices: dict[tuple[str, str], dict[tuple[Decimal, str], set[str]]] = {}
-    for rule in rules:
-        if rule.fare_product_id not in fares.products:
-            raise KeyError(
-                f"fare_leg_rules: unknown fare_product_id {rule.fare_product_id!r}"
-            )
-        for product in fares.products[rule.fare_product_id]:
+    for product_id, frame in products:
+        if product_id not in fares.products:
+            raise KeyError(f"unknown fare_product_id {product_id!r}")
+        for product in fares.products[product_id]:
             media_id = product.fare_media_id
             if media_id and media_id not in fares.media:
                 raise KeyError(f"fare_products: unknown fare_media_id {media_id!r}")
             media = fares.media[media_id].name if media_id else ""
-            key = (product.name, timeframe(rule))
+            key = (product.name, frame)
             by_price = prices.setdefault(key, {})
             by_price.setdefault((product.amount, product.currency), set()).add(media)
     out = set()
     for (name, frame), by_price in prices.items():
-        several = len(by_price) > 1
+        several = all_media or len(by_price) > 1
         for (amount, currency), media in by_price.items():
             out.add(
                 Fare(
@@ -463,3 +474,165 @@ def v2_route_fares(feed: Feed, trips: Sequence[Trip]) -> RouteFares:
     return ZoneFares(
         labels, cells, tuple(order), station_zones(feed, trips, zone_of), named=True
     )
+
+
+@dataclass(frozen=True, slots=True)
+class FareGroup:
+    """The fares of one v2 network or v1 agency, cheapest first. `name` is
+    the network or agency name, empty for fares of any network or agency."""
+
+    name: str
+    fares: tuple[Fare, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class LegGroup:
+    networks: tuple[str, ...]  # network names, empty for any network
+    products: tuple[str, ...]
+    # The area every leg of the group starts in, empty when they differ.
+    from_area: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class TransferRule:
+    """A v2 transfer from a leg of one leg group to one of another; each leg
+    group is named by its networks and products, empty for any leg."""
+
+    from_legs: LegGroup | None
+    to_legs: LegGroup | None
+    # None or 1: one transfer; -1: unlimited.
+    count: int | None
+    duration: int | None  # seconds
+    # 0: first fare plus fee, 1: both fares plus fee, 2: the fee only.
+    fare_transfer_type: int
+    fee: tuple[Fare, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class SiteFares:
+    groups: tuple[FareGroup, ...]
+    transfers: tuple[TransferRule, ...] = ()
+
+
+def site_fares(feed: Feed) -> SiteFares | None:
+    """Every fare of the feed's routes: v2 products by network when the feed
+    has leg rules, else v1 fares by agency. None without fares."""
+    if feed.fares.leg_rules:
+        return v2_site_fares(feed)
+    if feed.fares.attributes:
+        return v1_site_fares(feed)
+    return None
+
+
+def v1_site_fares(feed: Feed) -> SiteFares | None:
+    """The v1 fares that apply to a route of the feed, grouped by agency:
+    fares with no rules, or a rule with an empty or known `route_id`.
+    Unknown fare ids raise KeyError."""
+    fares = feed.fares
+    ruled: set[str] = set()
+    used: set[str] = set()
+    for rule in fares.rules:
+        if rule.fare_id not in fares.attributes:
+            raise KeyError(f"fare_rules: unknown fare_id {rule.fare_id!r}")
+        ruled.add(rule.fare_id)
+        if not rule.route_id or rule.route_id in feed.routes:
+            used.add(rule.fare_id)
+    agencies = {route.agency_id for route in feed.routes.values()}
+    by_agency: dict[str, list[Fare]] = {}
+    for fare_id, attribute in fares.attributes.items():
+        if fare_id in ruled and fare_id not in used:
+            continue
+        agency = attribute.agency_id
+        if agency and agency not in agencies:
+            continue
+        if not agency and len(agencies) == 1:
+            agency = next(iter(agencies))
+        by_agency.setdefault(agency, []).append(v1_fare(attribute))
+    groups = tuple(
+        FareGroup(
+            feed.agencies[agency].name if agency in feed.agencies else agency,
+            distinct_prices(listed),
+        )
+        for agency, listed in by_agency.items()
+    )
+    groups = tuple(sorted(groups, key=lambda g: (g.name != "", g.name)))
+    return SiteFares(groups) if groups else None
+
+
+def v2_site_fares(feed: Feed) -> SiteFares | None:
+    """The v2 products of each network the feed's routes are on, with every
+    media at each price, and the transfer rules between their leg groups.
+    Transfer-only leg rules price no network's fares."""
+    fares = feed.fares
+    networks = {route_network(feed, route_id) for route_id in feed.routes}
+
+    def timeframe(rule: FareLegRule) -> str:
+        return rule_timeframe(fares, rule)
+
+    by_network: dict[str, list[FareLegRule]] = {}
+    for rule in fares.leg_rules:
+        if rule.transfer_only:
+            continue
+        if not rule.network_id or rule.network_id in networks:
+            by_network.setdefault(rule.network_id, []).append(rule)
+    groups = tuple(
+        FareGroup(
+            fares.networks.get(network) or network,
+            product_fares(fares, rules, timeframe, all_media=True),
+        )
+        for network, rules in by_network.items()
+    )
+    groups = tuple(sorted(groups, key=lambda g: (g.name != "", g.name)))
+    if not groups:
+        return None
+    return SiteFares(groups, transfer_rules(feed))
+
+
+def transfer_rules(feed: Feed) -> tuple[TransferRule, ...]:
+    """The feed's transfer rules, leg groups named by their networks,
+    product names and the area all their legs start in; rules that read the
+    same are listed once. Unknown leg
+    groups or products raise KeyError."""
+    fares = feed.fares
+    networks: dict[str, set[str]] = {}
+    names: dict[str, set[str]] = {}
+    starts: dict[str, set[str]] = {}
+    for rule in fares.leg_rules:
+        if rule.leg_group_id:
+            starts.setdefault(rule.leg_group_id, set()).add(rule.from_area_id)
+            if rule.fare_product_id not in fares.products:
+                raise KeyError(f"unknown fare_product_id {rule.fare_product_id!r}")
+            names.setdefault(rule.leg_group_id, set()).update(
+                product.name for product in fares.products[rule.fare_product_id]
+            )
+            networks.setdefault(rule.leg_group_id, set()).add(
+                fares.networks.get(rule.network_id) or rule.network_id
+            )
+
+    def legs(group: str) -> LegGroup | None:
+        if not group:
+            return None
+        if group not in names:
+            raise KeyError(f"fare_transfer_rules: unknown leg_group_id {group!r}")
+        area = next(iter(starts[group])) if len(starts[group]) == 1 else ""
+        return LegGroup(
+            tuple(sorted(networks[group] - {""})),
+            tuple(sorted(names[group])),
+            fares.areas.get(area) or area,
+        )
+
+    out: dict[TransferRule, None] = {}
+    for rule in fares.transfer_rules:
+        fee = ()
+        if rule.fare_product_id:
+            fee = priced_products(fares, [(rule.fare_product_id, "")])
+        transfer = TransferRule(
+            from_legs=legs(rule.from_leg_group_id),
+            to_legs=legs(rule.to_leg_group_id),
+            count=rule.transfer_count,
+            duration=rule.duration_limit,
+            fare_transfer_type=rule.fare_transfer_type,
+            fee=fee,
+        )
+        out[transfer] = None
+    return tuple(out)
