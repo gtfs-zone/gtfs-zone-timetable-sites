@@ -439,18 +439,25 @@ def read_trips(archive: Archive, route_ids: set[str]) -> dict[str, Trip]:
         "wheelchair_accessible",
         "block_id",
     )
+    # Trips repeat the same routes, services, headsigns and shapes, so each
+    # distinct string is kept once.
+    strings: dict[str, str] = {}
+
+    def shared(text: str) -> str:
+        return strings.setdefault(text, text)
+
     return {
         row["trip_id"]: Trip(
             trip_id=row["trip_id"],
-            route_id=row["route_id"],
-            service_id=row["service_id"],
-            headsign=row["trip_headsign"],
-            short_name=row["trip_short_name"],
+            route_id=shared(row["route_id"]),
+            service_id=shared(row["service_id"]),
+            headsign=shared(row["trip_headsign"]),
+            short_name=shared(row["trip_short_name"]),
             direction_id=parse_int(row["direction_id"]),
-            shape_id=row["shape_id"],
+            shape_id=shared(row["shape_id"]),
             bikes_allowed=parse_int(row["bikes_allowed"]) or 0,
             wheelchair_accessible=parse_int(row["wheelchair_accessible"]) or 0,
-            block_id=row["block_id"],
+            block_id=shared(row["block_id"]),
         )
         for row in archive.rows("trips", columns)
         if row["route_id"] in route_ids
@@ -470,16 +477,25 @@ def read_stop_times(
         "pickup_type",
         "drop_off_type",
     )
+    # Rows repeat the same stop_ids and times, so each distinct value is kept once.
+    stop_ids: dict[str, str] = {}
+    times: dict[str, int | None] = {}
+
+    def shared_time(text: str) -> int | None:
+        if text not in times:
+            times[text] = parse_time(text)
+        return times[text]
+
     by_trip: dict[str, list[StopTime]] = defaultdict(list)
     for row in archive.rows("stop_times", columns):
         if row["trip_id"] not in trip_ids:
             continue
         by_trip[row["trip_id"]].append(
             StopTime(
-                stop_id=row["stop_id"],
+                stop_id=stop_ids.setdefault(row["stop_id"], row["stop_id"]),
                 sequence=int(row["stop_sequence"]),
-                arrival=parse_time(row["arrival_time"]),
-                departure=parse_time(row["departure_time"]),
+                arrival=shared_time(row["arrival_time"]),
+                departure=shared_time(row["departure_time"]),
                 timepoint=parse_int(row["timepoint"]),
                 pickup_type=parse_int(row["pickup_type"]) or 0,
                 drop_off_type=parse_int(row["drop_off_type"]) or 0,
