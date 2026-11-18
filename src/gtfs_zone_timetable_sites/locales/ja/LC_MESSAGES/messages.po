@@ -1,0 +1,690 @@
+# Japanese translations for gtfs-zone-timetable-sites.
+# CHECK:
+# - mode.cable car: ケーブルトラム (GTFS route_type 5 is a street cable tram;
+# ケーブルカー is the funicular).
+# - Stops are 停留所 for every mode, also rail stations (駅).
+# - days.weekend: 土日. Sunday is 日曜日, not 日曜・祝日: holidays only show as the
+# feed's own exceptions.
+# - rt.skipped: 通過 for a skipped stop.
+# - fare.fee_only: 合計{fee} (one fee for both legs).
+# - map.arriving_at: まもなく{stop}.
+msgid ""
+msgstr ""
+"Project-Id-Version: gtfs-zone-timetable-sites VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-11-17 09:35+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "others"
+msgid_plural "others"
+msgstr[0] "ほか{n}社"
+
+msgid "range.both"
+msgstr "{start}～{end}"
+
+msgid "range.from"
+msgstr "{start}から"
+
+msgid "range.to"
+msgstr "{end}まで"
+
+msgid "range.valid"
+msgstr "{start}～{end}"
+
+# Day types and trip notes
+msgid "days.weekday"
+msgstr "平日"
+
+msgid "days.weekdays"
+msgstr "平日"
+
+msgid "days.weekend"
+msgstr "土日"
+
+msgid "days.weekends"
+msgstr "土日"
+
+msgid "days.daily"
+msgstr "毎日"
+
+msgid "days.range"
+msgstr "{first}～{last}"
+
+msgid "days.plural"
+msgstr "{day}"
+
+msgid "note.only_days"
+msgstr "{days}のみ"
+
+msgid "note.until"
+msgstr "{date}まで"
+
+msgid "note.from"
+msgstr "{date}から"
+
+msgid "note.not"
+msgstr "{dates}は運休"
+
+msgid "note.only"
+msgstr "{dates}のみ"
+
+msgid "day.runs_only"
+msgstr "{dates}のみ運行。"
+
+msgid "day.no_service"
+msgstr "{dates}は運休。"
+
+msgid "day.also_runs"
+msgstr "{dates}も運行。"
+
+msgid "day.valid"
+msgstr "{range}有効。"
+
+msgid "day.valid_until"
+msgstr "{date}まで有効。"
+
+# Modes
+msgid "mode.light rail"
+msgstr "ライトレール"
+
+msgid "mode.subway"
+msgstr "地下鉄"
+
+msgid "mode.train"
+msgstr "鉄道"
+
+msgid "mode.bus"
+msgstr "バス"
+
+msgid "mode.ferry"
+msgstr "フェリー"
+
+msgid "mode.cable car"
+msgstr "ケーブルトラム"
+
+msgid "mode.gondola"
+msgstr "ロープウェイ"
+
+msgid "mode.funicular"
+msgstr "ケーブルカー"
+
+msgid "mode.trolleybus"
+msgstr "トロリーバス"
+
+msgid "mode.monorail"
+msgstr "モノレール"
+
+msgid "mode.coach"
+msgstr "長距離バス"
+
+msgid "mode.air"
+msgstr "航空"
+
+msgid "mode.taxi"
+msgstr "タクシー"
+
+msgid "mode.misc"
+msgstr "その他"
+
+msgid "mode.transit"
+msgstr "公共交通"
+
+# Timetables
+msgid "table.to"
+msgstr "{places}方面"
+
+msgid "table.from_to"
+msgstr "{first}～{last}"
+
+msgid "table.every"
+msgstr "以後{until}まで{minutes}分間隔"
+
+msgid "legend.note"
+msgstr "{letter}：{note}。"
+
+msgid "legend.icon"
+msgstr "{icon}：{text}"
+
+msgid "legend.pm"
+msgstr "太字は午後の時刻です。"
+
+msgid "legend.next_day"
+msgstr "+1：深夜0時以降、翌日の時刻。"
+
+msgid "legend.later_days"
+msgstr "+n：深夜0時以降、n日後の時刻。"
+
+msgid "legend.evening_before"
+msgstr "-1：前日夜の時刻。"
+
+msgid "legend.untimed"
+msgstr "|：停車するが時刻の指定なし。"
+
+msgid "legend.drop_off"
+msgstr "d：降車のみ。"
+
+msgid "legend.pick_up"
+msgstr "p：乗車のみ。"
+
+msgid "legend.flag"
+msgstr "f：リクエスト停車（合図があったときのみ停車）。"
+
+msgid "legend.dwell"
+msgstr "時刻が2つの場合：到着時刻、出発時刻。"
+
+msgid "legend.approx"
+msgstr "灰色の時刻はおおよその時刻です。"
+
+msgid "legend.next"
+msgstr "現在運行中の各便の次の停車地。"
+
+msgid "amenity.bikes"
+msgstr "自転車持ち込み可"
+
+msgid "amenity.bikes_all"
+msgstr "全便で自転車を持ち込めます。"
+
+msgid "amenity.bikes_none"
+msgstr "自転車を持ち込める便はありません。"
+
+msgid "amenity.trips"
+msgstr "車いす対応の便"
+
+msgid "amenity.trips_all"
+msgstr "全便が車いすに対応しています。"
+
+msgid "amenity.trips_none"
+msgstr "車いす対応の便はありません。"
+
+msgid "amenity.stops"
+msgstr "車いす対応の停留所"
+
+msgid "amenity.stops_all"
+msgstr "全停留所が車いすに対応しています。"
+
+msgid "amenity.stops_none"
+msgstr "車いす対応の停留所はありません。"
+
+msgid "amenity.wheelchair"
+msgstr "車いす対応"
+
+# Maps
+msgid "map.title"
+msgstr "{title}の路線図"
+
+msgid "map.system"
+msgstr "{site}の全路線図"
+
+msgid "map.modes"
+msgstr "地図に表示する交通手段"
+
+msgid "map.in_timetable"
+msgstr "時刻表で表示"
+
+msgid "map.vehicle"
+msgstr "車両 {label}"
+
+msgid "map.to"
+msgstr "{headsign}行き"
+
+msgid "map.stopped_at"
+msgstr "{stop}に停車中"
+
+msgid "map.arriving_at"
+msgstr "まもなく{stop}"
+
+msgid "map.next_stop"
+msgstr "次は{stop}"
+
+msgid "map.position_ago"
+msgstr "{ago}の位置"
+
+msgid "map.open_timetable"
+msgstr "時刻表を開く"
+
+msgid "map.live"
+msgid_plural "map.live"
+msgstr[0] "リアルタイム：地図上に{n}台"
+
+msgid "map.updated"
+msgstr "{live}、{ago}に更新"
+
+msgid "rt.on_time"
+msgstr "定刻"
+
+msgid "rt.skipped"
+msgstr "通過"
+
+msgid "rt.canceled"
+msgstr "運休"
+
+# Site index
+msgid "index.title"
+msgstr "{site}の時刻表"
+
+msgid "index.title_place"
+msgstr "{site}の時刻表 - {place}"
+
+msgid "index.serves"
+msgstr "{place}の{modes}時刻表。"
+
+msgid "index.description"
+msgid_plural "index.description"
+msgstr[0] "{site}の{modes}時刻表：{n}路線の各停留所の時刻。"
+
+msgid "index.expired"
+msgstr "運行終了"
+
+msgid "index.expired_badge"
+msgstr "運行終了"
+
+msgid "index.ended"
+msgstr "{date}に終了"
+
+msgid "index.starts"
+msgstr "{date}に開始"
+
+msgid "index.map"
+msgstr "地図"
+
+msgid "index.route_page"
+msgstr "路線ページを開く"
+
+msgid "index.route_page_label"
+msgstr "路線ページを開く：{route}"
+
+msgid "index.loading"
+msgstr "時刻表を読み込み中"
+
+msgid "index.load_error"
+msgstr "ここでは時刻表を読み込めませんでした。路線ページを開いてください。"
+
+msgid "index.about"
+msgstr "概要"
+
+msgid "index.website"
+msgstr "ウェブサイト"
+
+msgid "index.valid"
+msgstr "時刻表は{range}有効です。"
+
+msgid "index.feed_link"
+msgstr "このフィードについて（list.gtfs.zone）"
+
+# Route page
+msgid "route.title"
+msgstr "{route} {mode}時刻表 - {site}"
+
+msgid "route.description"
+msgstr "{route} {mode}時刻表{between}{days}。各停留所の時刻と始発・最終便、{site}のデータより。"
+
+msgid "route.between"
+msgstr "（{first}～{last}）"
+
+msgid "route.days"
+msgstr "：{days}"
+
+msgid "route.expired"
+msgstr "この路線の運行は{date}に終了しました。表示しているのは最後の時刻表です。"
+
+msgid "route.upcoming"
+msgstr "この路線の運行は{date}に開始します。表示しているのは最初の時刻表です。"
+
+msgid "route.intro_both"
+msgstr "{route} {mode}路線は{first}と{last}の間を運行し、{days}の時刻表があります。"
+
+msgid "route.intro_ends"
+msgstr "{route} {mode}路線は{first}と{last}の間を運行します。"
+
+msgid "route.intro_days"
+msgstr "{route} {mode}路線には{days}の時刻表があります。"
+
+msgid "route.trips"
+msgid_plural "route.trips"
+msgstr[0] "{n}便"
+
+msgid "route.trips_start"
+msgstr "{time}発。"
+
+msgid "route.first_last"
+msgstr "始発は{first}、最終は{last}発です。"
+
+msgid "route.zone_time"
+msgstr "{zone}時間"
+
+msgid "route.platform"
+msgstr "{platform}番のりば"
+
+msgid "route.continues_as"
+msgstr "{headsign}行き{route}に直通"
+
+msgid "route.all_routes"
+msgstr "全路線"
+
+msgid "route.agency_page"
+msgstr "事業者サイトの路線ページ"
+
+msgid "fare.one"
+msgstr "運賃：{fare}。"
+
+msgid "fare.several"
+msgstr "運賃："
+
+msgid "fare.on_board"
+msgstr "{price}（車内で支払い）"
+
+msgid "fare.before_boarding"
+msgstr "{price}（乗車前に支払い）"
+
+msgid "fare.with"
+msgstr "{fare}、{transfers}"
+
+msgid "fare.no_transfers"
+msgstr "無料乗り継ぎなし"
+
+msgid "fare.valid_for"
+msgstr "{duration}有効"
+
+msgid "fare.transfers"
+msgid_plural "fare.transfers"
+msgstr[0] "無料乗り継ぎ{n}回"
+
+msgid "fare.unlimited"
+msgstr "乗り継ぎ無料・回数無制限"
+
+msgid "fare.within"
+msgstr "{duration}以内に{transfers}"
+
+msgid "fare.minutes"
+msgstr "{n}分"
+
+msgid "fare.zone"
+msgstr "ゾーン{zone}"
+
+msgid "fare.media"
+msgstr "{media}で{price}"
+
+msgid "fare.product"
+msgstr "{price}（{product}）"
+
+msgid "fare.during"
+msgstr "{fare}、{times}"
+
+msgid "fare.times"
+msgstr "{start}～{end}"
+
+msgid "fare.other_stops"
+msgstr "その他の停留所"
+
+msgid "fare.by_stop"
+msgstr "停留所間の運賃"
+
+msgid "fare.by_zone"
+msgstr "ゾーン間の運賃"
+
+msgid "fare.between_stops"
+msgstr "2つの停留所間の運賃：一方を左の列、もう一方を上の行から選びます。"
+
+msgid "fare.between_zones"
+msgstr "2つのゾーン間の運賃：一方を左の列、もう一方を上の行から選びます。"
+
+msgid "fare.from_stops"
+msgstr "左の列の停留所から上の行の停留所までの運賃です。"
+
+msgid "fare.from_zones"
+msgstr "左の列のゾーンから上の行のゾーンまでの運賃です。"
+
+msgid "fare.paid_on_board"
+msgstr "車内で支払い"
+
+msgid "fare.paid_before"
+msgstr "乗車前に支払い"
+
+msgid "fares.title"
+msgstr "運賃 - {site}"
+
+msgid "fares.heading"
+msgstr "運賃"
+
+msgid "fares.description"
+msgstr "{site}の運賃と乗り継ぎ。"
+
+msgid "fares.link"
+msgstr "運賃"
+
+msgid "fares.all"
+msgstr "すべての運賃"
+
+msgid "fares.transfers"
+msgstr "乗り継ぎ"
+
+msgid "fares.any_routes"
+msgstr "全路線"
+
+msgid "fare.any_leg"
+msgstr "任意の運賃"
+
+msgid "fare.legs"
+msgstr "{products}（{networks}）"
+
+msgid "fare.from_area"
+msgstr "{area}から"
+
+msgid "fare.transfer"
+msgstr "{from_legs}から{to_legs}：{terms}"
+
+msgid "fare.transfer_free"
+msgstr "無料"
+
+msgid "fare.transfer_fee"
+msgstr "追加{fee}"
+
+msgid "fare.both_fares"
+msgstr "両方の運賃"
+
+msgid "fare.both_fares_fee"
+msgstr "両方の運賃に加えて{fee}"
+
+msgid "fare.fee_only"
+msgstr "合計{fee}"
+
+msgid "fare.transfer_up_to"
+msgid_plural "fare.transfer_up_to"
+msgstr[0] "最大{n}回まで乗り継ぎ可"
+
+msgid "fare.transfer_any"
+msgstr "乗り継ぎ回数無制限"
+
+msgid "fare.transfer_within"
+msgstr "{duration}以内"
+
+# Footer
+msgid "footer.generated"
+msgstr "{date}に事業者のGTFSフィードから生成しました。ご利用前に事業者にご確認ください。"
+
+msgid "footer.source"
+msgstr "時刻表データ：{publisher}{feed}{terms}。"
+
+msgid "footer.feed"
+msgstr "GTFSフィード"
+
+msgid "footer.licensed"
+msgstr "、{licenses}に基づく"
+
+msgid "footer.license_n"
+msgstr "ライセンス{n}"
+
+msgid "footer.publisher_license"
+msgstr "提供元のライセンス"
+
+msgid "footer.publisher_terms"
+msgstr "、提供元の利用条件による"
+
+msgid "footer.listed"
+msgstr "{catalogs}に掲載。"
+
+msgid "footer.mobility_database"
+msgstr "Mobility Database"
+
+msgid "footer.more"
+msgstr "その他のGTFSツール：{link}"
+
+msgid "nav.github"
+msgstr "GitHubのソースコード"
+
+msgid "nav.language"
+msgstr "言語"
+
+msgid "nav.theme"
+msgstr "ライト／ダークテーマ"
+
+# Root, country and error pages
+msgid "root.title"
+msgstr "公共交通の時刻表"
+
+msgid "root.description"
+msgstr "{countries}の{agencies}のバス・鉄道時刻表。各事業者のGTFSフィードから生成。"
+
+msgid "root.transit_agencies"
+msgid_plural "root.transit_agencies"
+msgstr[0] "{n}の交通事業者"
+
+msgid "root.countries"
+msgid_plural "root.countries"
+msgstr[0] "{n}か国"
+
+msgid "root.agencies"
+msgid_plural "root.agencies"
+msgstr[0] "{n}事業者"
+
+msgid "root.search"
+msgstr "事業者・地名を検索"
+
+msgid "root.map"
+msgstr "時刻表のある国の地図"
+
+msgid "root.map_count"
+msgstr "{name}：{agencies}"
+
+msgid "root.found_first"
+msgid_plural "root.found_first"
+msgstr[0] "{n}事業者（最初の{max}件を表示）"
+
+msgid "root.none_found"
+msgstr "事業者が見つかりません"
+
+msgid "root.generated"
+msgstr "{link}が各事業者のGTFSフィードから毎日生成しています。ご利用前に事業者にご確認ください。"
+
+msgid "root.found_through"
+msgstr "フィードの収集：{list}（{atlas}（{license}）および{mdb}から）。"
+
+msgid "root.borders"
+msgstr "国境データ：{link}。"
+
+msgid "root.terms"
+msgstr "各時刻表は提供元のデータから、提供元の利用条件に従って作成しています。"
+
+msgid "country.title"
+msgstr "{country}の公共交通時刻表"
+
+msgid "country.description"
+msgstr "{country}の{agencies}のバス・鉄道時刻表。各事業者のGTFSフィードから生成。"
+
+msgid "country.search"
+msgstr "{country}の事業者を検索"
+
+msgid "country.map"
+msgstr "時刻表のある{country}の地域の地図"
+
+msgid "country.elsewhere"
+msgstr "その他の地域"
+
+msgid "country.other"
+msgstr "その他"
+
+msgid "country.routes"
+msgid_plural "country.routes"
+msgstr[0] "{n}路線"
+
+msgid "country.expired_routes"
+msgid_plural "country.expired_routes"
+msgstr[0] "（{n}路線は運行終了）"
+
+msgid "country.borders"
+msgstr "地域の境界データ：{link}（{source}）、{license}。"
+
+msgid "country.source"
+msgstr "出典"
+
+msgid "country.all"
+msgstr "すべての国"
+
+msgid "status.ok"
+msgstr "最新"
+
+msgid "status.expiring"
+msgstr "まもなく期限切れ"
+
+msgid "status.stale"
+msgstr "前回の更新に失敗"
+
+msgid "status.expired"
+msgstr "期限切れ"
+
+msgid "status.unavailable"
+msgstr "利用不可"
+
+msgid "reason.not_built"
+msgstr "未作成"
+
+msgid "reason.no_routes"
+msgstr "フィードに路線がありません"
+
+msgid "reason.http_error"
+msgstr "ダウンロード失敗"
+
+msgid "reason.http_error_detail"
+msgstr "ダウンロード失敗：{detail}"
+
+msgid "reason.not_zip"
+msgstr "ダウンロードしたファイルがzipではありません"
+
+msgid "reason.missing_files"
+msgstr "必須ファイルがありません"
+
+msgid "reason.parse_error"
+msgstr "フィードを読み込めません"
+
+msgid "reason.empty"
+msgstr "フィードに運行予定の便がありません"
+
+msgid "reason.timeout"
+msgstr "ダウンロードがタイムアウトしました"
+
+msgid "reason.memory"
+msgstr "大きすぎて作成できません"
+
+msgid "reason.error"
+msgstr "作成に失敗しました"
+
+msgid "error.title"
+msgstr "ページが見つかりません"
+
+msgid "error.description"
+msgstr "このアドレスにページはありません。"
+
+msgid "error.moved"
+msgstr "事業者が路線名を変更すると、時刻表ページの場所が変わります。{link}。"
+
+msgid "error.find"
+msgstr "事業者の時刻表を探す"
+

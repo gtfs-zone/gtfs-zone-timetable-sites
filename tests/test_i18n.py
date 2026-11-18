@@ -162,3 +162,12 @@ def test_french_lists_and_modes():
 
 def test_finnish_weekdays_are_labels():
     assert weekday_name([5], locale="fi") == "Lauantai"
+
+
+def test_japanese_day_types_and_dates():
+    assert weekday_name(range(5), locale="ja") == "平日"
+    assert weekday_name([5], locale="ja") == "土曜日"
+    assert weekday_name([0, 1, 2, 3], locale="ja") == "月曜日～木曜日"  # noqa: RUF001
+    assert long_date(date(2026, 11, 14), "ja") == "2026年11月14日"
+    assert weekday_date(date(2026, 10, 31), "ja") == "10月31日(土)"
+    assert t("ja", "route.trips", n=3) == "3便"
