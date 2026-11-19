@@ -9,12 +9,16 @@
 <section class="card system bg-base-100 shadow-sm" data-src="{{ assets }}map.json">
 <div class="card-body gap-3 p-4">
 <h2 class="card-title">{{ t("index.map") }}</h2>
-<div class="map-modes flex flex-wrap gap-2" role="group" aria-label="{{ t("map.modes") }}" hidden></div>
+{% if groups | length > 1 %}
+<div class="map-modes flex flex-wrap gap-2" role="group" aria-label="{{ t("map.modes") }}">
+{% for group in groups %}<button type="button" class="btn btn-sm border-base-content bg-base-content text-base-100" aria-pressed="true" data-mode="{{ group.mode }}">{{ group.heading }}</button>
+{% endfor %}</div>
+{% endif %}
 <div class="relative">
 <div class="system-map" role="region" aria-label="{{ t("map.system", site=site_title) }}"></div>
 <p class="map-cap" hidden></p>
-</div>
 <p class="map-live" hidden></p>
+</div>
 </div>
 </section>
 {% endif %}

@@ -727,30 +727,22 @@ async function initSystemMap(el) {
   });
   onTheme(map, draw);
 
+  // Mode chips come with the page, so the map's place is set before it loads.
+  // Shown modes filled in the text color, hidden ones outlined, for contrast in both themes
   const chips = el.querySelector(".map-modes");
-  if (modes.length > 1 && chips) {
-    // Shown modes filled in the text color, hidden ones outlined, for contrast in both themes
-    const chipClass = (on) => `btn btn-sm ${on ? "border-base-content bg-base-content text-base-100" : "btn-outline"}`;
-    for (const mode of modes) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = chipClass(true);
-      button.setAttribute("aria-pressed", "true");
-      button.textContent = TEXT.modes?.[mode] ?? mode;
-      button.addEventListener("click", () => {
-        if (enabled.has(mode) && enabled.size > 1) enabled.delete(mode);
-        else enabled.add(mode);
-        for (const b of chips.children) {
-          const on = enabled.has(b.dataset.mode);
-          b.className = chipClass(on);
-          b.setAttribute("aria-pressed", String(on));
-        }
-        showModes();
-      });
-      button.dataset.mode = mode;
-      chips.append(button);
-    }
-    chips.hidden = false;
+  const chipClass = (on) => `btn btn-sm ${on ? "border-base-content bg-base-content text-base-100" : "btn-outline"}`;
+  for (const button of chips?.children ?? []) {
+    const mode = button.dataset.mode;
+    button.addEventListener("click", () => {
+      if (enabled.has(mode) && enabled.size > 1) enabled.delete(mode);
+      else enabled.add(mode);
+      for (const b of chips.children) {
+        const on = enabled.has(b.dataset.mode);
+        b.className = chipClass(on);
+        b.setAttribute("aria-pressed", String(on));
+      }
+      showModes();
+    });
   }
 
   const cap = el.querySelector(".map-cap");

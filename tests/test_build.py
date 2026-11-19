@@ -987,8 +987,8 @@ def test_a_page_set_per_feed_language():
     }
     assert json.loads(files["site.json"])["languages"] == ["fr", "en"]
     home, en_home = files["index.html"], files["en/index.html"]
-    assert '<html lang="fr">' in home and '"ferry":"Traversier"' in home
-    assert '<html lang="en">' in en_home and '"ferry":"Ferry"' in en_home
+    assert '<html lang="fr">' in home and 'data-mode="ferry">Traversier<' in home
+    assert '<html lang="en">' in en_home and 'data-mode="ferry">Ferry<' in en_home
     alternates = (
         '<link rel="alternate" hreflang="fr" href="https://sites.gtfs.zone/test/">\n'
         '<link rel="alternate" hreflang="en" href="https://sites.gtfs.zone/test/en/">\n'
@@ -1046,7 +1046,7 @@ def test_kana_readings_beside_names():
 def test_a_language_without_a_catalog_has_english_text():
     files = build("languages", locale="eu")
     home = files["index.html"]
-    assert '<html lang="eu">' in home and '"ferry":"Ferry"' in home
+    assert '<html lang="eu">' in home and 'data-mode="ferry">Ferry<' in home
     assert ' href="./" lang="eu" hreflang="eu" aria-current="page">Euskara</a>' in home
     # The pin replaces the feed's default (fr); en stays.
     assert json.loads(files["site.json"])["languages"] == ["eu", "en"]

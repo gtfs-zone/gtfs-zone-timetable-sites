@@ -1,8 +1,10 @@
 {% if map %}
 <div class="route-maps">
+<div class="route-main">
 <div class="route-map" role="region" aria-label="{{ t("map.title", title=route.title) }}"></div>
-<div class="route-insets"></div>
 <p class="map-live" hidden></p>
+</div>
+<div class="route-insets"></div>
 </div>
 <script type="application/json" class="route-data">{{ map }}</script>
 {% endif %}
