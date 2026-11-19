@@ -30,9 +30,10 @@
 }
 /* Caps the stop column; max-width on a table cell itself is ignored */
 .timetable th[scope=row] .stop { display: block; max-width: calc(40vw - var(--gutter, 40px)); }
-/* Code, platform, zone and notes follow the name like words; the reading gets its own line */
-.timetable th[scope=row] small { opacity: .7; white-space: nowrap; }
-.timetable th[scope=row] small.reading { display: block; white-space: normal; }
+/* Code, platform, zone and notes follow the name, each kept whole on a line
+   unless longer than the column; the reading gets its own line */
+.timetable th[scope=row] small { display: inline-block; max-width: 100%; opacity: .7; }
+.timetable th[scope=row] small.reading { display: block; }
 .timetable thead th { font-size: .85rem; font-weight: 600; text-align: right; }
 .timetable thead tr.to th { font-weight: 400; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); white-space: normal; }
 .timetable thead tr.to th[colspan] { text-align: left; }
@@ -41,7 +42,7 @@
 /* A headsign spanning shaded and unshaded columns covers the column shading */
 .timetable tr.to th:not(.alt) { background: var(--color-base-100); }
 .timetable .pm { font-weight: 700; }
-.timetable small.code { font-size: .75rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); white-space: nowrap; }
+.timetable small.code { font-size: .75rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
 .timetable tr.approx > td { color: color-mix(in oklab, var(--color-base-content) 60%, transparent); }
 /* Raised by vertical-align, since preflight's relative positioning would paint it over the sticky stop column */
 .timetable sup { position: static; vertical-align: .5em; font-size: .7em; line-height: 0; }
@@ -54,11 +55,13 @@
 .fare-chart { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; font-size: .85rem; }
 .fare-chart th, .fare-chart td { padding: .2rem .4rem; border-bottom: 1px solid var(--color-base-300); border-right: 1px solid var(--color-base-300); white-space: nowrap; }
 .fare-chart td { text-align: right; }
-.fare-chart th[scope=row] { position: sticky; left: 0; z-index: 1; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; background: var(--color-base-100); font-weight: 400; text-align: left; }
+/* Place names wrap past 12rem rather than being cut: that fits 13 CJK
+   characters (Miekotsu Iga's longest stop) and MBTA's "Commuter Rail Zone 1A" */
+.fare-chart th[scope=row] { position: sticky; left: 0; z-index: 1; max-width: min(12rem, 40vw); white-space: normal; background: var(--color-base-100); font-weight: 400; text-align: left; }
 .fare-chart thead > tr > * { position: sticky; top: 0; z-index: 1; background: var(--color-base-100); vertical-align: bottom; }
 .fare-chart thead td { left: 0; z-index: 2; }
 .fare-chart thead th { font-weight: 400; }
-.fare-chart thead th span { display: block; max-height: 9rem; overflow: hidden; text-overflow: ellipsis; writing-mode: vertical-rl; }
+.fare-chart thead th span { display: block; max-height: 12rem; white-space: normal; writing-mode: vertical-rl; }
 .fare-chart tbody tr:hover > * { background: var(--color-base-200); }
 
 /* Route-colored rail down the stop column: lanes per branch, a dot per stop, filled where trips start or end */
