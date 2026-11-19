@@ -1035,7 +1035,8 @@ def test_kana_readings_beside_names():
     body = fixture_files("languages") | {"translations.txt": translations}
     files = build_site(make_zip(body), Site(slug="test", url="u"), today=MONDAY)
     fr, en = files["1/index.html"].decode(), files["en/1/index.html"].decode()
-    assert '<small class="text-base-content/70" lang="ja-Hrkt">がーる</small>' in fr
+    reading = 'class="reading text-base-content/70" lang="ja-Hrkt">がーる</small>'
+    assert reading in fr
     assert "おてる" in fr
     # A name shown translated has no reading; an untranslated one keeps it.
     assert "がーる" not in en and "おてる" in en

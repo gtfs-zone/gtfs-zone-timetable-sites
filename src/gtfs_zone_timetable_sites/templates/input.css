@@ -30,7 +30,9 @@
 }
 /* Caps the stop column; max-width on a table cell itself is ignored */
 .timetable th[scope=row] .stop { display: block; max-width: calc(40vw - var(--gutter, 40px)); }
-.timetable th[scope=row] small { display: block; opacity: .7; }
+/* Code, platform, zone and notes follow the name like words; the reading gets its own line */
+.timetable th[scope=row] small { opacity: .7; white-space: nowrap; }
+.timetable th[scope=row] small.reading { display: block; white-space: normal; }
 .timetable thead th { font-size: .85rem; font-weight: 600; text-align: right; }
 .timetable thead tr.to th { font-weight: 400; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); white-space: normal; }
 .timetable thead tr.to th[colspan] { text-align: left; }
