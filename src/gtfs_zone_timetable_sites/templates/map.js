@@ -519,8 +519,9 @@ function insetFigures(container, n) {
 }
 
 // An inset map per pick in its figure; onView gets each inset's index and
-// view ring whenever it settles
-function buildInsets(L, figs, card, data, picks, zoom, onView) {
+// view ring whenever it settles, and addVehicles(map) draws live vehicles on
+// it, returning their drawer or null
+function buildInsets(L, figs, card, data, picks, zoom, onView, addVehicles) {
   picks.forEach((pick, i) => {
     const { cap, name, div } = figs[i];
     const tag = document.createElement("span");
@@ -528,13 +529,16 @@ function buildInsets(L, figs, card, data, picks, zoom, onView) {
     tag.textContent = letter(i);
     cap.prepend(tag);
     const map = newMap(L, div, null, { center: pick.center, zoom: Math.min(17, zoom + INSET_ZOOM), attributionControl: false });
+    let vehicles;
     const draw = () => {
       quietBasemap(map);
       addRouteLayers(map, data);
+      vehicles?.draw();
     };
     map.once("load", () => {
       draw();
       stopHandlers(L, map, card);
+      vehicles = addVehicles(map);
       map.once("idle", () => (name.textContent = placeName(map, pick.coords) || " "));
       onView(i, viewRing(map));
     });
@@ -553,6 +557,8 @@ async function initRouteMap(card) {
   const map = newMap(L, holder.querySelector(".route-map"), bounds);
   map.addControl(new L.NavigationControl({ showCompass: false }), "top-right");
   let vehicles;
+  // The route's vehicle poller, and a drawer for it on a map, once data.rt is read
+  let addVehicles = () => null;
   const rings = [];
   const draw = () => {
     quietBasemap(map);
@@ -577,10 +583,19 @@ async function initRouteMap(card) {
       if (!picks.length) holder.classList.remove("has-insets");
       map.resize();
       fit();
-      buildInsets(L, figs, card, data, picks, zoom, (i, ring) => {
-        rings[i] = ring;
-        drawBoxes(map, rings);
-      });
+      buildInsets(
+        L,
+        figs,
+        card,
+        data,
+        picks,
+        zoom,
+        (i, ring) => {
+          rings[i] = ring;
+          drawBoxes(map, rings);
+        },
+        (m) => addVehicles(m),
+      );
     });
   };
   map.once("load", () => {
@@ -593,14 +608,10 @@ async function initRouteMap(card) {
       const route = { color: data.color };
       let config = null;
       liveConfig(card).then((c) => (config = c), () => {});
-      vehicles = live(
-        L,
-        map,
-        holder,
-        data.rt.url,
-        (v) => (routes.has(v.routeId) || trips.has(v.tripId) ? route : null),
-        (v) => vehiclePlace(map, card, config, v),
-      );
+      const poller = vehiclePoller(holder, data.rt.url);
+      const routeOf = (v) => (routes.has(v.routeId) || trips.has(v.tripId) ? route : null);
+      addVehicles = (m, status = null) => poller.add(vehicleDrawer(L, m, routeOf, (v) => vehiclePlace(m, card, config, v), status));
+      vehicles = addVehicles(map, holder.querySelector(".map-live"));
     }
   });
   onTheme(map, draw);
@@ -712,16 +723,17 @@ async function initSystemMap(el) {
     if (data.rt) {
       const byId = new Map();
       data.routes.forEach((r, i) => r.ids.forEach((id) => byId.set(id, i)));
-      vehicles = live(
-        L,
-        map,
-        el,
-        data.rt,
-        (v) => {
-          const i = byId.get(v.routeId);
-          return i == null || !enabled.has(data.routes[i].mode) ? null : data.routes[i];
-        },
-        (v, route) => vehicleRoute(map, route),
+      vehicles = vehiclePoller(el, data.rt).add(
+        vehicleDrawer(
+          L,
+          map,
+          (v) => {
+            const i = byId.get(v.routeId);
+            return i == null || !enabled.has(data.routes[i].mode) ? null : data.routes[i];
+          },
+          (v, route) => vehicleRoute(map, route),
+          el.querySelector(".map-live"),
+        ),
       );
     }
   });
@@ -1025,17 +1037,70 @@ function setVehicleScale(map, scale) {
 // Where a vehicle is relative to its stop, from currentStatus
 const STATUS_TEXT = ["map.arriving_at", "map.stopped_at", "map.next_stop"];
 
-// Polls url every POLL_MS while el is on screen and the tab is visible.
-// routeOf(v) gives a vehicle's route ({ color, ... }), or null to leave it off
-// this map; describe(v, route) gives { head, stop, link } for its popup: a
-// node above the label, the name of v.stopId and a node below. Returns draw,
-// which puts the vehicle layers on a new basemap style, and refresh, which
-// rebuilds them after routeOf changes
-function live(L, map, el, url, routeOf, describe) {
+// Polls url every POLL_MS while el is on screen and the tab is visible, and
+// passes each poll's vehicles to every map added: add(drawer) calls
+// drawer.update(list, ts) now if a poll has returned and after each poll,
+// drawer.failed() when one fails
+function vehiclePoller(el, url) {
+  const drawers = new Set();
   // Vehicles from the last poll: { id, label, routeId, tripId, stopId, status, at, bearing, ts }
-  let list = [];
+  let list = null;
+  let feedTs = 0;
   // Last position and bearing per vehicle, for feeds that send no bearing
   const last = new Map();
+  pollWhileShown(el, async () => {
+    let feed;
+    try {
+      feed = await fetchFeed(url);
+    } catch (err) {
+      for (const d of drawers) d.failed();
+      throw err;
+    }
+    feedTs = num(feed.header?.timestamp) || Date.now() / 1000;
+    list = [];
+    for (const entity of feed.entity ?? []) {
+      const v = entity.vehicle;
+      const pos = v?.position;
+      if (!pos) continue;
+      const id = v.vehicle?.id || entity.id;
+      const at = [pos.longitude, pos.latitude];
+      const seen = last.get(id);
+      let bearing = Object.hasOwn(pos, "bearing") ? pos.bearing : null;
+      if (bearing == null && seen) bearing = metres(seen.at, at) >= MIN_MOVE_M ? bearingOf(seen.at, at) : seen.bearing;
+      if (!seen || metres(seen.at, at) >= MIN_MOVE_M) last.set(id, { at, bearing });
+      list.push({
+        id,
+        label: v.vehicle?.label || id,
+        routeId: v.trip?.routeId,
+        tripId: v.trip?.tripId,
+        stopId: v.stopId || null,
+        // Unset means IN_TRANSIT_TO, as the spec defaults it
+        status: Object.hasOwn(v, "currentStatus") ? v.currentStatus : 2,
+        at,
+        bearing,
+        ts: num(v.timestamp) || feedTs,
+      });
+    }
+    for (const d of drawers) d.update(list, feedTs);
+  });
+  return {
+    add(drawer) {
+      drawers.add(drawer);
+      if (list) drawer.update(list, feedTs);
+      return drawer;
+    },
+  };
+}
+
+// Draws a poller's vehicles on one map, with its own focus and popup.
+// routeOf(v) gives a vehicle's route ({ color, ... }), or null to leave it off
+// this map; describe(v, route) gives { head, stop, link } for its popup: a
+// node above the label, the name of v.stopId and a node below. status, if
+// given, is the line that counts the vehicles drawn. Returns draw, which puts
+// the vehicle layers on a new basemap style, refresh, which rebuilds them
+// after routeOf changes, and update and failed for the poller
+function vehicleDrawer(L, map, routeOf, describe, status = null) {
+  let list = [];
   // The vehicle whose popup is open
   let focused = null;
   let popup = null;
@@ -1126,42 +1191,10 @@ function live(L, map, el, url, routeOf, describe) {
   map.on("mouseenter", "vehicles-hit", () => (map.getCanvas().style.cursor = "pointer"));
   map.on("mouseleave", "vehicles-hit", () => (map.getCanvas().style.cursor = ""));
   map.on("moveend", rescale);
-
-  const status = el.querySelector(".map-live");
   if (status) statuses.add(status);
-  pollWhileShown(el, async () => {
-    let feed;
-    try {
-      feed = await fetchFeed(url);
-    } catch (err) {
-      if (status) status.hidden = true;
-      throw err;
-    }
-    const feedTs = num(feed.header?.timestamp) || Date.now() / 1000;
-    list = [];
-    for (const entity of feed.entity ?? []) {
-      const v = entity.vehicle;
-      const pos = v?.position;
-      if (!pos) continue;
-      const id = v.vehicle?.id || entity.id;
-      const at = [pos.longitude, pos.latitude];
-      const seen = last.get(id);
-      let bearing = Object.hasOwn(pos, "bearing") ? pos.bearing : null;
-      if (bearing == null && seen) bearing = metres(seen.at, at) >= MIN_MOVE_M ? bearingOf(seen.at, at) : seen.bearing;
-      if (!seen || metres(seen.at, at) >= MIN_MOVE_M) last.set(id, { at, bearing });
-      list.push({
-        id,
-        label: v.vehicle?.label || id,
-        routeId: v.trip?.routeId,
-        tripId: v.trip?.tripId,
-        stopId: v.stopId || null,
-        // Unset means IN_TRANSIT_TO, as the spec defaults it
-        status: Object.hasOwn(v, "currentStatus") ? v.currentStatus : 2,
-        at,
-        bearing,
-        ts: num(v.timestamp) || feedTs,
-      });
-    }
+
+  const update = (next, feedTs) => {
+    list = next;
     show();
     // The open popup follows its vehicle, and closes once it leaves the map
     const v = focused != null && list.find((x) => x.id === focused && routeOf(x));
@@ -1173,8 +1206,11 @@ function live(L, map, el, url, routeOf, describe) {
       status.hidden = false;
       showStatus(status);
     }
-  });
-  return { draw, refresh };
+  };
+  const failed = () => {
+    if (status) status.hidden = true;
+  };
+  return { draw, refresh, update, failed };
 }
 
 /* Live times in the timetable */
