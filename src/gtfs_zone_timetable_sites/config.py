@@ -3,9 +3,8 @@
 from typing import Annotated, Any, Literal, Self
 
 import yaml
+from gtfs_zone_feed_fetch.languages import normalize
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
-
-from gtfs_zone_timetable_sites.languages import normalize
 
 MapKind = Literal["maplibre", "none"]
 # A language code, normalized as `languages.normalize` does (`fr-CA` -> `fr`).

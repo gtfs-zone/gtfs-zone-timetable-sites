@@ -20,6 +20,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import BinaryIO
 
+from gtfs_zone_feed_fetch.pool import run_all
+
 from gtfs_zone_timetable_sites.build import (
     build_root,
     build_site,
@@ -29,7 +31,6 @@ from gtfs_zone_timetable_sites.build import (
 from gtfs_zone_timetable_sites.catalog import resolve_sites
 from gtfs_zone_timetable_sites.config import FEEDS_URL, USER_AGENT, Site, load_config
 from gtfs_zone_timetable_sites.messages import compile_catalogs
-from gtfs_zone_timetable_sites.pool import run_all
 from gtfs_zone_timetable_sites.timetable import to_text
 
 log = logging.getLogger(__name__)

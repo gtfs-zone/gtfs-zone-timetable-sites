@@ -1,13 +1,9 @@
 import pytest
 from conftest import fixture_files, fixture_zip, make_zip
+from gtfs_zone_feed_fetch.languages import FeedLanguages
 
 from gtfs_zone_timetable_sites.gtfs.reader import read_feed
-from gtfs_zone_timetable_sites.languages import (
-    FeedLanguages,
-    feed_languages,
-    normalize,
-    translate,
-)
+from gtfs_zone_timetable_sites.languages import feed_languages, translate
 
 AGENCY = "agency_id,agency_name,agency_url,agency_timezone,agency_lang\n"
 FEED_INFO = "feed_publisher_name,feed_publisher_url,feed_lang\nP,https://p.example,"
@@ -17,26 +13,6 @@ TRANSLATIONS = "table_name,field_name,language,translation,record_id\n"
 def languages(**files: str) -> FeedLanguages:
     body = fixture_files("branching") | {f"{k}.txt": v for k, v in files.items()}
     return feed_languages(read_feed(make_zip(body)))
-
-
-def test_normalize():
-    assert normalize("EN") == "en"
-    assert normalize("en-US") == "en"
-    assert normalize("ja_JP") == "ja"
-    assert normalize("zh-Hant-TW") == "zh-Hant"
-    assert normalize(" fr ") == "fr"
-    # Library feeds: La Union (spa), cross-solution ("de"), Japanese towns
-    # (ja-hrkt), TransLink North Vancouver (hur, no CLDR locale data).
-    assert normalize("spa") == "es"
-    assert normalize('"de"') == "de"
-    assert normalize("ja-hrkt") == "ja-Hrkt"
-    assert normalize("hur") == "hur"
-
-
-@pytest.mark.parametrize("code", ["", "xx", "english", "mul", "ja-Abcd", "e n"])
-def test_normalize_unknown_raises(code):
-    with pytest.raises(ValueError, match="unknown language code"):
-        normalize(code)
 
 
 def test_fixture_languages():

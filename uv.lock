@@ -600,19 +600,29 @@ wheels = [
 ]
 
 [[package]]
+name = "gtfs-zone-feed-fetch"
+version = "0.1.1"
+source = { git = "https://github.com/gtfs-zone/gtfs-zone-feed-fetch.git?tag=v0.1.1#fea10a38a99d81bbf11a0d7db76ff6757f3f3ee6" }
+dependencies = [
+    { name = "babel" },
+    { name = "httpx" },
+    { name = "reverse-geocode" },
+]
+
+[[package]]
 name = "gtfs-zone-timetable-sites"
 version = "0.23.1"
 source = { editable = "." }
 dependencies = [
     { name = "anyascii" },
     { name = "babel" },
+    { name = "gtfs-zone-feed-fetch" },
     { name = "gtfs-zone-vocab" },
     { name = "jinja2" },
     { name = "markupsafe" },
     { name = "pydantic" },
     { name = "pykakasi" },
     { name = "pyyaml" },
-    { name = "reverse-geocode" },
 ]
 
 [package.optional-dependencies]
@@ -639,6 +649,7 @@ requires-dist = [
     { name = "babel", specifier = ">=2.16" },
     { name = "dagster", marker = "extra == 'pipeline'", specifier = "==1.13.24" },
     { name = "dagster-postgres", marker = "extra == 'pipeline'", specifier = "==0.29.24" },
+    { name = "gtfs-zone-feed-fetch", git = "https://github.com/gtfs-zone/gtfs-zone-feed-fetch.git?tag=v0.1.1" },
     { name = "gtfs-zone-vocab", git = "https://github.com/gtfs-zone/gtfs-zone-vocab.git?tag=v0.1.0" },
     { name = "httpx", marker = "extra == 'pipeline'", specifier = ">=0.27" },
     { name = "jinja2", specifier = ">=3.1" },
@@ -647,7 +658,6 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.9" },
     { name = "pykakasi", specifier = ">=2.3.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "reverse-geocode", specifier = ">=1.6.6" },
 ]
 provides-extras = ["pipeline"]
 

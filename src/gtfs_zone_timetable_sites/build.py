@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 from anyascii import anyascii
 from babel import Locale as BabelLocale
 from babel.core import UnknownLocaleError
+from gtfs_zone_feed_fetch.places import feed_place, place_label
 from markupsafe import Markup
 
 from gtfs_zone_timetable_sites.boundaries import (
@@ -92,7 +93,7 @@ from gtfs_zone_timetable_sites.pages import (
     tidy,
     transfer_text,
 )
-from gtfs_zone_timetable_sites.places import feed_place, locate, place_label
+from gtfs_zone_timetable_sites.places import locate
 from gtfs_zone_timetable_sites.render import asset, compact_json, render
 from gtfs_zone_timetable_sites.timetable import (
     Blocks,
