@@ -392,41 +392,76 @@ function vehiclePlace(map, card, config, v) {
   return { head, stop: row >= 0 && rows[row]?.cells[0] ? rowStop(rows[row].cells[0]) : null, link };
 }
 
-// Stops whose numbered marks did not fit on the map as placed now
-function hiddenStops(map, data) {
-  const shown = new Set(map.queryRenderedFeatures({ layers: ["stop-marks"] }).map((f) => f.properties.num));
+// MapLibre's world size in pixels at zoom 0
+const WORLD = 512;
+const mercator = ([lon, lat]) => {
+  const sin = Math.sin((lat * Math.PI) / 180);
+  return [((lon + 180) / 360) * WORLD, (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * WORLD];
+};
+
+// The view a w x h map gets when fitted to coords as newMap fits it (padding
+// 30, max zoom 15), computed before the map exists: its zoom, and project and
+// unproject between [lon, lat] and its pixels
+function fitView(coords, w, h) {
+  const pts = coords.map(mercator);
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const zoom = Math.min(15, Math.log2(Math.min((w - 60) / (x1 - x0), (h - 60) / (y1 - y0))));
+  const k = 2 ** zoom;
+  const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2];
+  const project = (c) => {
+    const [x, y] = mercator(c);
+    return { x: (x - cx) * k + w / 2, y: (y - cy) * k + h / 2 };
+  };
+  const unproject = ([px, py]) => {
+    const x = (px - w / 2) / k + cx;
+    const y = (py - h / 2) / k + cy;
+    return [(x / WORLD) * 360 - 180, (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / WORLD))) * 180) / Math.PI];
+  };
+  return { zoom, project, unproject };
+}
+
+// Marks placed by rank, each MARK_GAP from those placed before it, as the
+// stop-marks layer places them: points with { num, rank, x, y } in, the
+// placed ones out
+function placeMarks(points) {
+  const placed = [];
+  for (const s of [...points].sort((a, b) => a.rank - b.rank)) {
+    if (placed.every((p) => Math.hypot(p.x - s.x, p.y - s.y) >= MARK_GAP)) placed.push(s);
+  }
+  return placed;
+}
+
+// Stops whose numbered marks do not fit on a view
+function hiddenStops(view, data) {
+  const shown = new Set(placeMarks(data.stops.map(([lon, lat, num, , , rank]) => ({ num, rank, ...view.project([lon, lat]) }))).map((s) => s.num));
   return data.stops.filter((s) => !shown.has(s[2]));
 }
 
-// Insets of w x h pixels at INSET_ZOOM past the main map, each placed where it
-// reveals the most hidden stops; inside one, marks are placed by rank and
+// Insets of w x h pixels at INSET_ZOOM past the main view, each placed where
+// it reveals the most hidden stops; inside one, marks are placed by rank and
 // MARK_GAP as on the map. Each is its center and the revealed stops' coords.
-function pickInsets(map, data, hidden, w, h) {
+function pickInsets(view, data, hidden, w, h) {
   const k = 2 ** INSET_ZOOM;
   const pad = SIZE.radius + SIZE.stroke;
-  const stops = data.stops
-    .map(([lon, lat, num, , , rank]) => {
-      const p = map.project([lon, lat]);
-      return { num, rank, coords: [lon, lat], x: p.x * k, y: p.y * k };
-    })
-    .sort((a, b) => a.rank - b.rank);
+  const stops = data.stops.map(([lon, lat, num, , , rank]) => {
+    const p = view.project([lon, lat]);
+    return { num, rank, coords: [lon, lat], x: p.x * k, y: p.y * k };
+  });
   let left = new Set(hidden.map((s) => s[2]));
   const picks = [];
   while (picks.length < MAX_INSETS) {
     let best = [];
     for (const c of stops) {
       if (!left.has(c.num)) continue;
-      const placed = [];
-      for (const s of stops) {
-        if (Math.abs(s.x - c.x) > w / 2 - pad || Math.abs(s.y - c.y) > h / 2 - pad) continue;
-        if (placed.every((p) => Math.hypot(p.x - s.x, p.y - s.y) >= MARK_GAP)) placed.push(s);
-      }
-      const revealed = placed.filter((s) => left.has(s.num));
+      const inside = stops.filter((s) => Math.abs(s.x - c.x) <= w / 2 - pad && Math.abs(s.y - c.y) <= h / 2 - pad);
+      const revealed = placeMarks(inside).filter((s) => left.has(s.num));
       if (revealed.length > best.length) best = revealed;
     }
     if (best.length < MIN_REVEAL) break;
     left = new Set([...left].filter((num) => !best.some((s) => s.num === num)));
-    const center = map.unproject([
+    const center = view.unproject([
       (Math.min(...best.map((s) => s.x)) + Math.max(...best.map((s) => s.x))) / 2 / k,
       (Math.min(...best.map((s) => s.y)) + Math.max(...best.map((s) => s.y))) / 2 / k,
     ]);
@@ -547,18 +582,45 @@ function buildInsets(L, figs, card, data, picks, zoom, onView, addVehicles) {
   });
 }
 
+// Insets where stops are hidden on the main map, laid out before any map is
+// made, so the main map never resizes: the insets column narrows it, so
+// hidden stops are found again with the column in place. Returns the picks
+// with their figures and the main map's zoom
+function layoutInsets(holder, data) {
+  const main = holder.querySelector(".route-map");
+  const coords = allCoords(data);
+  if (hiddenStops(fitView(coords, main.clientWidth, main.clientHeight), data).length < MIN_REVEAL) return { picks: [], figs: [] };
+  const figs = insetFigures(holder.querySelector(".route-insets"), MAX_INSETS);
+  holder.classList.add("has-insets");
+  const view = fitView(coords, main.clientWidth, main.clientHeight);
+  const { clientWidth: w, clientHeight: h } = figs[0].div;
+  const picks = pickInsets(view, data, hiddenStops(view, data), w, h);
+  for (const f of figs.slice(picks.length)) f.fig.remove();
+  if (!picks.length) holder.classList.remove("has-insets");
+  return { picks, figs, zoom: view.zoom };
+}
+
 async function initRouteMap(card) {
   const holder = card.querySelector(".route-maps");
   const data = JSON.parse(card.querySelector(".route-data").textContent);
   if (!holder || !data.lines.length) return;
   const L = await maplibre();
-  const bounds = boundsOf(L, allCoords(data));
-  const fit = () => map.fitBounds(bounds, { padding: 30, maxZoom: 15, duration: 0 });
-  const map = newMap(L, holder.querySelector(".route-map"), bounds);
+  const { picks, figs, zoom } = layoutInsets(holder, data);
+  const map = newMap(L, holder.querySelector(".route-map"), boundsOf(L, allCoords(data)));
   map.addControl(new L.NavigationControl({ showCompass: false }), "top-right");
-  let vehicles;
-  // The route's vehicle poller, and a drawer for it on a map, once data.rt is read
+  // The route's one vehicle poll, drawn by a drawer per map
   let addVehicles = () => null;
+  if (data.rt) {
+    const routes = new Set(data.rt.routes);
+    const trips = new Set(data.rt.trips);
+    const route = { color: data.color };
+    let config = null;
+    liveConfig(card).then((c) => (config = c), () => {});
+    const poller = vehiclePoller(holder, data.rt.url);
+    const routeOf = (v) => (routes.has(v.routeId) || trips.has(v.tripId) ? route : null);
+    addVehicles = (m, status = null) => poller.add(vehicleDrawer(L, m, routeOf, (v) => vehiclePlace(m, card, config, v), status));
+  }
+  let vehicles;
   const rings = [];
   const draw = () => {
     quietBasemap(map);
@@ -566,55 +628,25 @@ async function initRouteMap(card) {
     if (rings.length) drawBoxes(map, rings);
     vehicles?.draw();
   };
-  // Insets where stops are hidden on the main map; the insets column narrows
-  // it, so hidden stops are found again with the column in place
-  const addInsets = () => {
-    if (hiddenStops(map, data).length < MIN_REVEAL) return;
-    const container = holder.querySelector(".route-insets");
-    const figs = insetFigures(container, MAX_INSETS);
-    holder.classList.add("has-insets");
-    map.resize();
-    fit();
-    map.once("idle", () => {
-      const { clientWidth: w, clientHeight: h } = figs[0].div;
-      const picks = pickInsets(map, data, hiddenStops(map, data), w, h);
-      const zoom = map.getZoom();
-      for (const f of figs.slice(picks.length)) f.fig.remove();
-      if (!picks.length) holder.classList.remove("has-insets");
-      map.resize();
-      fit();
-      buildInsets(
-        L,
-        figs,
-        card,
-        data,
-        picks,
-        zoom,
-        (i, ring) => {
-          rings[i] = ring;
-          drawBoxes(map, rings);
-        },
-        (m) => addVehicles(m),
-      );
-    });
-  };
   map.once("load", () => {
     draw();
     stopHandlers(L, map, card);
-    map.once("idle", addInsets);
-    if (data.rt) {
-      const routes = new Set(data.rt.routes);
-      const trips = new Set(data.rt.trips);
-      const route = { color: data.color };
-      let config = null;
-      liveConfig(card).then((c) => (config = c), () => {});
-      const poller = vehiclePoller(holder, data.rt.url);
-      const routeOf = (v) => (routes.has(v.routeId) || trips.has(v.tripId) ? route : null);
-      addVehicles = (m, status = null) => poller.add(vehicleDrawer(L, m, routeOf, (v) => vehiclePlace(m, card, config, v), status));
-      vehicles = addVehicles(map, holder.querySelector(".map-live"));
-    }
+    vehicles = addVehicles(map, holder.querySelector(".map-live"));
   });
   onTheme(map, draw);
+  buildInsets(
+    L,
+    figs,
+    card,
+    data,
+    picks,
+    zoom,
+    (i, ring) => {
+      rings[i] = ring;
+      drawBoxes(map, rings);
+    },
+    addVehicles,
+  );
 }
 
 /* System map */
@@ -890,13 +922,14 @@ const MIN_MOVE_M = 15;
 const byZoom = (...stops) => ["interpolate", ["linear"], ["zoom"], ...stops];
 const FOCUSED = ["boolean", ["feature-state", "focused"], false];
 const VEHICLE_CASING = "#0f172a";
-// Casing ring width around the dot
+// The dot's radius is the casing's less this: its white stroke and a thin dark ring
 const CASING = 2;
-// Sizes as [zoom, value, ...] stops: web-common's (full) and the smaller ones
-// this page drew before (floor). Where vehicles crowd, full sizes shrink by
-// the crowd scale, never below the floor
+// Sizes as [zoom, value, ...] stops: web-common's (full) and the ones this
+// page drew before (floor; for the casing, the old dot's outer edge, white
+// border included). Where vehicles crowd, full sizes shrink by the crowd
+// scale, never below the floor
 const VEHICLE_SIZE = {
-  dot: { full: [8, 5, 14, 7.5, 18, 11], floor: [10, 3, 12, 3.5, 15, 5.5, 18, 10] },
+  casing: { full: [8, 7, 14, 9.5, 18, 13], floor: [10, 4.25, 12, 5.05, 15, 7.5, 18, 12] },
   arrow: { full: [8, 0.6, 14, 0.85, 18, 1.15], floor: [10, 0.3, 12, 0.36, 15, 0.6, 18, 1] },
   halo: { full: [8, 11, 14, 17, 18, 23], floor: [10, 9, 12, 10, 15, 13, 18, 20] },
   hit: { full: [8, 12, 14, 15, 18, 20], floor: [10, 10, 15, 14, 18, 20] },
@@ -923,22 +956,30 @@ function vehicleSize(kind, scale, out = (v) => v) {
 function vehicleSizes(scale) {
   return [
     ["vehicles-halo", "paint", "circle-radius", vehicleSize("halo", scale, (v) => ["case", FOCUSED, v, 0])],
-    ["vehicles-casing", "paint", "circle-radius", vehicleSize("dot", scale, (v) => v + CASING)],
-    ["vehicles-dot", "paint", "circle-radius", vehicleSize("dot", scale)],
+    ["vehicles-casing", "paint", "circle-radius", vehicleSize("casing", scale)],
+    ["vehicles-dot", "paint", "circle-radius", vehicleSize("casing", scale, (v) => v - CASING)],
     ["vehicles-arrow", "layout", "icon-size", vehicleSize("arrow", scale)],
     ["vehicles-hit", "paint", "circle-radius", vehicleSize("hit", scale)],
   ];
 }
 
 // How far to shrink vehicles where they crowd: the mean spacing between the
-// vehicles in view, sqrt(view area / count), over the full hit area's
-// diameter at this zoom, at most 1
+// vehicles in view over the full hit area's diameter d at this zoom, at most
+// 1. Spacing is sqrt(area / count) over the area they occupy, the cells of a
+// d-pixel grid holding a vehicle, so empty parts of the view do not count:
+// sqrt(cells * d^2 / count) / d
 function crowdScale(map, features) {
+  const d = 2 * stopAt(VEHICLE_SIZE.hit.full, map.getZoom());
   const view = map.getBounds();
-  const n = features.filter((f) => view.contains(f.geometry.coordinates)).length;
-  if (!n) return 1;
-  const { clientWidth: w, clientHeight: h } = map.getContainer();
-  return Math.min(1, Math.sqrt((w * h) / n) / (2 * stopAt(VEHICLE_SIZE.hit.full, map.getZoom())));
+  const cells = new Set();
+  let n = 0;
+  for (const f of features) {
+    if (!view.contains(f.geometry.coordinates)) continue;
+    const p = map.project(f.geometry.coordinates);
+    cells.add(`${Math.floor(p.x / d)},${Math.floor(p.y / d)}`);
+    n++;
+  }
+  return n ? Math.min(1, Math.sqrt(cells.size / n)) : 1;
 }
 
 // A north-pointing arrow as an SDF, so icon-color tints it; blurred so the
