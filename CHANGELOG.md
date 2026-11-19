@@ -1,3 +1,9 @@
+## v0.23.2 (2026-11-19)
+
+### Refactor
+
+- reader rows, facts, places, languages and the worker pool from gtfs-zone-feed-fetch
+
 ## v0.23.1 (2026-11-19)
 
 ### Fix
