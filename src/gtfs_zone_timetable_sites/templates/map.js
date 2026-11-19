@@ -872,15 +872,62 @@ function metres(a, b) {
 // Movement below this between polls gives no bearing
 const MIN_MOVE_M = 15;
 
-// Vehicle layers: a route-colored dot, or a route-colored arrow for vehicles
-// with a bearing, both with the same white border, wider when focused. Sizes
-// grow with zoom from a floor of about 8px, which stays visible zoomed out
-// over whole systems, to rt-viewer's size close in
-const VEHICLE_LAYERS = ["vehicles-halo", "vehicles-dot", "vehicles-arrow", "vehicles-hit"];
+// Vehicle layers as web-common's layer-manager.ts addVehicleLayers draws
+// them: a route-colored dot on a dark casing, or a route-colored arrow with a
+// dark halo for vehicles with a bearing, and a ring around the focused one
 const byZoom = (...stops) => ["interpolate", ["linear"], ["zoom"], ...stops];
 const FOCUSED = ["boolean", ["feature-state", "focused"], false];
-const VEHICLE_BORDER = "#ffffff";
-const VEHICLE_BORDER_WIDTH = byZoom(10, ["case", FOCUSED, 2, 1.25], 15, ["case", FOCUSED, 3, 2]);
+const VEHICLE_CASING = "#0f172a";
+// Casing ring width around the dot
+const CASING = 2;
+// Sizes as [zoom, value, ...] stops: web-common's (full) and the smaller ones
+// this page drew before (floor). Where vehicles crowd, full sizes shrink by
+// the crowd scale, never below the floor
+const VEHICLE_SIZE = {
+  dot: { full: [8, 5, 14, 7.5, 18, 11], floor: [10, 3, 12, 3.5, 15, 5.5, 18, 10] },
+  arrow: { full: [8, 0.6, 14, 0.85, 18, 1.15], floor: [10, 0.3, 12, 0.36, 15, 0.6, 18, 1] },
+  halo: { full: [8, 11, 14, 17, 18, 23], floor: [10, 9, 12, 10, 15, 13, 18, 20] },
+  hit: { full: [8, 12, 14, 15, 18, 20], floor: [10, 10, 15, 14, 18, 20] },
+};
+const VEHICLE_ZOOMS = [...new Set(Object.values(VEHICLE_SIZE).flatMap(({ full, floor }) => [...full, ...floor].filter((_, i) => i % 2 === 0)))].sort((a, b) => a - b);
+
+// The value of [zoom, value, ...] stops at zoom z, linear between stops
+function stopAt(stops, z) {
+  if (z <= stops[0]) return stops[1];
+  for (let i = 2; i < stops.length; i += 2) {
+    if (z <= stops[i]) return stops[i - 1] + ((stops[i + 1] - stops[i - 1]) * (z - stops[i - 2])) / (stops[i] - stops[i - 2]);
+  }
+  return stops[stops.length - 1];
+}
+
+// A vehicle size by zoom: the full size times scale, never below the floor;
+// out wraps each stop's value
+function vehicleSize(kind, scale, out = (v) => v) {
+  const { full, floor } = VEHICLE_SIZE[kind];
+  return byZoom(...VEHICLE_ZOOMS.flatMap((z) => [z, out(Math.max(stopAt(floor, z), stopAt(full, z) * scale))]));
+}
+
+// Each sized vehicle property at scale, as [layer, paint or layout, property, value]
+function vehicleSizes(scale) {
+  return [
+    ["vehicles-halo", "paint", "circle-radius", vehicleSize("halo", scale, (v) => ["case", FOCUSED, v, 0])],
+    ["vehicles-casing", "paint", "circle-radius", vehicleSize("dot", scale, (v) => v + CASING)],
+    ["vehicles-dot", "paint", "circle-radius", vehicleSize("dot", scale)],
+    ["vehicles-arrow", "layout", "icon-size", vehicleSize("arrow", scale)],
+    ["vehicles-hit", "paint", "circle-radius", vehicleSize("hit", scale)],
+  ];
+}
+
+// How far to shrink vehicles where they crowd: the mean spacing between the
+// vehicles in view, sqrt(view area / count), over the full hit area's
+// diameter at this zoom, at most 1
+function crowdScale(map, features) {
+  const view = map.getBounds();
+  const n = features.filter((f) => view.contains(f.geometry.coordinates)).length;
+  if (!n) return 1;
+  const { clientWidth: w, clientHeight: h } = map.getContainer();
+  return Math.min(1, Math.sqrt((w * h) / n) / (2 * stopAt(VEHICLE_SIZE.hit.full, map.getZoom())));
+}
 
 // A north-pointing arrow as an SDF, so icon-color tints it; blurred so the
 // edge has a ramp for the distance field
@@ -902,20 +949,29 @@ function addArrowImage(map) {
   map.addImage("vehicle-arrow", g.getImageData(0, 0, size, size), { sdf: true });
 }
 
-function addVehicleLayers(map, data) {
+function addVehicleLayers(map, data, scale) {
   addArrowImage(map);
   map.addSource("vehicles", { type: "geojson", data, promoteId: "id" });
+  const size = Object.fromEntries(vehicleSizes(scale).map(([id, , , value]) => [id, value]));
   map.addLayer({
     id: "vehicles-halo",
     type: "circle",
     source: "vehicles",
     paint: {
-      "circle-radius": byZoom(10, ["case", FOCUSED, 9, 0], 12, ["case", FOCUSED, 10, 0], 15, ["case", FOCUSED, 13, 0], 18, ["case", FOCUSED, 20, 0]),
+      "circle-radius": size["vehicles-halo"],
       "circle-color": ink(),
       "circle-opacity": 0.25,
       "circle-stroke-color": ink(),
       "circle-stroke-width": ["case", FOCUSED, 2, 0],
     },
+  });
+  // Dark casing under the dot, so it stands out on a line of its own color
+  map.addLayer({
+    id: "vehicles-casing",
+    type: "circle",
+    source: "vehicles",
+    filter: ["==", ["get", "has_bearing"], false],
+    paint: { "circle-radius": size["vehicles-casing"], "circle-color": VEHICLE_CASING },
   });
   map.addLayer({
     id: "vehicles-dot",
@@ -923,10 +979,10 @@ function addVehicleLayers(map, data) {
     source: "vehicles",
     filter: ["==", ["get", "has_bearing"], false],
     paint: {
-      "circle-radius": byZoom(10, 3, 12, 3.5, 15, 5.5, 18, 10),
+      "circle-radius": size["vehicles-dot"],
       "circle-color": ["get", "color"],
-      "circle-stroke-color": VEHICLE_BORDER,
-      "circle-stroke-width": VEHICLE_BORDER_WIDTH,
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": ["case", FOCUSED, 3, 1.5],
     },
   });
   map.addLayer({
@@ -936,7 +992,7 @@ function addVehicleLayers(map, data) {
     filter: ["==", ["get", "has_bearing"], true],
     layout: {
       "icon-image": "vehicle-arrow",
-      "icon-size": byZoom(10, 0.3, 12, 0.36, 15, 0.6, 18, 1),
+      "icon-size": size["vehicles-arrow"],
       "icon-rotate": ["get", "bearing"],
       "icon-rotation-alignment": "map",
       "icon-allow-overlap": true,
@@ -944,8 +1000,8 @@ function addVehicleLayers(map, data) {
     },
     paint: {
       "icon-color": ["get", "color"],
-      "icon-halo-color": VEHICLE_BORDER,
-      "icon-halo-width": VEHICLE_BORDER_WIDTH,
+      "icon-halo-color": VEHICLE_CASING,
+      "icon-halo-width": ["case", FOCUSED, 3, 2],
     },
   });
   // The only layer clicks and hovers query, never smaller than a drawn vehicle
@@ -953,8 +1009,17 @@ function addVehicleLayers(map, data) {
     id: "vehicles-hit",
     type: "circle",
     source: "vehicles",
-    paint: { "circle-radius": byZoom(10, 10, 15, 14, 18, 20), "circle-color": "transparent", "circle-opacity": 0 },
+    paint: { "circle-radius": size["vehicles-hit"], "circle-color": "transparent", "circle-opacity": 0 },
   });
+}
+
+// Resizes the vehicle layers to scale
+function setVehicleScale(map, scale) {
+  for (const [id, kind, prop, value] of vehicleSizes(scale)) {
+    if (!map.getLayer(id)) continue;
+    if (kind === "paint") map.setPaintProperty(id, prop, value);
+    else map.setLayoutProperty(id, prop, value);
+  }
 }
 
 // Where a vehicle is relative to its stop, from currentStatus
@@ -974,6 +1039,9 @@ function live(L, map, el, url, routeOf, describe) {
   // The vehicle whose popup is open
   let focused = null;
   let popup = null;
+  // The features last drawn and their crowd scale
+  let shown = { type: "FeatureCollection", features: [] };
+  let scale = 1;
 
   const features = () => {
     const out = [];
@@ -991,12 +1059,23 @@ function live(L, map, el, url, routeOf, describe) {
     focused = id;
     if (focused != null && map.getSource("vehicles")) map.setFeatureState({ source: "vehicles", id: focused }, { focused: true });
   };
+  const rescale = () => {
+    const next = crowdScale(map, shown.features);
+    if (next === scale) return;
+    scale = next;
+    setVehicleScale(map, scale);
+  };
+  const show = () => {
+    shown = features();
+    map.getSource("vehicles")?.setData(shown);
+    rescale();
+  };
   const draw = () => {
-    addVehicleLayers(map, features());
+    addVehicleLayers(map, shown, scale);
     setFocus(focused);
   };
   const refresh = () => {
-    map.getSource("vehicles")?.setData(features());
+    show();
     if (focused != null && !list.some((v) => v.id === focused && routeOf(v))) popup?.remove();
   };
 
@@ -1046,6 +1125,7 @@ function live(L, map, el, url, routeOf, describe) {
   });
   map.on("mouseenter", "vehicles-hit", () => (map.getCanvas().style.cursor = "pointer"));
   map.on("mouseleave", "vehicles-hit", () => (map.getCanvas().style.cursor = ""));
+  map.on("moveend", rescale);
 
   const status = el.querySelector(".map-live");
   if (status) statuses.add(status);
@@ -1082,14 +1162,13 @@ function live(L, map, el, url, routeOf, describe) {
         ts: num(v.timestamp) || feedTs,
       });
     }
-    const data = features();
-    map.getSource("vehicles")?.setData(data);
+    show();
     // The open popup follows its vehicle, and closes once it leaves the map
     const v = focused != null && list.find((x) => x.id === focused && routeOf(x));
     if (v && popup) popup.setLngLat(v.at).setDOMContent(content(v));
     else popup?.remove();
     if (status) {
-      status.dataset.n = data.features.length;
+      status.dataset.n = shown.features.length;
       status.dataset.ts = feedTs;
       status.hidden = false;
       showStatus(status);
