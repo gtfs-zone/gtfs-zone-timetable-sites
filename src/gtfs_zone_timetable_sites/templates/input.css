@@ -190,12 +190,17 @@
 /* Route accordion on the site's index */
 .route-item > summary { list-style: none; }
 .route-item > summary::-webkit-details-marker { display: none; }
+/* The chevron sits outside the flex flow at the right edge, vertically centered.
+   Its ink (two borders of the rotated box) sits off the box center by
+   (size - stroke) / (2 * sqrt 2), shifted back so the ink is centered */
+.route-item > summary { position: relative; padding-right: 2.5rem; }
 .route-item > summary::after {
-  content: ""; width: .5rem; height: .5rem; margin-left: auto; flex-shrink: 0;
+  content: ""; position: absolute; top: 50%; right: 1rem; width: .5rem; height: .5rem;
   border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
-  transform: rotate(45deg); opacity: .5; transition: transform .15s;
+  --ink: calc((.5rem - 2px) * .35355);
+  transform: translateY(-50%) translateY(calc(-1 * var(--ink))) rotate(45deg); opacity: .5; transition: transform .15s;
 }
-.route-item[open] > summary::after { transform: rotate(225deg); }
+.route-item[open] > summary::after { transform: translateY(-50%) translateY(var(--ink)) rotate(225deg); }
 .route-item[open] > summary { background: var(--color-base-200); }
 
 @media print {
