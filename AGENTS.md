@@ -22,17 +22,16 @@ pnpm run build:mo             # compile locales/*/LC_MESSAGES/messages.po (the C
 |---|---|
 | `config.py` | Pydantic models for `sites.yaml` and a feeds.json entry (`CatalogFeed`); defaults merged into each site |
 | `catalog.py` | feeds.json plus `sites.yaml` to resolved sites: catalog filter, romanized slugs pinned with aliases for renames and moved feeds, shard per slug |
-| `pool.py` | Runs a function per item in memory-capped worker processes, one process per item |
 | `gtfs/reader.py` | GTFS zip to typed rows, streaming, only needed columns |
 | `gtfs/service.py` | Calendars to day types (Weekday / Saturday / Sunday / exceptions) |
 | `timetable.py` | Route + direction + day type to a `Timetable`, plus a text dump; stop order is gtfs-zone-web-common's topological sort, falling back to an LCS fold on cycles |
 | `strip.py` | Stop-column rail lanes, endpoints and minority stops, ported from gtfs-zone-web-common's `route-graph.ts` / `route-strip.ts` |
 | `colors.py` | Hashed color for a route without `route_color`, a hex-exact port of gtfs-zone-web-common's `route-colors.ts` |
-| `languages.py` | A feed's languages (`feed_lang`, `agency_lang`, translations.txt) as normalized codes: the default, the offered ones, kana readings apart; `translate` gives the feed with its text in one language |
+| `languages.py` | A parsed feed's languages (gtfs-zone-feed-fetch's `feed_languages` over its `feed_lang`, `agency_lang` and translations.txt codes); `translate` gives the feed with its text in one language |
 | `build.py` | `build_site(zip_bytes, site) -> {path: bytes}`, the only entry point; a page set per offered language, the default at the site root, others under `<lang>/`; `build_root` writes the root and country pages in each UI language |
-| `places.py` | One offline `reverse_geocode` pass over a feed's stations: its state, province or country for page titles and JSON-LD, and its location and place tags for the content report |
+| `places.py` | A parsed feed's located stations (stop times per station), for gtfs-zone-feed-fetch's `places`: page titles, JSON-LD, location and place tags |
 | `boundaries.py` | Bundled country (Natural Earth) and ADM1 region (geoBoundaries) GeoJSON in `boundaries/`, written by `scripts/boundaries.py`, and the region a point is in, for the root pages' maps and sections |
-| `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts, location, place tags) for the content report |
+| `facts.py` | What a parsed zip contains (feed_info, service range, agencies, counts, location, place tags) for the content report, as gtfs-zone-feed-fetch's `feed_facts` of a `Summary` of the feed |
 | `maps/geo.py` | Route and system map data for `map.js`: shapes (or stop sequences) simplified by Douglas-Peucker at a share of the map's extent, parts that retrace a line dropped, numbered stops, lines shared by routes stored once |
 | `templates/map.js` | MapLibre route maps (numbered stops, insets for crowded stops), the system map (mode toggles, hover, click to open a route), the index's route accordion, live vehicles and live times in the timetables (from `<slug>/live.json`); MapLibre and the GTFS-RT decoder come from jsdelivr |
 | `templates/root.js` | The root and country pages: MapLibre choropleths of countries and regions by site count, agency search over `sites.json` with uFuzzy (as gtfs-zone-web-common), both from jsdelivr |

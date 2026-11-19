@@ -32,6 +32,8 @@ from contextlib import ExitStack
 from datetime import date
 from typing import TYPE_CHECKING, BinaryIO, Protocol
 
+from gtfs_zone_feed_fetch.pool import isolated, run_all
+
 from gtfs_zone_timetable_sites.build import (
     UNUSABLE,
     EmptyFeed,
@@ -44,7 +46,6 @@ from gtfs_zone_timetable_sites.build import (
 from gtfs_zone_timetable_sites.config import ROOT_UPLOAD_WORKERS, UPLOAD_WORKERS, Site
 from gtfs_zone_timetable_sites.facts import sniff
 from gtfs_zone_timetable_sites.gtfs.reader import MissingFiles
-from gtfs_zone_timetable_sites.pool import isolated, run_all
 
 if TYPE_CHECKING:
     import httpx

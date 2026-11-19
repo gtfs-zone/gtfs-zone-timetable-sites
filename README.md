@@ -149,8 +149,9 @@ per site the outcome of its last download (`ok`, `not_zip`, `missing_files`,
 outcome began. For an `ok` feed it also holds the zip's size and hash,
 feed_info, service range, agencies, counts and route types, and where its
 stations with stop times are: `location` (bbox, stop-time weighted center,
-station count), `place` (the region or country `places.py` names the feed
-by) and `placeTags` (every country and region, most stop times first).
+station count), `place` (the region or country gtfs-zone-feed-fetch's
+`places` names the feed by) and `placeTags` (every country and region, most
+stop times first).
 feed-catalog merges
 it into feeds.json. A feed that was `not_zip`, `missing_files` or
 `parse_error` is not downloaded again until its catalog size or Last-Modified,

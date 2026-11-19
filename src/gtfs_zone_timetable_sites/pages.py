@@ -8,6 +8,8 @@ from datetime import date, datetime, time
 from itertools import groupby
 from zoneinfo import ZoneInfo
 
+from gtfs_zone_feed_fetch.places import Place
+
 from gtfs_zone_timetable_sites.colors import route_color
 from gtfs_zone_timetable_sites.config import TimeFormat
 from gtfs_zone_timetable_sites.fares import (
@@ -39,7 +41,6 @@ from gtfs_zone_timetable_sites.i18n import (
     price,
     t,
 )
-from gtfs_zone_timetable_sites.places import Place
 from gtfs_zone_timetable_sites.strip import (
     RailRow,
     endpoint_threshold,
