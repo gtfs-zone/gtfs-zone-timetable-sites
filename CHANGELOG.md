@@ -1,3 +1,9 @@
+## v0.23.1 (2026-11-19)
+
+### Fix
+
+- **pages**: fares, translations and language codes no longer fail a site
+
 ## v0.23.0 (2026-11-18)
 
 ### Feat
