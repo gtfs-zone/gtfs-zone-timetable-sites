@@ -323,6 +323,9 @@ msgstr "Tidtabellerna gäller {range}."
 msgid "index.feed_info_valid"
 msgstr "Enligt flödet gäller det {range}."
 
+msgid "index.unknown_language"
+msgstr "Flödets språkkod {code} känns inte igen."
+
 msgid "index.feed_link"
 msgstr "Det här flödet på list.gtfs.zone"
 
@@ -485,6 +488,9 @@ msgstr "Byten"
 
 msgid "fares.any_routes"
 msgstr "Alla linjer"
+
+msgid "fares.unreadable"
+msgstr "Flödets priser kunde inte läsas: {error}"
 
 msgid "fare.any_leg"
 msgstr "valfri biljett"

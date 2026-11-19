@@ -323,6 +323,9 @@ msgstr "Dienstregeling geldig {range}."
 msgid "index.feed_info_valid"
 msgstr "Volgens de feed geldig {range}."
 
+msgid "index.unknown_language"
+msgstr "De taalcode {code} van de feed wordt niet herkend."
+
 msgid "index.feed_link"
 msgstr "Deze feed op list.gtfs.zone"
 
@@ -485,6 +488,9 @@ msgstr "Overstappen"
 
 msgid "fares.any_routes"
 msgstr "Alle lijnen"
+
+msgid "fares.unreadable"
+msgstr "De tarieven in de feed konden niet worden gelezen: {error}"
 
 msgid "fare.any_leg"
 msgstr "elk tarief"

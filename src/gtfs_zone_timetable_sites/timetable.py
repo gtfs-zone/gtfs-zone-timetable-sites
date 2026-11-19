@@ -471,12 +471,17 @@ def relabel(
     feed: Feed,
     readings: Mapping[str, tuple[str, str]] | None = None,
 ) -> Timetable:
-    """The table with its stop names and headsigns read from `feed`, which has
-    the same records as the table's feed with other text, and each stop's
-    (reading, language) from `readings` by stop_id."""
+    """The table with its stop names, stop codes, headsigns and trip short
+    names read from `feed`, which has the same records as the table's feed with
+    other text, and each stop's (reading, language) from `readings` by stop_id.
+    A row whose stop has no stop_code keeps the code its served stops share."""
     readings = readings or {}
     columns = tuple(
-        replace(column, headsign=headsign(feed, feed.trips[column.trip_id]))
+        replace(
+            column,
+            headsign=headsign(feed, feed.trips[column.trip_id]),
+            short_name=feed.trips[column.trip_id].short_name,
+        )
         for column in table.columns
     )
     names = Counter(column.headsign for column in columns)
@@ -487,6 +492,7 @@ def relabel(
             replace(
                 row,
                 name=feed.stops[row.stop_id].name,
+                code=feed.stops[row.stop_id].code or row.code,
                 reading=readings.get(row.stop_id, ("", ""))[0],
                 reading_lang=readings.get(row.stop_id, ("", ""))[1],
             )

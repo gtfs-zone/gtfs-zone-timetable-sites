@@ -66,6 +66,9 @@
 {% if feed_info_valid %}
 <p>{{ feed_info_valid }}</p>
 {% endif %}
+{% for code in unknown_languages %}
+<p>{{ t("index.unknown_language", code=code) }}</p>
+{% endfor %}
 {% for note in feed_notes %}
 <p>{{ note }}</p>
 {% endfor %}

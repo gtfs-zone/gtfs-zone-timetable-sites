@@ -16,7 +16,7 @@ from gtfs_zone_timetable_sites.fares import (
     route_fares,
     site_fares,
 )
-from gtfs_zone_timetable_sites.gtfs.reader import read_feed
+from gtfs_zone_timetable_sites.gtfs.reader import FaresError, read_feed
 from gtfs_zone_timetable_sites.pages import (
     fare_badges,
     fare_charts,
@@ -101,7 +101,9 @@ def test_fares_without_rules_apply_to_their_agency():
 def test_unknown_fare_id_raises():
     files = fixture_files("fares-flat-v1")
     files["fare_rules.txt"] += "missing,R1,,,\n"
-    with pytest.raises(KeyError, match="missing"):
+    with pytest.raises(
+        FaresError, match=r"fare_rules\.txt: fare_id 'missing' is not in"
+    ):
         fares_of(files, ["r1"])
 
 
@@ -346,7 +348,7 @@ def test_v2_places_in_no_area_are_other_stops():
 def test_v2_unknown_product_raises():
     files = fixture_files("fares-v2")
     files["fare_leg_rules.txt"] += "leg_bus,bus,,,missing,,,,\n"
-    with pytest.raises(KeyError, match="missing"):
+    with pytest.raises(FaresError, match="fare_product_id 'missing' is not in"):
         fares_of(files, ["b1"])
 
 
@@ -416,7 +418,7 @@ def test_site_fares_none_without_fare_files():
 def test_site_fares_unknown_leg_group_raises():
     files = fixture_files("fares-v2")
     files["fare_transfer_rules.txt"] += "missing,leg_bus,,,,0,\n"
-    with pytest.raises(KeyError, match="missing"):
+    with pytest.raises(FaresError, match="leg_group_id 'missing' is not in"):
         site_fares(read_feed(make_zip(files)))
 
 
@@ -436,3 +438,44 @@ def test_transfer_text():
         "any fare to any fare: $0.70 (Subway transfer) for both, up to 3"
         " transfers, within 60 min"
     )
+
+
+def test_flex_stop_times_are_in_no_zone():
+    fares = route_fares(read_feed(fixture_zip("flex-fares")), ["l1", "l2"])
+    assert isinstance(fares, ZoneFares)
+    assert fares.zones == ("1", "2")
+
+
+def test_v2_empty_product_raises():
+    files = fixture_files("fares-v2")
+    files["fare_leg_rules.txt"] += "leg_bus,bus,,,,,,,\n"
+    with pytest.raises(
+        FaresError, match=r"fare_leg_rules\.txt: fare_product_id is empty"
+    ):
+        fares_of(files, ["b1"])
+
+
+@pytest.mark.parametrize(
+    ("value", "error"),
+    [
+        ("cash", "fare_attributes.txt: payment_method 'cash' is not valid"),
+        ("2", "fare_attributes.txt: payment_method '2' is not valid"),
+        ("", "fare_attributes.txt: payment_method is empty"),
+    ],
+)
+def test_unreadable_fare_field_empties_the_fares(value, error):
+    files = fixture_files("fares-flat-v1")
+    header, first, *rest = files["fare_attributes.txt"].splitlines()
+    fields = first.split(",")
+    fields[header.split(",").index("payment_method")] = value
+    files["fare_attributes.txt"] = "\n".join([header, ",".join(fields), *rest])
+    fares = read_feed(make_zip(files)).fares
+    assert fares.error == error
+    assert not fares.attributes and not fares.rules
+
+
+def test_v2_transfer_timeframe_not_all_day_raises():
+    files = fixture_files("fares-v2")
+    files["fare_leg_rules.txt"] += "leg_bus,bus,,,bus,,peak,,\n"
+    with pytest.raises(FaresError, match="to_timeframe_group_id 'peak' is not all day"):
+        fares_of(files, ["b1"])

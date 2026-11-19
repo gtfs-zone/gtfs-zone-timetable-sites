@@ -132,12 +132,49 @@ def test_translate_record_id_over_field_value():
     assert de.feed_info and de.feed_info.publisher_name == "Verkehrsbetrieb"
 
 
-def test_translate_ignores_unread_fields_and_raises_on_unknown():
-    ignored = TRANSLATIONS + "stops,tts_stop_name,en,Central,A\n"
-    body = fixture_files("languages") | {"translations.txt": ignored}
+def test_translate_ignores_fields_not_shown():
+    translations = (
+        TRANSLATIONS
+        + "stops,tts_stop_name,en,Central,A\n"
+        + "calendar,service_id,en,Daily,DAILY\n"
+        + "agency,bike_policy_url,en,https://bikes.example,a\n"
+        + "attributions,organization_name,en,Org,x\n"
+        + "agency_jp,agency_official_name,en,Official,a\n"
+    )
+    body = fixture_files("languages") | {"translations.txt": translations}
     feed = read_feed(make_zip(body))
     assert translate(feed, "en") is feed
-    unknown = TRANSLATIONS + "calendar,service_id,en,Daily,DAILY\n"
-    body = fixture_files("languages") | {"translations.txt": unknown}
-    with pytest.raises(ValueError, match=r"calendar\.service_id not handled"):
-        translate(read_feed(make_zip(body)), "en")
+
+
+def test_translate_applies_shown_codes_and_urls():
+    translations = (
+        TRANSLATIONS
+        + "stops,stop_code,en,C-1,A\n"
+        + "routes,route_url,en,https://en.example/1,R1\n"
+        + "agency,agency_phone,en,+1 555,a\n"
+        + "trips,trip_short_name,en,Express,r1\n"
+    )
+    body = fixture_files("languages") | {"translations.txt": translations}
+    en = translate(read_feed(make_zip(body)), "en")
+    assert en.stops["A"].code == "C-1"
+    assert en.routes["R1"].url == "https://en.example/1"
+    assert en.agencies["a"].phone == "+1 555"
+    assert en.trips["r1"].short_name == "Express"
+
+
+def test_unknown_codes_are_listed_not_offered():
+    agency = AGENCY + "a,A,https://a.example,UTC,english\n"
+    translations = TRANSLATIONS + "stops,stop_name,xx-yy,Name,s1\n"
+    assert languages(agency=agency, translations=translations) == FeedLanguages(
+        "en", ("en",), unknown=("english", "xx-yy")
+    )
+    assert languages(
+        feed_info=FEED_INFO + "english\n", agency=AGENCY + "a,A,u,UTC,fr\n"
+    ) == FeedLanguages("fr", ("fr",), unknown=("english",))
+
+
+def test_translate_skips_rows_in_unknown_codes():
+    translations = TRANSLATIONS + "stops,stop_name,english,Central,A\n"
+    body = fixture_files("languages") | {"translations.txt": translations}
+    feed = read_feed(make_zip(body))
+    assert translate(feed, "en") is feed

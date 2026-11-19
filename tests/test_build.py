@@ -925,6 +925,54 @@ def test_fares_page_noindex_when_site_is_not_indexed():
     assert "fares/index.html" in json.loads(files["site.json"])["noindex"]
 
 
+def test_unreadable_fares_are_named_not_fatal():
+    files = fixture_files("fares-flat-v1")
+    files["fare_attributes.txt"] = files["fare_attributes.txt"].replace(
+        "a,local,1.25,USD,0", "a,local,1.25,USD,cash"
+    )
+    site = Site(slug="test", url="https://example.org/g.zip")
+    pages = {
+        path: body.decode()
+        for path, body in build_site(make_zip(files), site, today=MONDAY).items()
+    }
+    note = (
+        "<p>The feed's fares could not be read: fare_attributes.txt:"
+        " payment_method &#39;cash&#39; is not valid</p>"
+    )
+    assert note in pages["fares/index.html"]
+    assert NOINDEX in pages["fares/index.html"]
+    assert note in pages["1/index.html"]
+    assert "Fare:" not in pages["1/index.html"]
+    assert '<a class="link" href="fares/">Fares</a>' in pages["index.html"]
+    content = json.loads(pages["content.json"])
+    assert content["faresError"].startswith("fare_attributes.txt: payment_method")
+    assert "faresError" not in json.loads(build("fares-flat-v1")["content.json"])
+
+
+def test_flex_feed_with_zone_fares_builds():
+    page = next(
+        body
+        for path, body in build("flex-fares").items()
+        if path.endswith("/index.html") and path != "fares/index.html"
+    )
+    assert "Fares by zone</summary>" in page
+
+
+def test_unknown_language_code_named_on_index():
+    files = fixture_files("branching")
+    files["agency.txt"] = (
+        "agency_id,agency_name,agency_url,agency_timezone,agency_lang\n"
+        "a,Test Transit,https://example.org,America/New_York,english\n"
+    )
+    site = Site(slug="test", url="https://example.org/g.zip")
+    pages = build_site(make_zip(files), site, today=MONDAY)
+    assert json.loads(pages["site.json"])["languages"] == ["en"]
+    assert (
+        "<p>The feed's language code english is not understood.</p>"
+        in pages["index.html"].decode()
+    )
+
+
 def test_a_page_set_per_feed_language():
     files = build("languages")
     pages = {path for path in files if path.endswith(".html")}

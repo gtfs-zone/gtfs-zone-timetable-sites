@@ -319,6 +319,9 @@ msgstr "Aikataulut voimassa {range}."
 msgid "index.feed_info_valid"
 msgstr "Syötteen mukaan voimassa {range}."
 
+msgid "index.unknown_language"
+msgstr "Syötteen kielikoodia {code} ei tunnisteta."
+
 msgid "index.feed_link"
 msgstr "Tämä syöte: list.gtfs.zone"
 
@@ -481,6 +484,9 @@ msgstr "Vaihdot"
 
 msgid "fares.any_routes"
 msgstr "Kaikki linjat"
+
+msgid "fares.unreadable"
+msgstr "Syötteen hintoja ei voitu lukea: {error}"
 
 msgid "fare.any_leg"
 msgstr "mikä tahansa lippu"

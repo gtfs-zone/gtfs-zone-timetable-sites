@@ -27,6 +27,10 @@ class MissingFiles(ValueError):
     """A GTFS zip without one of the files a timetable needs."""
 
 
+class FaresError(ValueError):
+    """Fares tables that cannot be read or linked, with the file and field."""
+
+
 @dataclass(frozen=True, slots=True)
 class Agency:
     agency_id: str
@@ -211,21 +215,27 @@ class Timeframe:
 @dataclass(frozen=True, slots=True)
 class Fares:
     """Fares v1 and v2 tables; each is empty when its file is missing or has
-    no rows."""
+    no rows. When a fares file cannot be read, every table is empty and
+    `error` says why."""
 
     # v1
-    attributes: dict[str, FareAttribute]
-    rules: tuple[FareRule, ...]
+    attributes: dict[str, FareAttribute] = field(default_factory=dict)
+    rules: tuple[FareRule, ...] = ()
     # v2
-    areas: dict[str, str]  # area_id -> area_name
-    stop_areas: dict[str, tuple[str, ...]]  # area_id -> stop_ids
-    networks: dict[str, str]  # network_id -> network_name
-    route_networks: dict[str, str]  # route_id -> network_id
-    media: dict[str, FareMedia]
-    products: dict[str, tuple[FareProduct, ...]]  # one row per media
-    leg_rules: tuple[FareLegRule, ...]
-    transfer_rules: tuple[FareTransferRule, ...]
-    timeframes: dict[str, tuple[Timeframe, ...]]
+    areas: dict[str, str] = field(default_factory=dict)  # area_id -> area_name
+    # area_id -> stop_ids
+    stop_areas: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # network_id -> network_name
+    networks: dict[str, str] = field(default_factory=dict)
+    # route_id -> network_id
+    route_networks: dict[str, str] = field(default_factory=dict)
+    media: dict[str, FareMedia] = field(default_factory=dict)
+    # one row per media
+    products: dict[str, tuple[FareProduct, ...]] = field(default_factory=dict)
+    leg_rules: tuple[FareLegRule, ...] = ()
+    transfer_rules: tuple[FareTransferRule, ...] = ()
+    timeframes: dict[str, tuple[Timeframe, ...]] = field(default_factory=dict)
+    error: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -709,16 +719,46 @@ def read_translations(archive: Archive) -> tuple[Translation, ...]:
     )
 
 
+def fare_field[T](
+    table: str, row: dict[str, str], column: str, parse: Callable[[str], T]
+) -> T:
+    """`parse` of a fares field; a value it cannot read raises FaresError
+    naming the file, field and value."""
+    value = row[column]
+    try:
+        return parse(value)
+    except (ValueError, ArithmeticError) as error:
+        what = "is empty" if not value.strip() else f"{value!r} is not valid"
+        raise FaresError(f"{table}.txt: {column} {what}") from error
+
+
+def payment_method(text: str) -> int:
+    """fare_attributes.payment_method, 0 or 1."""
+    value = int(text)
+    if value not in (0, 1):
+        raise ValueError(value)
+    return value
+
+
+def parse_decimal(text: str) -> Decimal:
+    return Decimal(text.strip())
+
+
 def read_fares(archive: Archive) -> Fares:
+    """The fares tables; a value that cannot be read raises FaresError."""
     attributes = {
         row["fare_id"]: FareAttribute(
             fare_id=row["fare_id"],
             agency_id=row["agency_id"],
-            price=Decimal(row["price"].strip()),
+            price=fare_field("fare_attributes", row, "price", parse_decimal),
             currency=row["currency_type"].strip(),
-            payment_method=int(row["payment_method"]),
-            transfers=parse_int(row["transfers"]),
-            transfer_duration=parse_int(row["transfer_duration"]),
+            payment_method=fare_field(
+                "fare_attributes", row, "payment_method", payment_method
+            ),
+            transfers=fare_field("fare_attributes", row, "transfers", parse_int),
+            transfer_duration=fare_field(
+                "fare_attributes", row, "transfer_duration", parse_int
+            ),
         )
         for row in archive.rows(
             "fare_attributes",
@@ -759,7 +799,7 @@ def read_fares(archive: Archive) -> Fares:
                 fare_product_id=row["fare_product_id"],
                 name=row["fare_product_name"],
                 fare_media_id=row["fare_media_id"],
-                amount=Decimal(row["amount"].strip()),
+                amount=fare_field("fare_products", row, "amount", parse_decimal),
                 currency=row["currency"].strip(),
             )
         )
@@ -769,8 +809,8 @@ def read_fares(archive: Archive) -> Fares:
     ):
         timeframes[row["timeframe_group_id"]].append(
             Timeframe(
-                start=parse_time(row["start_time"]),
-                end=parse_time(row["end_time"]),
+                start=fare_field("timeframes", row, "start_time", parse_time),
+                end=fare_field("timeframes", row, "end_time", parse_time),
                 service_id=row["service_id"],
             )
         )
@@ -794,7 +834,7 @@ def read_fares(archive: Archive) -> Fares:
             row["fare_media_id"]: FareMedia(
                 fare_media_id=row["fare_media_id"],
                 name=row["fare_media_name"],
-                media_type=int(row["fare_media_type"]),
+                media_type=fare_field("fare_media", row, "fare_media_type", int),
             )
             for row in archive.rows(
                 "fare_media", ("fare_media_id", "fare_media_name", "fare_media_type")
@@ -810,7 +850,9 @@ def read_fares(archive: Archive) -> Fares:
                 from_timeframe_group_id=row["from_timeframe_group_id"],
                 to_timeframe_group_id=row["to_timeframe_group_id"],
                 fare_product_id=row["fare_product_id"],
-                rule_priority=parse_int(row["rule_priority"]),
+                rule_priority=fare_field(
+                    "fare_leg_rules", row, "rule_priority", parse_int
+                ),
                 transfer_only=row["transfer_only"] == "1",
             )
             for row in archive.rows(
@@ -832,10 +874,18 @@ def read_fares(archive: Archive) -> Fares:
             FareTransferRule(
                 from_leg_group_id=row["from_leg_group_id"],
                 to_leg_group_id=row["to_leg_group_id"],
-                transfer_count=parse_int(row["transfer_count"]),
-                duration_limit=parse_int(row["duration_limit"]),
-                duration_limit_type=parse_int(row["duration_limit_type"]),
-                fare_transfer_type=int(row["fare_transfer_type"]),
+                transfer_count=fare_field(
+                    "fare_transfer_rules", row, "transfer_count", parse_int
+                ),
+                duration_limit=fare_field(
+                    "fare_transfer_rules", row, "duration_limit", parse_int
+                ),
+                duration_limit_type=fare_field(
+                    "fare_transfer_rules", row, "duration_limit_type", parse_int
+                ),
+                fare_transfer_type=fare_field(
+                    "fare_transfer_rules", row, "fare_transfer_type", int
+                ),
                 fare_product_id=row["fare_product_id"],
             )
             for row in archive.rows(
@@ -890,6 +940,10 @@ def read_feed(
         else:
             route_services, trip_count = read_route_services(archive, set(routes))
         service_ids = {sid for ids in route_services.values() for sid in ids}
+        try:
+            fares = read_fares(archive)
+        except FaresError as error:
+            fares = Fares(error=str(error))
         feed = Feed(
             agencies=read_agencies(archive),
             routes=routes,
@@ -901,7 +955,7 @@ def read_feed(
             shapes={},
             frequencies={},
             feed_info=read_feed_info(archive),
-            fares=read_fares(archive),
+            fares=fares,
             translations=read_translations(archive),
             route_services=route_services,
             trip_count=trip_count,

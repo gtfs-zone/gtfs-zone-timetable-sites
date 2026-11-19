@@ -331,6 +331,9 @@ msgstr "Rozkłady ważne {range}."
 msgid "index.feed_info_valid"
 msgstr "Według pliku danych ważny {range}."
 
+msgid "index.unknown_language"
+msgstr "Kod języka {code} w danych nie jest rozpoznawany."
+
 msgid "index.feed_link"
 msgstr "Ten feed w list.gtfs.zone"
 
@@ -491,6 +494,9 @@ msgstr "Przesiadki"
 
 msgid "fares.any_routes"
 msgstr "Wszystkie linie"
+
+msgid "fares.unreadable"
+msgstr "Nie udało się odczytać taryf z danych: {error}"
 
 msgid "fare.any_leg"
 msgstr "dowolny bilet"

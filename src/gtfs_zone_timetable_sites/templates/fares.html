@@ -4,6 +4,7 @@
 {% block canonical %}{{ base_url }}fares/{% endblock %}
 {% block main %}
 <h1 class="text-3xl font-bold">{{ t("fares.heading") }}</h1>
+{% if fares_error %}<p>{{ t("fares.unreadable", error=fares_error) }}</p>{% endif %}
 {% for section in sections %}
 <section class="card bg-base-100 shadow-sm">
 <div class="card-body gap-2 p-4">

@@ -1,0 +1,5 @@
+fare_id,price,currency_type,payment_method,transfers
+near,200,JPY,0,
+near_ic,190,JPY,1,
+far,300,JPY,0,
+far_ic,280,JPY,1,

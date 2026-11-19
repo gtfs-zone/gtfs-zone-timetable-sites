@@ -322,6 +322,9 @@ msgstr "Horaires valides {range}."
 msgid "index.feed_info_valid"
 msgstr "Le flux se dit valide {range}."
 
+msgid "index.unknown_language"
+msgstr "Le code de langue {code} du flux n'est pas reconnu."
+
 msgid "index.feed_link"
 msgstr "À propos de ce flux sur list.gtfs.zone"
 
@@ -482,6 +485,9 @@ msgstr "Correspondances"
 
 msgid "fares.any_routes"
 msgstr "Toutes les lignes"
+
+msgid "fares.unreadable"
+msgstr "Les tarifs du flux n'ont pas pu être lus : {error}"
 
 msgid "fare.any_leg"
 msgstr "tout tarif"

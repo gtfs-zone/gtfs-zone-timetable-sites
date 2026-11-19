@@ -324,6 +324,9 @@ msgstr "Orari validi {range}."
 msgid "index.feed_info_valid"
 msgstr "Il feed si dichiara valido {range}."
 
+msgid "index.unknown_language"
+msgstr "Il codice lingua {code} del feed non è riconosciuto."
+
 msgid "index.feed_link"
 msgstr "Questo feed su list.gtfs.zone"
 
@@ -484,6 +487,9 @@ msgstr "Trasbordi"
 
 msgid "fares.any_routes"
 msgstr "Tutte le linee"
+
+msgid "fares.unreadable"
+msgstr "Non è stato possibile leggere le tariffe del feed: {error}"
 
 msgid "fare.any_leg"
 msgstr "qualsiasi tariffa"

@@ -9,6 +9,7 @@ from gtfs_zone_timetable_sites.gtfs.reader import (
     FareAttribute,
     FareLegRule,
     Fares,
+    FaresError,
     Feed,
     Trip,
 )
@@ -106,6 +107,12 @@ def stop_zone(feed: Feed) -> ZoneOf:
     return lambda stop_id: feed.stops[stop_id].zone_id or None
 
 
+def trip_stops(feed: Feed, trip: Trip) -> list[str]:
+    """The trip's stop_ids in order; GTFS-Flex stop_times with a location and
+    no stop_id are in no zone and left out."""
+    return [st.stop_id for st in feed.stop_times.get(trip.trip_id, ()) if st.stop_id]
+
+
 def zone_order(feed: Feed, trips: Sequence[Trip], zone_of: ZoneOf) -> list[str]:
     """The trips' fare zones in route order, direction 1 read backwards;
     stops whose zone is None are skipped."""
@@ -113,8 +120,8 @@ def zone_order(feed: Feed, trips: Sequence[Trip], zone_of: ZoneOf) -> list[str]:
     for trip in trips:
         zones = [
             zone
-            for st in feed.stop_times.get(trip.trip_id, ())
-            if (zone := zone_of(st.stop_id)) is not None
+            for stop_id in trip_stops(feed, trip)
+            if (zone := zone_of(stop_id)) is not None
         ]
         if trip.direction_id == 1:
             zones.reverse()
@@ -144,7 +151,7 @@ def v1_route_fares(feed: Feed, trips: Sequence[Trip]) -> RouteFares:
     any route when `route_id` is empty); origin and destination zones match
     the places of a ride, contains zones every zone it passes through. Rules
     naming zones or routes not on the trips are skipped, unknown fare ids
-    raise KeyError."""
+    raise FaresError."""
     fares = feed.fares
     route_ids = {trip.route_id for trip in trips}
     zone_of = stop_zone(feed)
@@ -165,7 +172,7 @@ def v1_route_fares(feed: Feed, trips: Sequence[Trip]) -> RouteFares:
     contains: dict[tuple[str, str], set[str]] = {}
     for rule in fares.rules:
         if rule.fare_id not in fares.attributes:
-            raise KeyError(f"fare_rules: unknown fare_id {rule.fare_id!r}")
+            raise unknown_fare(rule.fare_id)
         if rule.route_id and rule.route_id not in route_ids:
             continue
         if rule.contains_id:
@@ -214,6 +221,12 @@ def v1_route_fares(feed: Feed, trips: Sequence[Trip]) -> RouteFares:
     )
 
 
+def unknown_fare(fare_id: str) -> FaresError:
+    return FaresError(
+        f"fare_rules.txt: fare_id {fare_id!r} is not in fare_attributes.txt"
+    )
+
+
 def flat_cell[T](
     cells: tuple[tuple[tuple[T, ...], ...], ...],
 ) -> tuple[T, ...] | None:
@@ -250,8 +263,8 @@ def station_zones(feed: Feed, trips: Sequence[Trip], zone_of: ZoneOf) -> dict[st
     """The zone of each station on the trips whose stops are all in one."""
     zones: dict[str, set[str | None]] = {}
     for trip in trips:
-        for st in feed.stop_times.get(trip.trip_id, ()):
-            zones.setdefault(feed.station(st.stop_id), set()).add(zone_of(st.stop_id))
+        for stop_id in trip_stops(feed, trip):
+            zones.setdefault(feed.station(stop_id), set()).add(zone_of(stop_id))
     return {
         station: zone
         for station, keys in zones.items()
@@ -265,10 +278,10 @@ def zone_stops(feed: Feed, trips: Sequence[Trip], order: Sequence[str]) -> list[
     stations: dict[str, set[str]] = {}
     zones: dict[str, set[str]] = {}
     for trip in trips:
-        for st in feed.stop_times.get(trip.trip_id, ()):
-            zone = feed.stops[st.stop_id].zone_id
+        for stop_id in trip_stops(feed, trip):
+            zone = feed.stops[stop_id].zone_id
             if zone:
-                station = feed.station(st.stop_id)
+                station = feed.station(stop_id)
                 stations.setdefault(zone, set()).add(station)
                 zones.setdefault(station, set()).add(zone)
     if len(order) < 2 or any(
@@ -283,7 +296,9 @@ def all_day(fares: Fares, group: str) -> bool:
     if not group:
         return True
     if group not in fares.timeframes:
-        raise KeyError(f"fare_leg_rules: unknown timeframe_group_id {group!r}")
+        raise FaresError(
+            f"fare_leg_rules.txt: timeframe_group_id {group!r} is not in timeframes.txt"
+        )
     return all(
         (frame.start or 0) == 0 and frame.end in (None, 24 * 3600)
         for frame in fares.timeframes[group]
@@ -293,9 +308,10 @@ def all_day(fares: Fares, group: str) -> bool:
 def rule_timeframe(fares: Fares, rule: FareLegRule) -> str:
     """The rule's timeframe group when it is not all day, else empty."""
     if not all_day(fares, rule.to_timeframe_group_id):
-        raise ValueError(
-            f"fare_leg_rules: to_timeframe_group_id {rule.to_timeframe_group_id!r}"
-            " is not all day"
+        raise FaresError(
+            f"fare_leg_rules.txt: to_timeframe_group_id"
+            f" {rule.to_timeframe_group_id!r} is not all day, which these pages"
+            " do not show"
         )
     group = rule.from_timeframe_group_id
     return "" if all_day(fares, group) else group
@@ -356,20 +372,26 @@ def product_fares(
 
 
 def priced_products(
-    fares: Fares, products: Iterable[tuple[str, str]], all_media: bool = False
+    fares: Fares,
+    products: Iterable[tuple[str, str]],
+    all_media: bool = False,
+    table: str = "fare_leg_rules",
 ) -> tuple[Fare, ...]:
-    """The (fare_product_id, timeframe) products, cheapest first: one fare
-    per product name and timeframe, or per price with its media when the
-    price depends on the media (or always with `all_media`). Unknown product
-    or media ids raise KeyError."""
+    """The (fare_product_id, timeframe) products of `table`'s rules, cheapest
+    first: one fare per product name and timeframe, or per price with its
+    media when the price depends on the media (or always with `all_media`).
+    Unknown product or media ids raise FaresError."""
     prices: dict[tuple[str, str], dict[tuple[Decimal, str], set[str]]] = {}
     for product_id, frame in products:
         if product_id not in fares.products:
-            raise KeyError(f"unknown fare_product_id {product_id!r}")
+            raise unknown_product(table, product_id)
         for product in fares.products[product_id]:
             media_id = product.fare_media_id
             if media_id and media_id not in fares.media:
-                raise KeyError(f"fare_products: unknown fare_media_id {media_id!r}")
+                raise FaresError(
+                    f"fare_products.txt: fare_media_id {media_id!r} is not in"
+                    " fare_media.txt"
+                )
             media = fares.media[media_id].name if media_id else ""
             key = (product.name, frame)
             by_price = prices.setdefault(key, {})
@@ -389,6 +411,14 @@ def priced_products(
             )
     return tuple(
         sorted(out, key=lambda f: (f.price, f.currency, f.product, f.timeframe))
+    )
+
+
+def unknown_product(table: str, product_id: str) -> FaresError:
+    if not product_id:
+        return FaresError(f"{table}.txt: fare_product_id is empty")
+    return FaresError(
+        f"{table}.txt: fare_product_id {product_id!r} is not in fare_products.txt"
     )
 
 
@@ -527,13 +557,13 @@ def site_fares(feed: Feed) -> SiteFares | None:
 def v1_site_fares(feed: Feed) -> SiteFares | None:
     """The v1 fares that apply to a route of the feed, grouped by agency:
     fares with no rules, or a rule with an empty or known `route_id`.
-    Unknown fare ids raise KeyError."""
+    Unknown fare ids raise FaresError."""
     fares = feed.fares
     ruled: set[str] = set()
     used: set[str] = set()
     for rule in fares.rules:
         if rule.fare_id not in fares.attributes:
-            raise KeyError(f"fare_rules: unknown fare_id {rule.fare_id!r}")
+            raise unknown_fare(rule.fare_id)
         ruled.add(rule.fare_id)
         if not rule.route_id or rule.route_id in feed.routes:
             used.add(rule.fare_id)
@@ -591,8 +621,7 @@ def v2_site_fares(feed: Feed) -> SiteFares | None:
 def transfer_rules(feed: Feed) -> tuple[TransferRule, ...]:
     """The feed's transfer rules, leg groups named by their networks,
     product names and the area all their legs start in; rules that read the
-    same are listed once. Unknown leg
-    groups or products raise KeyError."""
+    same are listed once. Unknown leg groups or products raise FaresError."""
     fares = feed.fares
     networks: dict[str, set[str]] = {}
     names: dict[str, set[str]] = {}
@@ -601,7 +630,7 @@ def transfer_rules(feed: Feed) -> tuple[TransferRule, ...]:
         if rule.leg_group_id:
             starts.setdefault(rule.leg_group_id, set()).add(rule.from_area_id)
             if rule.fare_product_id not in fares.products:
-                raise KeyError(f"unknown fare_product_id {rule.fare_product_id!r}")
+                raise unknown_product("fare_leg_rules", rule.fare_product_id)
             names.setdefault(rule.leg_group_id, set()).update(
                 product.name for product in fares.products[rule.fare_product_id]
             )
@@ -613,7 +642,10 @@ def transfer_rules(feed: Feed) -> tuple[TransferRule, ...]:
         if not group:
             return None
         if group not in names:
-            raise KeyError(f"fare_transfer_rules: unknown leg_group_id {group!r}")
+            raise FaresError(
+                f"fare_transfer_rules.txt: leg_group_id {group!r} is not in"
+                " fare_leg_rules.txt"
+            )
         area = next(iter(starts[group])) if len(starts[group]) == 1 else ""
         return LegGroup(
             tuple(sorted(networks[group] - {""})),
@@ -625,7 +657,9 @@ def transfer_rules(feed: Feed) -> tuple[TransferRule, ...]:
     for rule in fares.transfer_rules:
         fee = ()
         if rule.fare_product_id:
-            fee = priced_products(fares, [(rule.fare_product_id, "")])
+            fee = priced_products(
+                fares, [(rule.fare_product_id, "")], table="fare_transfer_rules"
+            )
         transfer = TransferRule(
             from_legs=legs(rule.from_leg_group_id),
             to_legs=legs(rule.to_leg_group_id),

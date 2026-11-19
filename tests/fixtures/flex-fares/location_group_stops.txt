@@ -1,0 +1,2 @@
+location_group_id,stop_id
+group_1,B

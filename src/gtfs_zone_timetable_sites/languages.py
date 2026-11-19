@@ -2,6 +2,7 @@
 translations.txt. No I/O."""
 
 from dataclasses import dataclass, replace
+from functools import cache
 
 from babel import Locale
 from babel.core import get_global, parse_locale
@@ -32,6 +33,8 @@ class FeedLanguages:
     # Readings of the feed's text in another script (`ja-Hrkt`, `ja-Latn`),
     # sorted.
     readings: tuple[str, ...] = ()
+    # Codes the feed gives that `normalize` does not understand, as given.
+    unknown: tuple[str, ...] = ()
 
 
 def is_reading(code: str) -> bool:
@@ -56,29 +59,51 @@ def normalize(code: str) -> str:
     return f"{language}-{script}" if script else language
 
 
+@cache
+def known(code: str) -> str | None:
+    """`normalize` of the code, None when it is not understood."""
+    try:
+        return normalize(code)
+    except ValueError:
+        return None
+
+
 def feed_languages(feed: Feed) -> FeedLanguages:
     """The default language is feed_lang, else the first agency_lang, else
     `en`; with feed_lang `mul`, the first agency_lang, else the first
     translations.txt language. Offered is the default plus every agency_lang and
     translations.txt language, less readings (`ja-Hrkt`, `ja-Latn`), which go in
     `readings`. translations.txt rows with no language are skipped (Hofbus and
-    Kajaani have rows with every field empty)."""
+    Kajaani have rows with every field empty). Codes not understood are left
+    out and listed in `unknown`."""
     feed_lang = feed.feed_info.lang if feed.feed_info else ""
+    given = [
+        feed_lang,
+        *(agency.lang for agency in feed.agencies.values()),
+        *(row.language for row in feed.translations),
+    ]
+    unknown = tuple(
+        code
+        for code in dict.fromkeys(given)
+        if code and code.lower() != MULTIPLE and known(code) is None
+    )
     agency_langs = [
-        normalize(agency.lang) for agency in feed.agencies.values() if agency.lang
+        code
+        for agency in feed.agencies.values()
+        if agency.lang and (code := known(agency.lang))
     ]
     translated = [
-        normalize(code)
+        normalized
         for code in dict.fromkeys(row.language for row in feed.translations)
-        if code
+        if code and (normalized := known(code))
     ]
     if feed_lang.lower() == MULTIPLE:
         candidates = [*agency_langs, *translated]
         if not candidates:
             raise ValueError("feed_lang is mul with no agency_lang or translations")
         default = candidates[0]
-    elif feed_lang:
-        default = normalize(feed_lang)
+    elif feed_lang and (code := known(feed_lang)):
+        default = code
     else:
         default = agency_langs[0] if agency_langs else "en"
     codes = {*agency_langs, *translated} - {default}
@@ -87,44 +112,35 @@ def feed_languages(feed: Feed) -> FeedLanguages:
         default=default,
         offered=(default, *sorted(codes - readings)),
         readings=tuple(sorted(readings)),
+        unknown=unknown,
     )
 
 
-# translations.txt fields applied, by table: GTFS field -> attribute of the
-# reader's row.
+# translations.txt fields the pages show, by table: GTFS field -> attribute of
+# the reader's row. Other fields are not shown, so their rows are ignored.
 APPLIED: dict[str, dict[str, str]] = {
-    "agency": {"agency_name": "name", "agency_url": "url"},
+    "agency": {"agency_name": "name", "agency_url": "url", "agency_phone": "phone"},
     "routes": {
         "route_short_name": "short_name",
         "route_long_name": "long_name",
         "route_desc": "desc",
+        "route_url": "url",
     },
-    "stops": {"stop_name": "name"},
-    "trips": {"trip_headsign": "headsign"},
+    "stops": {"stop_name": "name", "stop_code": "code"},
+    "trips": {"trip_headsign": "headsign", "trip_short_name": "short_name"},
     "feed_info": {
         "feed_publisher_name": "publisher_name",
         "feed_publisher_url": "publisher_url",
         "feed_version": "version",
     },
 }
-# Fields translated in library feeds that the reader does not read: Japanese
-# town feeds (stop_headsign), Collines f-e141e2f6ed (tts_stop_name,
-# agency_fare_url), and stop_desc.
-IGNORED = frozenset(
-    {
-        ("stop_times", "stop_headsign"),
-        ("stops", "tts_stop_name"),
-        ("stops", "stop_desc"),
-        ("agency", "agency_fare_url"),
-    }
-)
 
 
 def translate(feed: Feed, language: str) -> Feed:
     """The feed with its text in `language` (a normalized code) where
     translations.txt gives it: by `record_id`, else by `field_value`, else the
-    feed's own text. The same feed when no row applies. Raises ValueError for a
-    field neither applied nor ignored."""
+    feed's own text. The same feed when no row applies. Rows for fields the
+    pages do not show (`APPLIED`) or in a code not understood are ignored."""
     by_id: dict[tuple[str, str], dict[str, str]] = {}
     by_value: dict[tuple[str, str], dict[str, str]] = {}
     for row in feed.translations:
@@ -132,10 +148,8 @@ def translate(feed: Feed, language: str) -> Feed:
             continue
         field = (row.table_name, row.field_name)
         if row.field_name not in APPLIED.get(row.table_name, {}):
-            if field in IGNORED:
-                continue
-            raise ValueError(f"translations.txt field {'.'.join(field)} not handled")
-        if normalize(row.language) != language:
+            continue
+        if known(row.language) != language:
             continue
         # feed_info has one row, matched with neither record_id nor field_value.
         if row.record_id or (row.table_name == "feed_info" and not row.field_value):

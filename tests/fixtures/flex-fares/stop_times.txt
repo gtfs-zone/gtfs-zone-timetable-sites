@@ -1,0 +1,8 @@
+trip_id,arrival_time,departure_time,stop_id,location_id,location_group_id,stop_sequence,start_pickup_drop_off_window,end_pickup_drop_off_window
+l1,08:00:00,08:00:00,A,,,1,,
+l1,08:05:00,08:05:00,B,,,2,,
+l1,08:10:00,08:10:00,C,,,3,,
+l2,09:00:00,09:00:00,A,,,1,,
+l2,,,,area_1,,2,09:00:00,09:30:00
+l2,,,,,group_1,3,09:00:00,09:30:00
+l2,09:30:00,09:30:00,C,,,4,,

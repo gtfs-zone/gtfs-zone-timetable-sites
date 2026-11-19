@@ -328,6 +328,9 @@ msgstr "Fahrpläne gültig {range}."
 msgid "index.feed_info_valid"
 msgstr "Laut Feed gültig {range}."
 
+msgid "index.unknown_language"
+msgstr "Der Sprachcode {code} des Feeds ist unbekannt."
+
 msgid "index.feed_link"
 msgstr "Dieser Feed auf list.gtfs.zone"
 
@@ -492,6 +495,9 @@ msgstr "Umsteigen"
 
 msgid "fares.any_routes"
 msgstr "Alle Linien"
+
+msgid "fares.unreadable"
+msgstr "Die Tarife des Feeds konnten nicht gelesen werden: {error}"
 
 msgid "fare.any_leg"
 msgstr "beliebiger Fahrschein"

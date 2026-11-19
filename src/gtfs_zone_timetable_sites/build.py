@@ -25,9 +25,17 @@ from gtfs_zone_timetable_sites.boundaries import (
 from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import RouteFilter, Site
 from gtfs_zone_timetable_sites.facts import feed_facts
-from gtfs_zone_timetable_sites.fares import ZoneFares, route_fares, site_fares
+from gtfs_zone_timetable_sites.fares import (
+    NoFares,
+    RouteFares,
+    SiteFares,
+    ZoneFares,
+    route_fares,
+    site_fares,
+)
 from gtfs_zone_timetable_sites.gtfs.reader import (
     Agency,
+    FaresError,
     Feed,
     Route,
     ZipSource,
@@ -344,6 +352,19 @@ def alternates(
     ]
 
 
+def feed_fares(
+    feed: Feed, trip_ids: list[set[str]]
+) -> tuple[SiteFares | None, list[RouteFares], str]:
+    """The site's fares and those of each route's `trip_ids`, or no fares and
+    the error when the feed's fares cannot be read or linked."""
+    try:
+        if feed.fares.error:
+            raise FaresError(feed.fares.error)
+        return site_fares(feed), [route_fares(feed, ids) for ids in trip_ids], ""
+    except FaresError as error:
+        return None, [NoFares() for _ in trip_ids], str(error)
+
+
 def build_site(
     source: ZipSource, site: Site, today: date | None = None
 ) -> dict[str, bytes]:
@@ -361,7 +382,8 @@ def build_site(
     if not timetables:
         raise EmptyFeed("no route has scheduled trips")
     sets = page_sets(read, site)
-    readings = stop_readings(feed, feed_languages(read).readings)
+    languages = feed_languages(read)
+    readings = stop_readings(feed, languages.readings)
     labels = route_labels(feed, [rt.route for rt in timetables])
     reserved = {"fares", *(s.prefix.rstrip("/") for s in sets if s.prefix)}
     slugs = route_slugs([rt.route for rt in timetables], labels, reserved)
@@ -373,7 +395,14 @@ def build_site(
     maps = site.map == "maplibre"
     vehicles = site.vehicles_url()
     updates = site.trip_updates_url()
-    all_fares = site_fares(read)
+    all_fares, routes_fares, fares_error = feed_fares(
+        read,
+        [
+            {c.trip_id for table in rt.tables for c in table.columns} - {""}
+            for rt in timetables
+        ],
+    )
+    fares_page = bool(all_fares) or bool(fares_error)
 
     # Per page set: the feed with its text in the set's language, the
     # timetables relabeled from it, its route views and what every one of its
@@ -471,8 +500,9 @@ def build_site(
 
     if not indexed:
         noindex |= {f"{s.prefix}index.html" for s in sets}
-        if all_fares:
-            noindex |= {f"{s.prefix}fares/index.html" for s in sets}
+    # A fares page with only the error is left out too.
+    if fares_page and (not indexed or not all_fares):
+        noindex |= {f"{s.prefix}fares/index.html" for s in sets}
     noindex |= {f"{s.prefix}{slug}/index.html" for s in sets for slug in route_noindex}
 
     for s in sets:
@@ -495,14 +525,15 @@ def build_site(
             system_map=maps and any(group.routes for group in groups),
             valid=date_range(start, end, locale, "valid"),
             feed_info_valid=feed_info_range(feed, locale),
+            unknown_languages=languages.unknown,
             feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
-            fares_page=bool(all_fares),
+            fares_page=fares_page,
             jsonld=[
                 breadcrumbs(common["trail"]),
                 *place_jsonld(place, common["place"], common["base_url"]),
             ],
         )
-        if all_fares:
+        if fares_page:
             fares_url = f"{common['base_url']}fares/"
             page(
                 s,
@@ -510,10 +541,15 @@ def build_site(
                 "fares.html",
                 sections=fare_sections(
                     all_fares, locale, read.fares.timeframes, site.time_format
-                ),
+                )
+                if all_fares
+                else (),
                 transfers=sorted(
                     transfer_text(rule, locale) for rule in all_fares.transfers
-                ),
+                )
+                if all_fares
+                else [],
+                fares_error=fares_error,
                 jsonld=[
                     breadcrumbs(
                         [*common["trail"], (t(locale, "fares.heading"), fares_url)]
@@ -538,8 +574,7 @@ def build_site(
         numbers = stop_numbers(rt.tables)
         # The route map per feed text, shared by sets whose text is the same.
         route_maps: dict[int, str] = {}
-        trip_ids = {c.trip_id for table in rt.tables for c in table.columns} - {""}
-        fares = route_fares(read, trip_ids)
+        fares = routes_fares[i]
         # Live-times data is fetched only once a timetable is on screen, so
         # it adds nothing to the page itself. Without trip updates it still
         # marks each running trip's next stop from the schedule. One file
@@ -600,7 +635,8 @@ def build_site(
                     fares, locale, read.fares.timeframes, site.time_format
                 ),
                 fare_charts=fare_charts(fares, locale),
-                fares_page=bool(all_fares),
+                fares_page=fares_page,
+                fares_error=fares_error,
                 fares_by=(
                     t(locale, "fare.by_zone")
                     if isinstance(fares, ZoneFares) and fares.zones
@@ -675,7 +711,9 @@ def build_site(
         noindex=sorted(noindex),
     )
     files["content.json"] = summary_json(
-        **feed_facts(source, read, site.routes != RouteFilter(), stations)
+        **feed_facts(source, read, site.routes != RouteFilter(), stations),
+        # Why the feed's fares could not be read, when they could not.
+        **({"faresError": fares_error} if fares_error else {}),
     )
     files["style.css"] = asset("style.css")
     files["map.js"] = asset("map.js")
