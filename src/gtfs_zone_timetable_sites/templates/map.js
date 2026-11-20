@@ -84,10 +84,9 @@ function contrast(a, b) {
   const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p);
   return (x + 0.05) / (y + 0.05);
 }
-// A route color, or ink when it would vanish into the basemap
+// A route color, or ink when the route has none
 function lineColor(color) {
-  if (!color) return ink();
-  return contrast(color, paper()) < 1.6 ? ink() : color;
+  return color || ink();
 }
 // Stop number color in a white dot, as pages.dot_text picks it
 function dotText(color) {
@@ -916,14 +915,14 @@ function metres(a, b) {
 // Movement below this between polls gives no bearing
 const MIN_MOVE_M = 15;
 
-// Vehicle layers as web-common's layer-manager.ts addVehicleLayers draws
-// them: a route-colored dot on a dark casing, or a route-colored arrow with a
-// dark halo for vehicles with a bearing, and a ring around the focused one
+// Vehicle layers after web-common's layer-manager.ts addVehicleLayers: a
+// route-colored dot, or a route-colored arrow for vehicles with a bearing,
+// both in a white ring then a dark ring, and a ring around the focused one
 const byZoom = (...stops) => ["interpolate", ["linear"], ["zoom"], ...stops];
 const FOCUSED = ["boolean", ["feature-state", "focused"], false];
 const VEHICLE_CASING = "#0f172a";
-// The dot's radius is the casing's less this: its white stroke and a thin dark ring
-const CASING = 2;
+// Ring widths in pixels: white (web-common's dot stroke, focused and not) and dark
+const VEHICLE_RINGS = { white: { focused: 3, normal: 1.5 }, dark: 1 };
 // Sizes as [zoom, value, ...] stops: web-common's (full) and the ones this
 // page drew before (floor; for the casing, the old dot's outer edge, white
 // border included). Where vehicles crowd, full sizes shrink by the crowd
@@ -945,11 +944,33 @@ function stopAt(stops, z) {
   return stops[stops.length - 1];
 }
 
-// A vehicle size by zoom: the full size times scale, never below the floor;
-// out wraps each stop's value
-function vehicleSize(kind, scale, out = (v) => v) {
+// A vehicle size at zoom z: the full size times scale, never below the floor
+function sizeAt(kind, scale, z) {
   const { full, floor } = VEHICLE_SIZE[kind];
-  return byZoom(...VEHICLE_ZOOMS.flatMap((z) => [z, out(Math.max(stopAt(floor, z), stopAt(full, z) * scale))]));
+  return Math.max(stopAt(floor, z), stopAt(full, z) * scale);
+}
+
+// A vehicle size by zoom; out wraps each stop's value
+function vehicleSize(kind, scale, out = (v) => v) {
+  return byZoom(...VEHICLE_ZOOMS.flatMap((z) => [z, out(sizeAt(kind, scale, z))]));
+}
+
+// The widest arrow halo an icon-size can draw. MapLibre's SDF shader puts the
+// halo edge at alpha (6 - width / size) / 8, smoothed by 0.105 / size; past
+// this width the edge reaches alpha 0 and the halo fills the whole image square
+const arrowHalo = (size, width) => Math.max(0, Math.min(width, 6 * size - 0.84));
+
+// Every vehicle's rings by zoom, the same for dots and arrows: both shrink
+// together to fit the widest halo the arrow can draw at that zoom.
+// f({ white, dark }, z) gives each stop's value
+function vehicleRings(scale, f) {
+  const rings = (z, focused) => {
+    const white = VEHICLE_RINGS.white[focused ? "focused" : "normal"];
+    const total = white + VEHICLE_RINGS.dark;
+    const fit = arrowHalo(sizeAt("arrow", scale, z), total) / total;
+    return f({ white: white * fit, dark: VEHICLE_RINGS.dark * fit }, z);
+  };
+  return byZoom(...VEHICLE_ZOOMS.flatMap((z) => [z, ["case", FOCUSED, rings(z, true), rings(z, false)]]));
 }
 
 // Each sized vehicle property at scale, as [layer, paint or layout, property, value]
@@ -957,8 +978,12 @@ function vehicleSizes(scale) {
   return [
     ["vehicles-halo", "paint", "circle-radius", vehicleSize("halo", scale, (v) => ["case", FOCUSED, v, 0])],
     ["vehicles-casing", "paint", "circle-radius", vehicleSize("casing", scale)],
-    ["vehicles-dot", "paint", "circle-radius", vehicleSize("casing", scale, (v) => v - CASING)],
+    ["vehicles-dot", "paint", "circle-radius", vehicleRings(scale, (r, z) => sizeAt("casing", scale, z) - r.white - r.dark)],
+    ["vehicles-dot", "paint", "circle-stroke-width", vehicleRings(scale, (r) => r.white)],
+    ["vehicles-arrow-casing", "layout", "icon-size", vehicleSize("arrow", scale)],
+    ["vehicles-arrow-casing", "paint", "icon-halo-width", vehicleRings(scale, (r) => r.white + r.dark)],
     ["vehicles-arrow", "layout", "icon-size", vehicleSize("arrow", scale)],
+    ["vehicles-arrow", "paint", "icon-halo-width", vehicleRings(scale, (r) => r.white)],
     ["vehicles-hit", "paint", "circle-radius", vehicleSize("hit", scale)],
   ];
 }
@@ -982,49 +1007,55 @@ function crowdScale(map, features) {
   return n ? Math.min(1, Math.sqrt(cells.size / n)) : 1;
 }
 
-// A north-pointing arrow as an SDF, so icon-color tints it; blurred so the
-// edge has a ramp for the distance field
+// A north-pointing arrow as an SDF, so icon-color tints it: each pixel's
+// alpha is MapLibre's encoding of its signed distance d to the outline,
+// (6 - d) / 8 with d > 0 outside, so halos are even rings out to 6 pixels
 function addArrowImage(map) {
   if (map.hasImage("vehicle-arrow")) return;
   const size = 48;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const g = canvas.getContext("2d");
-  g.filter = "blur(2px)";
-  g.fillStyle = "#000";
-  g.beginPath();
-  g.moveTo(size / 2, 6);
-  g.lineTo(size - 10, size - 8);
-  g.lineTo(size / 2, size - 16);
-  g.lineTo(10, size - 8);
-  g.closePath();
-  g.fill();
-  map.addImage("vehicle-arrow", g.getImageData(0, 0, size, size), { sdf: true });
+  const shape = [[size / 2, 6], [size - 10, size - 8], [size / 2, size - 16], [10, size - 8]];
+  const edges = shape.map((a, i) => [a, shape[(i + 1) % shape.length]]);
+  const segmentDistance = (x, y, [[ax, ay], [bx, by]]) => {
+    const dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - ax - t * dx, y - ay - t * dy);
+  };
+  // Even-odd crossings of a ray to the right
+  const inside = (x, y) => edges.filter(([[ax, ay], [bx, by]]) => ay > y !== by > y && x < ax + ((y - ay) * (bx - ax)) / (by - ay)).length % 2 === 1;
+  const data = new Uint8ClampedArray(size * size * 4);
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      const x = px + 0.5, y = py + 0.5;
+      const d = Math.min(...edges.map((e) => segmentDistance(x, y, e))) * (inside(x, y) ? -1 : 1);
+      data[(py * size + px) * 4 + 3] = Math.round((255 * (6 - d)) / 8);
+    }
+  }
+  map.addImage("vehicle-arrow", { width: size, height: size, data }, { sdf: true });
 }
 
 function addVehicleLayers(map, data, scale) {
   addArrowImage(map);
   map.addSource("vehicles", { type: "geojson", data, promoteId: "id" });
-  const size = Object.fromEntries(vehicleSizes(scale).map(([id, , , value]) => [id, value]));
+  const size = Object.fromEntries(vehicleSizes(scale).map(([id, , prop, value]) => [`${id} ${prop}`, value]));
   map.addLayer({
     id: "vehicles-halo",
     type: "circle",
     source: "vehicles",
     paint: {
-      "circle-radius": size["vehicles-halo"],
+      "circle-radius": size["vehicles-halo circle-radius"],
       "circle-color": ink(),
       "circle-opacity": 0.25,
       "circle-stroke-color": ink(),
       "circle-stroke-width": ["case", FOCUSED, 2, 0],
     },
   });
-  // Dark casing under the dot, so it stands out on a line of its own color
+  // Dark casing under the dot: the dot's white stroke leaves its outer ring
   map.addLayer({
     id: "vehicles-casing",
     type: "circle",
     source: "vehicles",
     filter: ["==", ["get", "has_bearing"], false],
-    paint: { "circle-radius": size["vehicles-casing"], "circle-color": VEHICLE_CASING },
+    paint: { "circle-radius": size["vehicles-casing circle-radius"], "circle-color": VEHICLE_CASING },
   });
   map.addLayer({
     id: "vehicles-dot",
@@ -1032,37 +1063,41 @@ function addVehicleLayers(map, data, scale) {
     source: "vehicles",
     filter: ["==", ["get", "has_bearing"], false],
     paint: {
-      "circle-radius": size["vehicles-dot"],
+      "circle-radius": size["vehicles-dot circle-radius"],
       "circle-color": ["get", "color"],
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": ["case", FOCUSED, 3, 1.5],
+      "circle-stroke-width": size["vehicles-dot circle-stroke-width"],
     },
   });
-  map.addLayer({
-    id: "vehicles-arrow",
-    type: "symbol",
-    source: "vehicles",
-    filter: ["==", ["get", "has_bearing"], true],
-    layout: {
-      "icon-image": "vehicle-arrow",
-      "icon-size": size["vehicles-arrow"],
-      "icon-rotate": ["get", "bearing"],
-      "icon-rotation-alignment": "map",
-      "icon-allow-overlap": true,
-      "icon-ignore-placement": true,
-    },
-    paint: {
-      "icon-color": ["get", "color"],
-      "icon-halo-color": VEHICLE_CASING,
-      "icon-halo-width": ["case", FOCUSED, 3, 2],
-    },
+  // The arrow as the dot: a dark arrow with a dark halo out to both rings,
+  // under the route-colored arrow with a white halo
+  const arrowLayout = (id) => ({
+    "icon-image": "vehicle-arrow",
+    "icon-size": size[`${id} icon-size`],
+    "icon-rotate": ["get", "bearing"],
+    "icon-rotation-alignment": "map",
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
   });
+  for (const [id, color, halo] of [
+    ["vehicles-arrow-casing", VEHICLE_CASING, VEHICLE_CASING],
+    ["vehicles-arrow", ["get", "color"], "#ffffff"],
+  ]) {
+    map.addLayer({
+      id,
+      type: "symbol",
+      source: "vehicles",
+      filter: ["==", ["get", "has_bearing"], true],
+      layout: arrowLayout(id),
+      paint: { "icon-color": color, "icon-halo-color": halo, "icon-halo-width": size[`${id} icon-halo-width`] },
+    });
+  }
   // The only layer clicks and hovers query, never smaller than a drawn vehicle
   map.addLayer({
     id: "vehicles-hit",
     type: "circle",
     source: "vehicles",
-    paint: { "circle-radius": size["vehicles-hit"], "circle-color": "transparent", "circle-opacity": 0 },
+    paint: { "circle-radius": size["vehicles-hit circle-radius"], "circle-color": "transparent", "circle-opacity": 0 },
   });
 }
 
