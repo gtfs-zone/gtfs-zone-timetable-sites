@@ -158,13 +158,18 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
     )
 
 
+# The Dagster instance runs one `gtfs.zone/memory: heavy` run at a time, so a
+# shard never overlaps a crimes run on the node.
 sites_job = define_asset_job(
-    "sites", selection=[site_pages], partitions_def=shard_partitions
+    "sites",
+    selection=[site_pages],
+    partitions_def=shard_partitions,
+    tags={"gtfs.zone/memory": "heavy"},
 )
 
 
-# Two hours after feed-catalog's 09:00 UTC catalog run, which shares the run
-# queue and publishes the feeds.json sites are resolved from.
+# Two hours after feed-catalog's 09:00 UTC catalog run, which publishes the
+# feeds.json sites are resolved from.
 @schedule(
     job=sites_job,
     cron_schedule="0 11 * * *",
