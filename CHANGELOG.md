@@ -1,3 +1,9 @@
+## v0.24.0 (2026-11-20)
+
+### Feat
+
+- **pipeline**: tag sites runs gtfs.zone/memory: heavy
+
 ## v0.23.2 (2026-11-19)
 
 ### Refactor
