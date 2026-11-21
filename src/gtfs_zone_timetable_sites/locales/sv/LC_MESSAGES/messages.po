@@ -326,9 +326,6 @@ msgstr "Enligt flödet gäller det {range}."
 msgid "index.unknown_language"
 msgstr "Flödets språkkod {code} känns inte igen."
 
-msgid "index.feed_link"
-msgstr "Det här flödet på list.gtfs.zone"
-
 # Route page
 msgid "route.title"
 msgstr "Tidtabell: {mode} {route} - {site}"
@@ -536,6 +533,9 @@ msgstr ""
 "Skapad {date} från trafikföretagets GTFS-flöde. Kontrollera med "
 "trafikföretaget före resan."
 
+msgid "footer.generated_catalog"
+msgstr "Skapad {date} från gtfs.zones flödeskatalog och dess dagliga kontroller."
+
 msgid "footer.source"
 msgstr "Tidtabelldata från {publisher}{feed}{terms}."
 
@@ -562,6 +562,223 @@ msgstr "Mobility Database"
 
 msgid "footer.more"
 msgstr "Fler GTFS-verktyg på {link}"
+
+# Feed pages
+msgid "feed.title"
+msgstr "{kinds}-flöde för {name}"
+
+msgid "feed.description"
+msgstr "Adresser till {kinds}-flödet för {name}, kontrolleras dagligen. {state}."
+
+msgid "feed.heading"
+msgstr "Flöde"
+
+msgid "feed.kind_static"
+msgstr "GTFS"
+
+msgid "feed.kind_rt"
+msgstr "GTFS Realtime"
+
+msgid "feed.kind_both"
+msgstr "GTFS och GTFS Realtime"
+
+msgid "feed.urls"
+msgstr "Adresser"
+
+msgid "feed.rows"
+msgstr "Katalogposter"
+
+msgid "feed.license"
+msgstr "Licens"
+
+msgid "feed.licenses"
+msgstr "Licenser"
+
+msgid "feed.license_none"
+msgstr "Ingen licens anges; uppgifterna omfattas av utgivarens villkor."
+
+msgid "feed.credits"
+msgstr "Katalogdata från {catalogs}."
+
+msgid "feed.editor"
+msgstr "Öppna i edit.gtfs.zone"
+
+msgid "feed.viewer"
+msgstr "Följ i realtid i viz.rt.gtfs.zone"
+
+msgid "feed.checked"
+msgstr "{outcome}, kontrollerad {date}"
+
+msgid "feed.contents"
+msgstr "{routes} linjer, {stops} hållplatser, {trips} turer"
+
+msgid "feed.operator"
+msgstr "trafikeras av {operator}"
+
+msgid "feed.no_site"
+msgstr "Tidtabeller för det här flödet skapas inte ännu."
+
+msgid "feed.no_site_outcome"
+msgstr "Inga tidtabeller: den senaste nedladdningen var {outcome}."
+
+msgid "feed.no_site_realtime"
+msgstr "Inga tidtabeller: flödet har bara realtidsdata, ingen tidtabell."
+
+msgid "feed.no_site_down"
+msgstr "Inga tidtabeller: tidtabellen svarade inte vid den senaste kontrollen."
+
+msgid "state.up"
+msgstr "Uppe"
+
+msgid "state.partial"
+msgstr "Delvis"
+
+msgid "state.down"
+msgstr "Nere"
+
+msgid "state.unknown"
+msgstr "Otillgänglig"
+
+msgid "state.since"
+msgstr "{state} sedan {date}"
+
+msgid "state.never_up"
+msgstr "{state}, aldrig sett uppe"
+
+msgid "role.scheduled"
+msgstr "Tidtabell"
+
+msgid "role.vehicles"
+msgstr "Fordonspositioner"
+
+msgid "role.trip_updates"
+msgstr "Turuppdateringar"
+
+msgid "role.alerts"
+msgstr "Trafikstörningar"
+
+msgid "role.realtime"
+msgstr "Realtid (typ inte angiven)"
+
+msgid "role.chip_up"
+msgstr "{role}: svarade vid den senaste dagliga kontrollen"
+
+msgid "role.chip_down"
+msgstr "{role}: svarade inte vid den senaste dagliga kontrollen"
+
+msgid "role.chip_partial"
+msgstr "{role}: vissa adresser svarade inte vid den senaste dagliga kontrollen"
+
+msgid "role.chip_unknown"
+msgstr "{role}: inte kontrollerad"
+
+msgid "check.up_since"
+msgstr "Uppe sedan {date}"
+
+msgid "check.down_since"
+msgstr "Nere sedan {date}"
+
+msgid "check.partial_since"
+msgstr "Delvis sedan {date}"
+
+msgid "check.never"
+msgstr "Aldrig nådd"
+
+msgid "check.unknown"
+msgstr "Inte kontrollerad ännu"
+
+msgid "check.key"
+msgstr "Kräver en API-nyckel, inte kontrollerad"
+
+msgid "check.detail"
+msgstr "{text} ({detail})"
+
+msgid "check.http"
+msgstr "HTTP {code}"
+
+msgid "check.error_dns"
+msgstr "DNS-uppslagning misslyckades"
+
+msgid "check.error_refused"
+msgstr "anslutningen misslyckades"
+
+msgid "check.error_timeout"
+msgstr "tidsgränsen överskreds"
+
+msgid "check.error_tls"
+msgstr "TLS-fel"
+
+msgid "check.error_relative"
+msgstr "inte en fullständig adress"
+
+msgid "check.error_other"
+msgstr "begäran misslyckades"
+
+msgid "check.redirect"
+msgstr "Omdirigerar till {url}"
+
+msgid "field.download"
+msgstr "Senaste nedladdning"
+
+msgid "field.service"
+msgstr "Giltighet"
+
+msgid "field.publisher"
+msgstr "Utgivare"
+
+msgid "field.version"
+msgstr "Version"
+
+msgid "field.contents"
+msgstr "Innehåll"
+
+msgid "field.size"
+msgstr "Tidtabellens storlek"
+
+msgid "field.last_modified"
+msgstr "Senast ändrad"
+
+msgid "field.feed_id"
+msgstr "Flödes-id"
+
+msgid "outcome.ok"
+msgstr "en giltig GTFS-zip"
+
+msgid "outcome.not_zip"
+msgstr "inte en zipfil"
+
+msgid "outcome.missing_files"
+msgstr "en zip utan de GTFS-filer som krävs"
+
+msgid "outcome.parse_error"
+msgstr "en zip som inte gick att läsa"
+
+msgid "outcome.http_error"
+msgstr "en misslyckad nedladdning"
+
+msgid "outcome.timeout"
+msgstr "en nedladdning som tog för lång tid"
+
+msgid "outcome.memory"
+msgstr "för stor för att bearbetas"
+
+msgid "outcome.empty"
+msgstr "ett flöde utan planerade turer"
+
+msgid "outcome.error"
+msgstr "en nedladdning som inte gick att bearbeta"
+
+msgid "size.b"
+msgstr "{size} byte"
+
+msgid "size.kb"
+msgstr "{size} kB"
+
+msgid "size.mb"
+msgstr "{size} MB"
+
+msgid "size.gb"
+msgstr "{size} GB"
 
 msgid "nav.github"
 msgstr "Källkod på GitHub"

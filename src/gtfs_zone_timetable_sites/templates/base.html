@@ -108,13 +108,14 @@
 <footer class="mx-auto max-w-4xl space-y-1 px-4 pb-8 text-sm text-base-content/70">
 {% block footer %}
 {% set generated_time %}<time class="generated" datetime="{{ generated.isoformat() }}">{{ generated | long_date }}</time>{% endset %}
-<p>{{ t("footer.generated", date=generated_time) }}</p>
+<p>{{ t("footer.generated_catalog" if feed_only | default(false) else "footer.generated", date=generated_time) }}</p>
 {% if source %}
 {% set publisher %}{% if source.publisher_url %}<a class="link" href="{{ source.publisher_url }}" target="_blank" rel="noopener">{{ source.publisher }}</a>{% else %}{{ source.publisher }}{% endif %}{% endset %}
-{% set feed %}{% if source.download_url %} (<a class="link" href="{{ source.download_url }}" target="_blank" rel="nofollow noopener">{{ t("footer.feed") }}</a>){% endif %}{% endset %}
+{% set feed_link %}{% if source.download_url %} (<a class="link" href="{{ source.download_url }}" target="_blank" rel="nofollow noopener">{{ t("footer.feed") }}</a>){% endif %}{% endset %}
 {% set licenses %}{% for url in source.licenses %}<a class="link" href="{{ url }}" target="_blank" rel="noopener">{% if loop.length > 1 %}{{ t("footer.license_n", n=loop.index) }}{% else %}{{ t("footer.publisher_license") }}{% endif %}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
-<p>{{ t("footer.source", publisher=publisher, feed=feed, terms=t("footer.licensed", licenses=licenses) if source.licenses else t("footer.publisher_terms")) }}</p>
-{% if source.catalog_links %}
+<p>{{ t("footer.source", publisher=publisher, feed=feed_link, terms=t("footer.licensed", licenses=licenses) if source.licenses else t("footer.publisher_terms")) }}</p>
+{# The feed card lists the catalog entries itself. #}
+{% if source.catalog_links and not (feed | default(none) and feed.rows) %}
 {% set catalogs %}{% for url in source.catalog_links %}<a class="link" href="{{ url }}" target="_blank" rel="noopener">{{ "Transitland" if "transit.land" in url else t("footer.mobility_database") }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
 <p>{{ t("footer.listed", catalogs=catalogs) }}</p>
 {% endif %}

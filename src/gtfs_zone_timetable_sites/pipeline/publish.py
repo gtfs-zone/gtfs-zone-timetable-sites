@@ -13,6 +13,9 @@ files rather than from every site's manifest. `slugs.json` pins each catalog
 feed's slug and `aliases.json` maps a renamed site's old slugs to its feed id;
 the root redirects an old slug's pages to the current ones.
 
+A catalog feed with no site, and a site that has never built, gets its feed
+page published the same way, under its own slug in the shard of that slug.
+
 Each shard also keeps `_content/<nn>.json`, per site the outcome of its last
 download (ok or why the feed is unusable) and, when ok, what the zip contains.
 feed-catalog reads these, listed in `_content/index.json`. A feed that was
@@ -37,6 +40,7 @@ from gtfs_zone_feed_fetch.pool import isolated, run_all
 from gtfs_zone_timetable_sites.build import (
     UNUSABLE,
     EmptyFeed,
+    build_feed_page,
     build_root,
     build_site,
     page_digest,
@@ -256,6 +260,21 @@ def build_and_publish(
     }
 
 
+def publish_feed_page(
+    store: Store, site: Site, today: date, version: str, listed: bool = False
+) -> dict:
+    """Publish a site's feed page in place of timetables. Returns its counts,
+    the pages changed today and its shard entry."""
+    files = build_feed_page(site, today, listed)
+    counts, changed, pages = publish_site(store, site.slug, files, {}, today, version)
+    summary = json.loads(files["site.json"])
+    return {
+        "counts": counts,
+        "changed": changed,
+        "entry": site_entry(summary, today.isoformat(), pages),
+    }
+
+
 def checked_build(body: BinaryIO, site: Site, today: date) -> dict[str, bytes]:
     """build_site over a seekable zip file, with a body that is not a usable
     GTFS zip raised as a FeedProblem."""
@@ -381,11 +400,14 @@ def run_shard(
     version: str,
     workers: int = 1,
     max_bytes: int | None = None,
+    pages: list[Site] | None = None,
 ) -> tuple[dict[str, dict], dict[str, str], list[str]]:
     """Build and publish the shard's sites, largest feed first, skipping feeds
-    known to be bad, then write its shard file and content report. A site that
-    fails or is skipped keeps its previous entry and output. Returns each
-    site's result, each failure's error and the skipped slugs."""
+    known to be bad, then the feed pages of `pages` (catalog feeds with no
+    site), then write its shard file and content report. A site that fails
+    or is skipped keeps its previous entry and output, or gets its feed page
+    when it has none. Returns each site's and page's result, each failure's
+    error and the skipped slugs."""
     old = read_json(store, shard_key(shard)) or {}
     old_content = read_json(store, content_key(shard)) or {}
     results: dict[str, dict] = {}
@@ -429,6 +451,19 @@ def run_shard(
         else old.get(site.slug)
         for site in sites
     }
+    unbuilt = [site for site in sites if not entries[site.slug] and site.catalog]
+    for site, listed in [(s, True) for s in unbuilt] + [
+        (s, False) for s in pages or []
+    ]:
+        try:
+            page = publish_feed_page(store, site, today, version, listed)
+        except Exception as exc:
+            log.warning("%s feed page failed: %s", site.slug, exc)
+            entries[site.slug] = old.get(site.slug)
+            continue
+        entries[site.slug] = page["entry"]
+        if not listed:
+            results[site.slug] = page
     put_json(store, shard_key(shard), {k: v for k, v in entries.items() if v})
 
     content = {}

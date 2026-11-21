@@ -331,9 +331,6 @@ msgstr "Laut Feed gültig {range}."
 msgid "index.unknown_language"
 msgstr "Der Sprachcode {code} des Feeds ist unbekannt."
 
-msgid "index.feed_link"
-msgstr "Dieser Feed auf list.gtfs.zone"
-
 # Route page
 msgid "route.title"
 msgstr "{mode} {route} Fahrplan - {site}"
@@ -543,6 +540,9 @@ msgstr ""
 "Erstellt am {date} aus dem GTFS-Feed des Verkehrsunternehmens. Prüfen Sie"
 " die Angaben vor der Fahrt beim Verkehrsunternehmen."
 
+msgid "footer.generated_catalog"
+msgstr "Erstellt am {date} aus dem Feed-Katalog von gtfs.zone und seinen täglichen Prüfungen."
+
 msgid "footer.source"
 msgstr "Fahrplandaten von {publisher}{feed}{terms}."
 
@@ -569,6 +569,223 @@ msgstr "der Mobility Database"
 
 msgid "footer.more"
 msgstr "Weitere GTFS-Werkzeuge auf {link}"
+
+# Feed pages
+msgid "feed.title"
+msgstr "{name}: {kinds}-Feed"
+
+msgid "feed.description"
+msgstr "{kinds}-Feed-Adressen für {name}, täglich geprüft. {state}."
+
+msgid "feed.heading"
+msgstr "Feed"
+
+msgid "feed.kind_static"
+msgstr "GTFS"
+
+msgid "feed.kind_rt"
+msgstr "GTFS Realtime"
+
+msgid "feed.kind_both"
+msgstr "GTFS und GTFS Realtime"
+
+msgid "feed.urls"
+msgstr "Adressen"
+
+msgid "feed.rows"
+msgstr "Katalogeinträge"
+
+msgid "feed.license"
+msgstr "Lizenz"
+
+msgid "feed.licenses"
+msgstr "Lizenzen"
+
+msgid "feed.license_none"
+msgstr "Keine Lizenz angegeben; es gelten die Bedingungen des Herausgebers."
+
+msgid "feed.credits"
+msgstr "Katalogdaten von {catalogs}."
+
+msgid "feed.editor"
+msgstr "In edit.gtfs.zone öffnen"
+
+msgid "feed.viewer"
+msgstr "Live in viz.rt.gtfs.zone verfolgen"
+
+msgid "feed.checked"
+msgstr "{outcome}, geprüft am {date}"
+
+msgid "feed.contents"
+msgstr "{routes} Linien, {stops} Haltestellen, {trips} Fahrten"
+
+msgid "feed.operator"
+msgstr "betrieben von {operator}"
+
+msgid "feed.no_site"
+msgstr "Für diesen Feed werden noch keine Fahrpläne erstellt."
+
+msgid "feed.no_site_outcome"
+msgstr "Keine Fahrpläne. Letzter Download: {outcome}."
+
+msgid "feed.no_site_realtime"
+msgstr "Keine Fahrpläne: Dieser Feed enthält nur Echtzeitdaten, keinen Fahrplan."
+
+msgid "feed.no_site_down"
+msgstr "Keine Fahrpläne: Der Fahrplan hat auf die letzte Prüfung nicht geantwortet."
+
+msgid "state.up"
+msgstr "Erreichbar"
+
+msgid "state.partial"
+msgstr "Teilweise"
+
+msgid "state.down"
+msgstr "Nicht erreichbar"
+
+msgid "state.unknown"
+msgstr "Nicht zugänglich"
+
+msgid "state.since"
+msgstr "{state} seit {date}"
+
+msgid "state.never_up"
+msgstr "{state}, nie erreichbar gewesen"
+
+msgid "role.scheduled"
+msgstr "Fahrplan"
+
+msgid "role.vehicles"
+msgstr "Fahrzeugpositionen"
+
+msgid "role.trip_updates"
+msgstr "Fahrtaktualisierungen"
+
+msgid "role.alerts"
+msgstr "Störungsmeldungen"
+
+msgid "role.realtime"
+msgstr "Echtzeit (Typ nicht angegeben)"
+
+msgid "role.chip_up"
+msgstr "{role}: hat auf die letzte tägliche Prüfung geantwortet"
+
+msgid "role.chip_down"
+msgstr "{role}: hat auf die letzte tägliche Prüfung nicht geantwortet"
+
+msgid "role.chip_partial"
+msgstr "{role}: einige Adressen haben auf die letzte tägliche Prüfung nicht geantwortet"
+
+msgid "role.chip_unknown"
+msgstr "{role}: nicht geprüft"
+
+msgid "check.up_since"
+msgstr "Erreichbar seit {date}"
+
+msgid "check.down_since"
+msgstr "Nicht erreichbar seit {date}"
+
+msgid "check.partial_since"
+msgstr "Teilweise seit {date}"
+
+msgid "check.never"
+msgstr "Nie erreicht"
+
+msgid "check.unknown"
+msgstr "Noch nicht geprüft"
+
+msgid "check.key"
+msgstr "Braucht einen API-Schlüssel, nicht geprüft"
+
+msgid "check.detail"
+msgstr "{text} ({detail})"
+
+msgid "check.http"
+msgstr "HTTP {code}"
+
+msgid "check.error_dns"
+msgstr "DNS-Auflösung fehlgeschlagen"
+
+msgid "check.error_refused"
+msgstr "Verbindung fehlgeschlagen"
+
+msgid "check.error_timeout"
+msgstr "Zeitüberschreitung"
+
+msgid "check.error_tls"
+msgstr "TLS-Fehler"
+
+msgid "check.error_relative"
+msgstr "keine vollständige Adresse"
+
+msgid "check.error_other"
+msgstr "Anfrage fehlgeschlagen"
+
+msgid "check.redirect"
+msgstr "Leitet weiter auf {url}"
+
+msgid "field.download"
+msgstr "Letzter Download"
+
+msgid "field.service"
+msgstr "Gültigkeit"
+
+msgid "field.publisher"
+msgstr "Herausgeber"
+
+msgid "field.version"
+msgstr "Version"
+
+msgid "field.contents"
+msgstr "Inhalt"
+
+msgid "field.size"
+msgstr "Fahrplangröße"
+
+msgid "field.last_modified"
+msgstr "Zuletzt geändert"
+
+msgid "field.feed_id"
+msgstr "Feed-ID"
+
+msgid "outcome.ok"
+msgstr "eine gültige GTFS-ZIP-Datei"
+
+msgid "outcome.not_zip"
+msgstr "keine ZIP-Datei"
+
+msgid "outcome.missing_files"
+msgstr "eine ZIP-Datei ohne die nötigen GTFS-Dateien"
+
+msgid "outcome.parse_error"
+msgstr "eine nicht lesbare ZIP-Datei"
+
+msgid "outcome.http_error"
+msgstr "ein fehlgeschlagener Download"
+
+msgid "outcome.timeout"
+msgstr "eine Zeitüberschreitung beim Download"
+
+msgid "outcome.memory"
+msgstr "eine zu große Datei zum Verarbeiten"
+
+msgid "outcome.empty"
+msgstr "ein Feed ohne geplante Fahrten"
+
+msgid "outcome.error"
+msgstr "ein nicht verarbeitbarer Download"
+
+msgid "size.b"
+msgstr "{size} Byte"
+
+msgid "size.kb"
+msgstr "{size} kB"
+
+msgid "size.mb"
+msgstr "{size} MB"
+
+msgid "size.gb"
+msgstr "{size} GB"
 
 msgid "nav.github"
 msgstr "Quellcode auf GitHub"

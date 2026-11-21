@@ -7,6 +7,7 @@ from gtfs_zone_timetable_sites.catalog import (
     assign_slugs,
     base_slug,
     country_options,
+    feed_sites,
     locality,
     redirects,
     resolve_sites,
@@ -14,7 +15,13 @@ from gtfs_zone_timetable_sites.catalog import (
     shared_names,
     slugify,
 )
-from gtfs_zone_timetable_sites.config import CatalogFeed, RouteFilter, load_config
+from gtfs_zone_timetable_sites.config import (
+    CatalogFeed,
+    RouteFilter,
+    load_config,
+    parse_feeds,
+    with_rows,
+)
 
 REPO_CONFIG = Path(__file__).parent.parent / "sites.yaml"
 
@@ -223,12 +230,29 @@ sites:
     # The country's time format over the defaults.
     assert by_slug["four"].time_format == "12h"
     assert by_slug["four"].download_url() == "https://x/f-0000000004.zip"
+    # Feeds the filter skips get a slug too, for their feed page.
     assert slugs == {
         "f-0000000001": "one",
         "f-0000000003": "three-pinned",
         "f-0000000004": "four",
+        "f-0000000005": "too-big",
+        "f-0000000006": "elsewhere",
+        "f-0000000007": "down",
+        "f-0000000008": "no-schedule",
+        "f-000000000e": "excluded",
         "f-00000000ff": "f-00000000ff",
     }
+    pages = feed_sites(config, doc, slugs, sites)
+    assert [page.slug for page in pages] == [
+        "down",
+        "elsewhere",
+        "excluded",
+        "no-schedule",
+        "too-big",
+    ]
+    # Options from the country, as a catalog site has them.
+    assert {page.slug: page.time_format for page in pages}["elsewhere"] == "24h"
+    assert all(page.catalog for page in pages)
 
 
 def test_resolve_sites_excludes_countries_and_feeds_without_one():
@@ -291,6 +315,51 @@ def test_resolve_sites_indexes_only_index_countries():
         "here": True,
         "paris": False,
     }
+
+
+def test_feed_sites_index_only_index_countries():
+    config = load_config("catalog: {index_countries: [US]}")
+    doc = {
+        "feeds": [
+            feed("f-0000000001", "Here", roleState={"scheduled": "down"}),
+            feed("f-0000000002", "Paris", country_code="FR", staticBytes=None),
+            feed("f-0000000003", "Lyon", roleState={}),
+        ]
+    }
+    doc["feeds"][1]["roleState"] = {"scheduled": "down"}
+    sites, slugs, _ = resolve_sites(config, doc, {})
+    assert sites == []
+    pages = feed_sites(config, doc, slugs, sites)
+    assert {page.slug: page.index for page in pages} == {
+        "here": True,
+        "lyon": True,
+        "paris": False,
+    }
+
+
+def test_with_rows_attaches_member_rows_and_checks():
+    doc = {"feeds": [feed("f-0000000001", members=["tl:a:static", "md:gone"])]}
+    sources = {
+        "sources": [
+            {
+                "rowId": "tl:a:static",
+                "kind": "static",
+                "feedId": "f-a",
+                "name": "A",
+                "catalog": "transitland",
+                "scheduledUrl": "https://x/a.zip",
+                "license_url": "https://lic",
+            }
+        ]
+    }
+    status = {"sources": {"tl:a:static": {"state": "down", "code": 404}}}
+    feeds = parse_feeds(with_rows(doc, sources, status))
+    (row,) = feeds["f-0000000001"].rows
+    assert row.urls == {"scheduled": "https://x/a.zip"}
+    assert row.check.code == 404
+    assert row.license_url == "https://lic"
+    # Without sources.json, feeds have no rows.
+    assert parse_feeds(with_rows(doc, None, None))["f-0000000001"].rows == ()
 
 
 @pytest.mark.parametrize(

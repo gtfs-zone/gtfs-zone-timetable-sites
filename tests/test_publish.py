@@ -507,6 +507,43 @@ def test_publish_root_lists_unbuilt_sites_from_the_catalog():
     assert 'href="../../never/"' not in country
 
 
+def test_run_shard_publishes_feed_pages_and_unbuilt_sites_pages():
+    feed = CatalogFeed(feedId="f-0000000001", name="Never Built", country_code="US")
+    down = CatalogFeed(feedId="f-0000000002", name="Down Feed", state="down")
+    site = Site(slug="never", feed=feed.feed_id, catalog=feed)
+    page = Site(slug="down-feed", feed=down.feed_id, catalog=down)
+    store = FakeStore({"down-feed/1/index.html": b"old timetable"})
+    results, failures, _ = run_shard(
+        store, 3, [site], bad_zip, TODAY, "1", pages=[page]
+    )
+    assert set(failures) == {"never"} and set(results) == {"down-feed"}
+    assert b"Never Built" in store.objects["never/index.html"]
+    assert b"Down Feed" in store.objects["down-feed/index.html"]
+    # A feed page replaces a site the catalog no longer takes.
+    assert "down-feed/1/index.html" not in store.objects
+    shard = json.loads(store.objects["_shards/03.json"])
+    assert shard["down-feed"]["summary"]["feed_only"] is True
+    assert shard["never"]["summary"]["feed_only"] is False
+    # Only sites are in the content report.
+    assert set(json.loads(store.objects["_content/03.json"])) == {"never"}
+
+    publish_root(
+        store,
+        read_entries(store),
+        {"never", "down-feed"},
+        TODAY,
+        contents={"never": {"outcome": "not_zip"}},
+        sites=[site],
+    )
+    # The page of a site that never built is linked; a feed page is kept but
+    # not listed.
+    country = store.objects["countries/us/index.html"].decode()
+    assert 'href="../../never/"' in country and "Down Feed" not in country
+    assert "down-feed/index.html" in store.objects
+    sitemap = store.objects[f"sitemaps/{shard_of('down-feed'):02d}.xml"].decode()
+    assert "https://sites.gtfs.zone/down-feed/" in sitemap
+
+
 GiB = 1 << 30
 
 

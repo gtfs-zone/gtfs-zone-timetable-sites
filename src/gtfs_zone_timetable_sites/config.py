@@ -11,7 +11,11 @@ MapKind = Literal["maplibre", "none"]
 Language = Annotated[str, AfterValidator(normalize)]
 TimeFormat = Literal["12h", "24h"]
 
-FEEDS_URL = "https://data.gtfs.zone/feeds.json"
+DATA_URL = "https://data.gtfs.zone"
+FEEDS_URL = f"{DATA_URL}/feeds.json"
+# Every catalog row, and each row's last endpoint check.
+SOURCES_URL = f"{DATA_URL}/sources.json"
+STATUS_URL = f"{DATA_URL}/status.json"
 USER_AGENT = "gtfs-zone-timetable-sites (+https://sites.gtfs.zone)"
 
 # Parallel puts per site. Each put is a round trip to the object store, so a
@@ -59,6 +63,64 @@ class RouteFilter(Strict):
         )
 
 
+class Check(BaseModel):
+    """A row's last endpoint check, as feed-catalog's status.json has it."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    state: str = "unknown"
+    code: int | None = None
+    # dns, refused, timeout, http_4xx, ... when the check failed.
+    error: str | None = None
+    # Where the URL redirected to, when that differs from the URL.
+    final_url: str | None = None
+    since: str | None = None
+    never_up: bool = False
+
+
+# sources.json keys of a row's URLs, by role.
+ROW_URL_KEYS = {
+    "scheduled": "scheduledUrl",
+    "vehicles": "vehiclesUrl",
+    "trip_updates": "tripUpdatesUrl",
+    "alerts": "alertsUrl",
+    "realtime": "realtimeUrl",
+}
+
+
+class CatalogRow(BaseModel):
+    """One sources.json row of a feed, with its last check."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True, populate_by_name=True)
+
+    row_id: str = Field(alias="rowId")
+    # static or rt.
+    kind: str = "static"
+    # The row's id in its catalog.
+    feed_id: str = Field("", alias="feedId")
+    name: str = ""
+    operator_name: str = ""
+    # transitland, mobilitydatabase, gtfszone or ntd.
+    catalog: str = ""
+    license_url: str | None = None
+    # role to URL.
+    urls: dict[str, str] = {}
+    # The catalog's authentication type (an int in the Mobility Database).
+    auth: int | str | None = None
+    check: Check | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def row_urls(cls, data: object) -> object:
+        """The role URLs from sources.json's `<role>Url` keys."""
+        if isinstance(data, dict) and "urls" not in data:
+            urls = {
+                role: data[key] for role, key in ROW_URL_KEYS.items() if key in data
+            }
+            return data | {"urls": urls}
+        return data
+
+
 class CatalogFeed(BaseModel):
     """One entry of feeds.json, as feed-catalog's `artifacts.feed_entry` writes it."""
 
@@ -82,6 +144,40 @@ class CatalogFeed(BaseModel):
     # The members' license URLs and Transitland / Mobility Database pages.
     licenses: tuple[str, ...] = ()
     catalog_links: tuple[str, ...] = Field((), alias="catalogLinks")
+    # Roles whose URLs need an API key, and so are never checked.
+    auth: tuple[str, ...] = ()
+    # When the feed reached its state, and whether a down feed was ever up.
+    since: str | None = None
+    never_up: bool = Field(False, alias="neverUp")
+    # The schedule's last download by timetable-sites, as feeds.json compacts it.
+    content: dict[str, Any] = {}
+    # The member rows, when sources.json was read with feeds.json.
+    rows: tuple[CatalogRow, ...] = ()
+
+
+def with_rows(
+    feeds_doc: dict[str, Any],
+    sources_doc: dict[str, Any] | None,
+    status_doc: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """feeds.json with each feed's member rows from sources.json, each with
+    its check from status.json, as `rows`."""
+    if not sources_doc:
+        return feeds_doc
+    rows = {row["rowId"]: row for row in sources_doc.get("sources", [])}
+    checks = (status_doc or {}).get("sources", {})
+    feeds = [
+        feed
+        | {
+            "rows": [
+                rows[member] | {"check": checks.get(member)}
+                for member in feed.get("members", [])
+                if member in rows
+            ]
+        }
+        for feed in feeds_doc.get("feeds", [])
+    ]
+    return feeds_doc | {"feeds": feeds}
 
 
 def parse_feeds(feeds_doc: dict[str, Any]) -> dict[str, CatalogFeed]:

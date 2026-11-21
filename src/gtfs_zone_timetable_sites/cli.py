@@ -23,13 +23,22 @@ from typing import BinaryIO
 from gtfs_zone_feed_fetch.pool import run_all
 
 from gtfs_zone_timetable_sites.build import (
+    build_feed_page,
     build_root,
     build_site,
     site_feed,
     site_timetables,
 )
-from gtfs_zone_timetable_sites.catalog import resolve_sites
-from gtfs_zone_timetable_sites.config import FEEDS_URL, USER_AGENT, Site, load_config
+from gtfs_zone_timetable_sites.catalog import feed_sites, resolve_sites
+from gtfs_zone_timetable_sites.config import (
+    FEEDS_URL,
+    SOURCES_URL,
+    STATUS_URL,
+    USER_AGENT,
+    Site,
+    load_config,
+    with_rows,
+)
 from gtfs_zone_timetable_sites.messages import compile_catalogs
 from gtfs_zone_timetable_sites.timetable import to_text
 
@@ -42,40 +51,63 @@ def fetch(url: str) -> bytes:
         return response.read()
 
 
-# feeds.json, the {feed id: slug} map and the {old slug: feed id} aliases, kept
-# in the feed cache.
+# feeds.json, sources.json, status.json, the {feed id: slug} map and the
+# {old slug: feed id} aliases, kept in the feed cache.
 CATALOG = "_catalog.json"
+SOURCES = "_sources.json"
+STATUS = "_status.json"
 SLUG_MAP = "_slugs.json"
 ALIAS_MAP = "_aliases.json"
 
 
-def load_sites(
-    config_path: Path, cache: Path | None, catalog: bool = True
-) -> list[Site]:
+def cached_json(url: str, cache: Path | None, name: str) -> dict:
+    """The JSON at `url`, from `cache` when it is there, else downloaded and
+    kept in `cache`."""
+    cached = cache / name if cache else None
+    if cached and cached.exists():
+        return json.loads(cached.read_bytes())
+    log.info("downloading %s", url)
+    body = fetch(url)
+    if cached:
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        cached.write_bytes(body)
+    return json.loads(body)
+
+
+def load_catalog(
+    config_path: Path, cache: Path | None, catalog: bool = True, rows: bool = True
+) -> tuple[list[Site], list[Site]]:
     """Every site the config resolves to, or only its `sites:` entries without
-    `catalog`. feeds.json is fetched only when a site needs it, and kept in
-    `cache` with the slugs assigned from it."""
+    `catalog`, and a feed-page site for each catalog feed with no site. The
+    catalog files are fetched only when a site needs them (sources.json and
+    status.json only with `rows`), and kept in `cache` with the slugs assigned
+    from them."""
     config = load_config(config_path.read_text())
     if not catalog:
         config = config.model_copy(update={"catalog": None})
     feeds_doc: dict = {}
     if config.catalog is not None or any(entry.feed for entry in config.sites):
-        cached = cache / CATALOG if cache else None
-        if cached and cached.exists():
-            feeds_doc = json.loads(cached.read_bytes())
-        else:
-            log.info("downloading %s", FEEDS_URL)
-            body = fetch(FEEDS_URL)
-            feeds_doc = json.loads(body)
-            if cached:
-                cached.parent.mkdir(parents=True, exist_ok=True)
-                cached.write_bytes(body)
+        feeds_doc = cached_json(FEEDS_URL, cache, CATALOG)
+    if config.catalog is not None and rows:
+        feeds_doc = with_rows(
+            feeds_doc,
+            cached_json(SOURCES_URL, cache, SOURCES),
+            cached_json(STATUS_URL, cache, STATUS),
+        )
     pinned = read_map(cache, SLUG_MAP)
     old_aliases = read_map(cache, ALIAS_MAP)
     sites, slugs, aliases = resolve_sites(config, feeds_doc, pinned, old_aliases)
     write_map(cache, SLUG_MAP, slugs, pinned)
     write_map(cache, ALIAS_MAP, aliases, old_aliases)
-    return sites
+    pages = feed_sites(config, feeds_doc, slugs, sites) if config.catalog else []
+    return sites, pages
+
+
+def load_sites(
+    config_path: Path, cache: Path | None, catalog: bool = True
+) -> list[Site]:
+    """The sites of `load_catalog`, without their catalog rows."""
+    return load_catalog(config_path, cache, catalog, rows=False)[0]
 
 
 def read_map(cache: Path | None, name: str) -> dict[str, str]:
@@ -158,23 +190,41 @@ def build_one(site: Site, zip_path: Path | None, cache: Path | None, out: Path) 
     return len(files)
 
 
+def write_feed_page(site: Site, out: Path) -> None:
+    """A feed page into a cleared `out/<slug>`."""
+    root = out / site.slug
+    clear(root)
+    write_files(build_feed_page(site), root)
+
+
 def build(args: argparse.Namespace) -> None:
-    """Build one site, or every site, into a cleared `out`, then the root."""
+    """Build one site, or every site and feed page, into a cleared `out`,
+    then the root."""
     if args.zip and not args.site:
         raise SystemExit("--zip needs --site")
-    sites = load_sites(args.config, args.cache, not args.listed)
+    sites, pages = load_catalog(args.config, args.cache, not args.listed)
     if args.dev:
         dev_feeds = load_config(args.config.read_text()).dev
         sites = [site for site in sites if site.feed in dev_feeds]
+        pages = []
     if args.site:
-        sites = [find_site(sites, args.site)]
+        if any(page.slug == args.site for page in pages):
+            sites, pages = [], [find_site(pages, args.site)]
+        else:
+            sites, pages = [find_site(sites, args.site)], []
     else:
         clear(args.out)
     if args.country:
         codes = {code.upper() for code in args.country}
         sites = [s for s in sites if s.catalog and s.catalog.country_code in codes]
+        pages = [s for s in pages if s.catalog and s.catalog.country_code in codes]
     if args.limit:
         sites = sites[: args.limit]
+        pages = pages[: args.limit]
+    for page in pages:
+        write_feed_page(page, args.out)
+    if pages:
+        log.info("wrote %d feed pages", len(pages))
     one = functools.partial(
         build_one, zip_path=args.zip, cache=args.cache, out=args.out
     )

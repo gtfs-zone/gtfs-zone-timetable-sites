@@ -73,6 +73,7 @@ ignore_names = [
     "model_config",
     "defs",
     # Read only by the Jinja templates
+    "chip_title",
     "days_label",
     "dot_x",
     "fare_zone",
@@ -81,8 +82,13 @@ ignore_names = [
     "heading",
     "href",
     "icons",
+    "license",
+    "operator",
     "phone",
     "rail",
+    "reason",
+    "redirect",
+    "roles",
     "show_amenities",
     "show_continues",
     "show_headsigns",
@@ -105,6 +111,8 @@ ignore_names = [
     "record_sub_id",
     "table_name",
     "translation",
+    # sources.json fields kept for the row they come from
+    "row_id",
 ]
 
 [tool.deptry]

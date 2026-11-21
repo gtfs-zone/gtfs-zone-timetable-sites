@@ -1,8 +1,10 @@
 """Dagster entrypoint: the sites split into SHARDS partitions by slug, each
 rebuilt daily and once more whenever a new timetable-sites version is deployed.
 
-Each run resolves every site from sites.yaml and feeds.json, builds its shard's
-sites in worker processes and then rewrites the bucket root from every shard's
+Each run resolves every site from sites.yaml and feeds.json, with each feed's
+catalog rows and checks from sources.json and status.json, builds its shard's
+sites in worker processes, publishes the feed pages of its shard's catalog
+feeds that have no site, and then rewrites the bucket root from every shard's
 file, so the root is current after every run. The Gatus heartbeat is pushed
 once nearly every site has been built today, not counting feeds known to be
 unusable.
@@ -36,11 +38,19 @@ from dagster import (
 from gtfs_zone_timetable_sites.build import BASE_URL
 from gtfs_zone_timetable_sites.catalog import (
     SHARDS,
+    feed_sites,
     redirects,
     resolve_sites,
     shard_of,
 )
-from gtfs_zone_timetable_sites.config import FEEDS_URL, USER_AGENT, load_config
+from gtfs_zone_timetable_sites.config import (
+    FEEDS_URL,
+    SOURCES_URL,
+    STATUS_URL,
+    USER_AGENT,
+    load_config,
+    with_rows,
+)
 from gtfs_zone_timetable_sites.pipeline import indexnow
 from gtfs_zone_timetable_sites.pipeline.bucket import Bucket, BucketSettings
 from gtfs_zone_timetable_sites.pipeline.heartbeat import push_heartbeat
@@ -82,7 +92,11 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
     with httpx.Client(
         headers={"User-Agent": USER_AGENT}, timeout=120.0, follow_redirects=True
     ) as http:
-        feeds_doc = http.get(FEEDS_URL).raise_for_status().json()
+        feeds_doc = with_rows(
+            http.get(FEEDS_URL).raise_for_status().json(),
+            http.get(SOURCES_URL).raise_for_status().json(),
+            http.get(STATUS_URL).raise_for_status().json(),
+        )
         pinned = read_json(bucket, SLUGS) or {}
         old_aliases = read_json(bucket, ALIASES) or {}
         sites, slugs, aliases = resolve_sites(CONFIG, feeds_doc, pinned, old_aliases)
@@ -97,11 +111,27 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
             for site in sites
         ]
         mine = [site for site in sites if shard_of(site.slug) == shard]
-        context.log.info("shard %02d: %d of %d sites", shard, len(mine), len(sites))
+        all_pages = feed_sites(CONFIG, feeds_doc, slugs, sites)
+        pages = [page for page in all_pages if shard_of(page.slug) == shard]
+        context.log.info(
+            "shard %02d: %d of %d sites, %d feed pages",
+            shard,
+            len(mine),
+            len(sites),
+            len(pages),
+        )
 
         publish = functools.partial(publish_one, today=today, version=VERSION)
         results, failures, skipped = run_shard(
-            bucket, shard, mine, publish, today, VERSION, WORKERS, WORKER_MEMORY
+            bucket,
+            shard,
+            mine,
+            publish,
+            today,
+            VERSION,
+            WORKERS,
+            WORKER_MEMORY,
+            pages,
         )
         for slug, error in sorted(failures.items()):
             context.log.warning("%s: %s", slug, error)
@@ -109,7 +139,8 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
             context.log.info("skipped %d known bad feeds", len(skipped))
 
         # After the root, which serves the IndexNow key file.
-        live = {site.slug for site in sites}
+        site_slugs = {site.slug for site in sites}
+        live = site_slugs | {page.slug for page in all_pages}
         contents = read_contents(bucket)
         behind = publish_root(
             bucket,
@@ -126,6 +157,7 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
             [
                 f"{BASE_URL}/{slug}/{path.removesuffix('index.html')}"
                 for slug, result in sorted(results.items())
+                if slug in site_slugs
                 for path in result["changed"]
             ],
         )

@@ -325,9 +325,6 @@ msgstr "The feed says it is valid {range}."
 msgid "index.unknown_language"
 msgstr "The feed's language code {code} is not understood."
 
-msgid "index.feed_link"
-msgstr "About this feed on list.gtfs.zone"
-
 # Route page
 msgid "route.title"
 msgstr "{route} {mode} schedule - {site}"
@@ -535,6 +532,9 @@ msgstr ""
 "Generated {date} from the agency's GTFS feed. Check with the agency "
 "before you travel."
 
+msgid "footer.generated_catalog"
+msgstr "Generated {date} from the gtfs.zone feed catalog and its daily checks."
+
 msgid "footer.source"
 msgstr "Schedule data from {publisher}{feed}{terms}."
 
@@ -561,6 +561,223 @@ msgstr "the Mobility Database"
 
 msgid "footer.more"
 msgstr "More GTFS tools at {link}"
+
+# Feed pages
+msgid "feed.title"
+msgstr "{name} {kinds} feed"
+
+msgid "feed.description"
+msgstr "{kinds} feed URLs for {name}, checked daily. {state}."
+
+msgid "feed.heading"
+msgstr "Feed"
+
+msgid "feed.kind_static"
+msgstr "GTFS"
+
+msgid "feed.kind_rt"
+msgstr "GTFS Realtime"
+
+msgid "feed.kind_both"
+msgstr "GTFS and GTFS Realtime"
+
+msgid "feed.urls"
+msgstr "URLs"
+
+msgid "feed.rows"
+msgstr "Catalog entries"
+
+msgid "feed.license"
+msgstr "License"
+
+msgid "feed.licenses"
+msgstr "Licenses"
+
+msgid "feed.license_none"
+msgstr "No license is listed; the data is on its publisher's terms."
+
+msgid "feed.credits"
+msgstr "Catalog data from {catalogs}."
+
+msgid "feed.editor"
+msgstr "Open in edit.gtfs.zone"
+
+msgid "feed.viewer"
+msgstr "Watch live in viz.rt.gtfs.zone"
+
+msgid "feed.checked"
+msgstr "{outcome}, checked {date}"
+
+msgid "feed.contents"
+msgstr "{routes} routes, {stops} stops, {trips} trips"
+
+msgid "feed.operator"
+msgstr "operated by {operator}"
+
+msgid "feed.no_site"
+msgstr "Timetables are not built for this feed yet."
+
+msgid "feed.no_site_outcome"
+msgstr "No timetables: the last download was {outcome}."
+
+msgid "feed.no_site_realtime"
+msgstr "No timetables: this feed has realtime only, no schedule."
+
+msgid "feed.no_site_down"
+msgstr "No timetables: the schedule did not answer the last check."
+
+msgid "state.up"
+msgstr "Up"
+
+msgid "state.partial"
+msgstr "Partial"
+
+msgid "state.down"
+msgstr "Down"
+
+msgid "state.unknown"
+msgstr "Inaccessible"
+
+msgid "state.since"
+msgstr "{state} since {date}"
+
+msgid "state.never_up"
+msgstr "{state}, never seen up"
+
+msgid "role.scheduled"
+msgstr "Schedule"
+
+msgid "role.vehicles"
+msgstr "Vehicle positions"
+
+msgid "role.trip_updates"
+msgstr "Trip updates"
+
+msgid "role.alerts"
+msgstr "Service alerts"
+
+msgid "role.realtime"
+msgstr "Realtime (type not declared)"
+
+msgid "role.chip_up"
+msgstr "{role}: answered the last daily check"
+
+msgid "role.chip_down"
+msgstr "{role}: did not answer the last daily check"
+
+msgid "role.chip_partial"
+msgstr "{role}: some URLs did not answer the last daily check"
+
+msgid "role.chip_unknown"
+msgstr "{role}: not checked"
+
+msgid "check.up_since"
+msgstr "Up since {date}"
+
+msgid "check.down_since"
+msgstr "Down since {date}"
+
+msgid "check.partial_since"
+msgstr "Partial since {date}"
+
+msgid "check.never"
+msgstr "Never reached"
+
+msgid "check.unknown"
+msgstr "Not checked yet"
+
+msgid "check.key"
+msgstr "Needs an API key, not checked"
+
+msgid "check.detail"
+msgstr "{text} ({detail})"
+
+msgid "check.http"
+msgstr "HTTP {code}"
+
+msgid "check.error_dns"
+msgstr "DNS lookup failed"
+
+msgid "check.error_refused"
+msgstr "connection failed"
+
+msgid "check.error_timeout"
+msgstr "timed out"
+
+msgid "check.error_tls"
+msgstr "TLS error"
+
+msgid "check.error_relative"
+msgstr "not a full URL"
+
+msgid "check.error_other"
+msgstr "request failed"
+
+msgid "check.redirect"
+msgstr "Redirects to {url}"
+
+msgid "field.download"
+msgstr "Last download"
+
+msgid "field.service"
+msgstr "Service"
+
+msgid "field.publisher"
+msgstr "Publisher"
+
+msgid "field.version"
+msgstr "Version"
+
+msgid "field.contents"
+msgstr "Contents"
+
+msgid "field.size"
+msgstr "Schedule size"
+
+msgid "field.last_modified"
+msgstr "Last modified"
+
+msgid "field.feed_id"
+msgstr "Feed id"
+
+msgid "outcome.ok"
+msgstr "a valid GTFS zip"
+
+msgid "outcome.not_zip"
+msgstr "not a zip file"
+
+msgid "outcome.missing_files"
+msgstr "a zip missing required GTFS files"
+
+msgid "outcome.parse_error"
+msgstr "a zip that could not be read"
+
+msgid "outcome.http_error"
+msgstr "a failed download"
+
+msgid "outcome.timeout"
+msgstr "a download that timed out"
+
+msgid "outcome.memory"
+msgstr "too large to process"
+
+msgid "outcome.empty"
+msgstr "a feed with no scheduled trips"
+
+msgid "outcome.error"
+msgstr "a download that could not be processed"
+
+msgid "size.b"
+msgstr "{size} bytes"
+
+msgid "size.kb"
+msgstr "{size} kB"
+
+msgid "size.mb"
+msgstr "{size} MB"
+
+msgid "size.gb"
+msgstr "{size} GB"
 
 msgid "nav.github"
 msgstr "Source code on GitHub"

@@ -34,6 +34,7 @@ from gtfs_zone_timetable_sites.fares import (
     route_fares,
     site_fares,
 )
+from gtfs_zone_timetable_sites.feedpage import dataset, feed_view, place_line
 from gtfs_zone_timetable_sites.gtfs.reader import (
     Agency,
     FaresError,
@@ -102,7 +103,6 @@ from gtfs_zone_timetable_sites.timetable import (
 )
 
 BASE_URL = "https://sites.gtfs.zone"
-LIST_URL = "https://list.gtfs.zone"
 ROOT_TITLE = "sites.gtfs.zone"
 # The footer's build date, as base.html marks it up.
 GENERATED = re.compile(rb'<time class="generated"[^>]*>.*?</time>')
@@ -526,7 +526,7 @@ def build_site(
             valid=date_range(start, end, locale, "valid"),
             feed_info_valid=feed_info_range(feed, locale),
             unknown_languages=languages.unknown,
-            feed_url=f"{LIST_URL}/#feed={site.feed}" if site.feed else "",
+            feed=feed_view(site.catalog, locale, built=True) if site.catalog else None,
             fares_page=fares_page,
             jsonld=[
                 breadcrumbs(common["trail"]),
@@ -862,6 +862,75 @@ def unbuilt_summary(site: Site) -> dict:
     }
 
 
+# A feed down this long keeps its page but out of the index.
+NOINDEX_DOWN_DAYS = 90
+
+
+def feed_indexable(site: Site, today: date) -> bool:
+    """Indexed, named, and not long down: thin or dead pages stay out."""
+    feed = site.catalog
+    if not site.index or feed is None or not feed.name.strip():
+        return False
+    since = feed.since and date.fromisoformat(feed.since[:10])
+    return not (
+        feed.state == "down" and since and (today - since).days > NOINDEX_DOWN_DAYS
+    )
+
+
+def build_feed_page(
+    site: Site, today: date | None = None, listed: bool = False
+) -> dict[str, bytes]:
+    """The files of a site with no timetables: its catalog feed's page and
+    summary, which the root lists only when `listed` (a site that has not
+    built yet, not a feed the catalog filter skips). No I/O."""
+    if site.catalog is None:
+        raise ValueError(f"{site.slug} has no catalog feed")
+    today = today or date.today()
+    feed = site.catalog
+    # feeds.json has no feed languages, so English unless the site pins one.
+    locale = site.locale or FALLBACK
+    view = feed_view(feed, locale)
+    title = with_locality(tidy(feed.name) or site.slug, site.locality)
+    place = place_line(feed)
+    base_url = f"{BASE_URL}/{site.slug}/"
+    site_place = f"{title}, {place}" if place else title
+    description = t(
+        "en",
+        "feed.description",
+        name=site_place,
+        kinds=view.kinds,
+        state=view.state_text,
+    )
+    indexed = feed_indexable(site, today)
+    trail = [(ROOT_TITLE, f"{BASE_URL}/"), (title, base_url)]
+    page = render(
+        "feed.html",
+        locale=locale,
+        site_title=title,
+        site_place=site_place,
+        place=place,
+        base_url=base_url,
+        generated=today,
+        source=None,
+        feed_only=True,
+        feed=view,
+        jsonld=[breadcrumbs(trail), dataset(feed, base_url, description)],
+        root="",
+        noindex=not indexed,
+    )
+    return {
+        "index.html": page,
+        "site.json": summary_json(
+            **unbuilt_summary(site),
+            feed_only=not listed,
+            generated=today.isoformat(),
+            noindex=[] if indexed else ["index.html"],
+        ),
+        "style.css": asset("style.css"),
+        "logo.svg": asset("logo.svg"),
+    }
+
+
 SitemapUrl = tuple[str, str, list[tuple[str, str]]]
 
 
@@ -1071,6 +1140,9 @@ def site_row(summary: dict, outcome: dict, today: date, locale: Locale = "en") -
             )
             if status == "unavailable"
             else "",
+            # A site that never built has a page once its feed page is
+            # published.
+            "linked": status != "unavailable" or "generated" in summary,
         }
     )
 
@@ -1198,7 +1270,8 @@ def build_root(
     contents (a site never built has only its slug, title, source and place),
     `pages` each site's page paths with the date they last changed and
     `outcomes` each site's last download and build outcome and detail. A
-    summary's `noindex` paths stay out of the sitemap. No I/O."""
+    summary's `noindex` paths stay out of the sitemap, and a feed page's
+    summary (`feed_only`) is not listed. No I/O."""
     outcomes = outcomes or {}
     by_locale: dict[str, list[dict]] = {}
     for locale in ROOT_LOCALES:
@@ -1208,6 +1281,7 @@ def build_root(
                     site_row(s, outcomes.get(s["slug"], {}), today, locale), locale
                 )
                 for s in summaries
+                if not s.get("feed_only")
             ),
             key=lambda row: (STATUS_ORDER[row["status"]], row["title"].casefold()),
         )
