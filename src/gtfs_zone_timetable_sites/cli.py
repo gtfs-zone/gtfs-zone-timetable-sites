@@ -20,6 +20,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import BinaryIO
 
+from gtfs_zone_feed_fetch.localities import Localities
 from gtfs_zone_feed_fetch.pool import run_all
 
 from gtfs_zone_timetable_sites.build import (
@@ -180,10 +181,19 @@ def write_root(out: Path) -> None:
     write_files(build_root(summaries, date.today(), pages), out)
 
 
-def build_one(site: Site, zip_path: Path | None, cache: Path | None, out: Path) -> int:
-    """Build one site into a cleared `out/<slug>`. Returns its file count."""
+def build_one(
+    site: Site,
+    zip_path: Path | None,
+    cache: Path | None,
+    out: Path,
+    localities: Path | None = None,
+) -> int:
+    """Build one site into a cleared `out/<slug>`, with municipality tags from
+    the `localities` file when given. Returns its file count."""
     with feed_zip(site, zip_path, cache) as source:
-        files = build_site(source, site)
+        files = build_site(
+            source, site, localities=Localities(localities) if localities else None
+        )
     root = out / site.slug
     clear(root)
     write_files(files, root)
@@ -226,7 +236,11 @@ def build(args: argparse.Namespace) -> None:
     if pages:
         log.info("wrote %d feed pages", len(pages))
     one = functools.partial(
-        build_one, zip_path=args.zip, cache=args.cache, out=args.out
+        build_one,
+        zip_path=args.zip,
+        cache=args.cache,
+        out=args.out,
+        localities=args.localities,
     )
     failed = []
     for site, result in run_all(one, sites, args.workers):
@@ -379,6 +393,11 @@ def parser() -> argparse.ArgumentParser:
         "--cache", type=Path, help="dir to keep downloaded feeds in and reuse"
     )
     build_cmd.add_argument("--out", type=Path, default=Path("dist"))
+    build_cmd.add_argument(
+        "--localities",
+        type=Path,
+        help="locality file (feed-fetch scripts/localities.py) for municipality tags",
+    )
     build_cmd.add_argument("--config", type=Path, default=Path("sites.yaml"))
     build_cmd.add_argument(
         "--country", action="append", help="only sites in this country code"

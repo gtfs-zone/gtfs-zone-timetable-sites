@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import obstore
 
 if TYPE_CHECKING:
+    from gtfs_zone_feed_fetch.localities import Localities
     from obstore.store import ObjectStore
 
 # Pages refresh daily, so browsers and proxies may keep them only briefly.
@@ -43,6 +44,23 @@ class BucketSettings:
             secret_key=os.environ["S3_SECRET_KEY"],
             region=os.environ.get("S3_REGION", "garage"),
         )
+
+
+def localities_from_env(settings: BucketSettings) -> Localities | None:
+    """The locality file at `TIMETABLE_SITES_LOCALITIES` (`<bucket>/<key>`),
+    read over S3 with the bucket's endpoint and keys, or None when unset."""
+    path = os.environ.get("TIMETABLE_SITES_LOCALITIES", "")
+    if not path:
+        return None
+    from gtfs_zone_feed_fetch.localities import Localities
+
+    return Localities.s3(
+        path,
+        settings.endpoint,
+        settings.access_key,
+        settings.secret_key,
+        settings.region,
+    )
 
 
 def s3_store(settings: BucketSettings) -> ObjectStore:

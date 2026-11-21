@@ -2,13 +2,15 @@
 
 from collections import Counter
 
+from gtfs_zone_feed_fetch.localities import Localities
 from gtfs_zone_feed_fetch.places import Located, station_weights
 from gtfs_zone_feed_fetch.places import locate as locate_weights
 
 from gtfs_zone_timetable_sites.gtfs.reader import Feed
 
 
-def locate(feed: Feed) -> list[Located]:
-    """Every located station with stop times, reverse-geocoded."""
+def locate(feed: Feed, localities: Localities | None = None) -> list[Located]:
+    """Every located station with stop times, reverse-geocoded, with the
+    localities it is in when `localities` is given."""
     counts = Counter(st.stop_id for times in feed.stop_times.values() for st in times)
-    return locate_weights(station_weights(feed.stops, counts))
+    return locate_weights(station_weights(feed.stops, counts), localities)

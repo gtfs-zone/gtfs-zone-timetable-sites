@@ -53,6 +53,7 @@ from gtfs_zone_timetable_sites.gtfs.reader import MissingFiles
 
 if TYPE_CHECKING:
     import httpx
+    from gtfs_zone_feed_fetch.localities import Localities
 
 log = logging.getLogger(__name__)
 
@@ -224,10 +225,16 @@ def site_entry(summary: dict, built: str, pages: dict[str, dict]) -> dict:
 
 
 def build_and_publish(
-    store: Store, http: "httpx.Client", site: Site, today: date, version: str
+    store: Store,
+    http: "httpx.Client",
+    site: Site,
+    today: date,
+    version: str,
+    localities: "Localities | None" = None,
 ) -> dict:
-    """Download, build and publish one site. Returns its counts, the pages
-    changed today and its shard entry."""
+    """Download, build and publish one site, with municipality tags from
+    `localities` when given. Returns its counts, the pages changed today and
+    its shard entry."""
     previous = read_manifest(store, site.slug)
     # Builds depend on the date and the code, so only a second run on the same
     # day with the same version may skip.
@@ -247,7 +254,7 @@ def build_and_publish(
             "content": read_json(store, f"{site.slug}/content.json") or {},
         }
     with body:
-        files = checked_build(body, site, today)
+        files = checked_build(body, site, today, localities)
     counts, changed, pages = publish_site(
         store, site.slug, files, source, today, version
     )
@@ -275,7 +282,9 @@ def publish_feed_page(
     }
 
 
-def checked_build(body: BinaryIO, site: Site, today: date) -> dict[str, bytes]:
+def checked_build(
+    body: BinaryIO, site: Site, today: date, localities: "Localities | None" = None
+) -> dict[str, bytes]:
     """build_site over a seekable zip file, with a body that is not a usable
     GTFS zip raised as a FeedProblem."""
     if not zipfile.is_zipfile(body):
@@ -283,7 +292,7 @@ def checked_build(body: BinaryIO, site: Site, today: date) -> dict[str, bytes]:
         raise FeedProblem("not_zip", sniff(body.read(512)))
     body.seek(0)
     try:
-        return build_site(body, site, today)
+        return build_site(body, site, today, localities)
     except zipfile.BadZipFile as exc:
         raise FeedProblem("not_zip", str(exc)) from None
     except MissingFiles as exc:

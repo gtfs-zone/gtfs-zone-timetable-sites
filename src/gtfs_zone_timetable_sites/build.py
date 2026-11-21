@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 from anyascii import anyascii
 from babel import Locale as BabelLocale
 from babel.core import UnknownLocaleError
+from gtfs_zone_feed_fetch.localities import Localities
 from gtfs_zone_feed_fetch.places import feed_place, place_label
 from markupsafe import Markup
 
@@ -366,11 +367,16 @@ def feed_fares(
 
 
 def build_site(
-    source: ZipSource, site: Site, today: date | None = None
+    source: ZipSource,
+    site: Site,
+    today: date | None = None,
+    localities: Localities | None = None,
 ) -> dict[str, bytes]:
     """Map of path (relative to the site root) to file contents: a page set per
     language (see `page_sets`) plus the files they share. `source` is the zip's
-    bytes or a seekable binary file. No I/O beyond reading `source`."""
+    bytes or a seekable binary file; `localities`, when given, adds municipality
+    tags to the content report. No I/O beyond reading `source` and
+    `localities`."""
     with open_zip(source) as archive:
         bad = archive.testzip()
     if bad is not None:
@@ -388,7 +394,7 @@ def build_site(
     reserved = {"fares", *(s.prefix.rstrip("/") for s in sets if s.prefix)}
     slugs = route_slugs([rt.route for rt in timetables], labels, reserved)
     site_url = f"{BASE_URL}/{site.slug}/"
-    stations = locate(feed)
+    stations = locate(feed, localities)
     place = feed_place(stations)
     all_tables = [table for rt in timetables for table in rt.tables]
     start, end = service_range(feed)

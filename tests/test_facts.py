@@ -2,7 +2,11 @@ import hashlib
 import json
 from datetime import date
 
+import pyarrow as pa
+import pyarrow.parquet as pq
+import shapely
 from conftest import fixture_files, fixture_zip, make_zip
+from gtfs_zone_feed_fetch.localities import Localities
 
 from gtfs_zone_timetable_sites.build import build_site
 from gtfs_zone_timetable_sites.config import RouteFilter, Site
@@ -74,6 +78,47 @@ def test_build_site_writes_content_json():
     site = Site(slug="t", url="u", routes=RouteFilter(route_types=(3,)))
     files = build_site(fixture_zip("branching"), site, date(2026, 10, 5))
     assert json.loads(files["content.json"])["filtered"] is True
+
+
+def test_build_site_tags_municipalities_from_localities(tmp_path):
+    # One locality holds Alpha to Charlie, another Delta to Golf.
+    shapes = [
+        shapely.box(-73.25, 41.9, -72.9, 42.25),
+        shapely.box(-73.7, 42.25, -73.25, 42.7),
+    ]
+    bounds = shapely.bounds(shapes)
+    pq.write_table(
+        pa.table(
+            {
+                "name": ["荒川区", "Pittsfield"],
+                "name_en": ["Arakawa", None],
+                "country": ["JP", "US"],
+                "xmin": bounds[:, 0],
+                "ymin": bounds[:, 1],
+                "xmax": bounds[:, 2],
+                "ymax": bounds[:, 3],
+                "geometry": shapely.to_wkb(shapes),
+            }
+        ),
+        tmp_path / "l.parquet",
+    )
+    site = Site(slug="t", url="u")
+    files = build_site(
+        fixture_zip("branching"),
+        site,
+        date(2026, 10, 5),
+        Localities(tmp_path / "l.parquet"),
+    )
+    tags = json.loads(files["content.json"])["placeTags"]
+    assert sorted(tags["municipalities"]) == ["Arakawa", "Pittsfield", "荒川区"]
+    assert (
+        "municipalities"
+        not in json.loads(
+            build_site(fixture_zip("branching"), site, date(2026, 10, 5))[
+                "content.json"
+            ]
+        )["placeTags"]
+    )
 
 
 def test_sniff():
