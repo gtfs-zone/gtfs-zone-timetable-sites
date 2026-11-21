@@ -30,7 +30,10 @@
 }
 /* Caps the stop column; max-width on a table cell itself is ignored */
 .timetable th[scope=row] .stop { display: block; max-width: calc(40vw - var(--gutter, 40px)); }
-.timetable th[scope=row] small { display: block; opacity: .7; }
+/* Code, platform, zone and notes follow the name, each kept whole on a line
+   unless longer than the column; the reading gets its own line */
+.timetable th[scope=row] small { display: inline-block; max-width: 100%; opacity: .7; }
+.timetable th[scope=row] small.reading { display: block; }
 .timetable thead th { font-size: .85rem; font-weight: 600; text-align: right; }
 .timetable thead tr.to th { font-weight: 400; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); white-space: normal; }
 .timetable thead tr.to th[colspan] { text-align: left; }
@@ -39,7 +42,7 @@
 /* A headsign spanning shaded and unshaded columns covers the column shading */
 .timetable tr.to th:not(.alt) { background: var(--color-base-100); }
 .timetable .pm { font-weight: 700; }
-.timetable small.code { font-size: .75rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); white-space: nowrap; }
+.timetable small.code { font-size: .75rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
 .timetable tr.approx > td { color: color-mix(in oklab, var(--color-base-content) 60%, transparent); }
 /* Raised by vertical-align, since preflight's relative positioning would paint it over the sticky stop column */
 .timetable sup { position: static; vertical-align: .5em; font-size: .7em; line-height: 0; }
@@ -52,11 +55,13 @@
 .fare-chart { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; font-size: .85rem; }
 .fare-chart th, .fare-chart td { padding: .2rem .4rem; border-bottom: 1px solid var(--color-base-300); border-right: 1px solid var(--color-base-300); white-space: nowrap; }
 .fare-chart td { text-align: right; }
-.fare-chart th[scope=row] { position: sticky; left: 0; z-index: 1; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; background: var(--color-base-100); font-weight: 400; text-align: left; }
+/* Place names wrap past 12rem rather than being cut: that fits 13 CJK
+   characters (Miekotsu Iga's longest stop) and MBTA's "Commuter Rail Zone 1A" */
+.fare-chart th[scope=row] { position: sticky; left: 0; z-index: 1; max-width: min(12rem, 40vw); white-space: normal; background: var(--color-base-100); font-weight: 400; text-align: left; }
 .fare-chart thead > tr > * { position: sticky; top: 0; z-index: 1; background: var(--color-base-100); vertical-align: bottom; }
 .fare-chart thead td { left: 0; z-index: 2; }
 .fare-chart thead th { font-weight: 400; }
-.fare-chart thead th span { display: block; max-height: 9rem; overflow: hidden; text-overflow: ellipsis; writing-mode: vertical-rl; }
+.fare-chart thead th span { display: block; max-height: 12rem; white-space: normal; writing-mode: vertical-rl; }
 .fare-chart tbody tr:hover > * { background: var(--color-base-200); }
 
 /* Route-colored rail down the stop column: lanes per branch, a dot per stop, filled where trips start or end */
@@ -117,19 +122,20 @@
 .timetable thead tr.amenities th { padding-block: .2rem; }
 
 /* Maps: MapLibre, drawn by map.js */
-.route-maps { display: grid; gap: .75rem; }
-.route-map { height: 18rem; border-radius: var(--radius-box); overflow: hidden; }
-/* Insets stacked to the right share its height; the main map stretches to the column when that is taller */
+/* The block's height is set here, so nothing map.js adds moves the page:
+   insets stack in a column to the right within that height, and the live
+   line sits over the map */
+.route-maps { display: grid; gap: .75rem; height: 18rem; }
+.route-main { position: relative; min-width: 0; min-height: 0; }
+.route-map { height: 100%; border-radius: var(--radius-box); overflow: hidden; }
 .route-maps.has-insets { grid-template-columns: 2fr 1fr; }
-.route-maps.has-insets .route-map { height: auto; min-height: 18rem; }
-.route-maps.has-insets .map-live { grid-column: 1 / -1; }
-.route-insets { display: flex; flex-direction: column; gap: .5rem; min-height: 0; }
+.route-insets { display: flex; flex-direction: column; gap: .5rem; min-width: 0; min-height: 0; }
 .route-maps:not(.has-insets) .route-insets { display: none; }
 /* Beats daisyUI .card figure, whose flex centering shrinks the map to 0 width */
 .route-insets > .route-inset { display: flex; flex: 1; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: .25rem; min-width: 0; min-height: 0; margin: 0; }
 .route-inset figcaption { font-size: .8rem; font-weight: 600; line-height: 1.2; min-height: 1.2em; }
 .route-inset-letter { font-weight: 700; margin-inline-end: .4rem; }
-.route-inset-map { flex: 1; min-height: 7rem; border-radius: var(--radius-field); overflow: hidden; }
+.route-inset-map { flex: 1; min-height: 0; border-radius: var(--radius-field); overflow: hidden; }
 .system-map { height: 30rem; border-radius: var(--radius-box); overflow: hidden; }
 /* Country and region choropleths on the root pages */
 .area-map { aspect-ratio: 2 / 1; max-height: 28rem; width: 100%; border-radius: var(--radius-box); overflow: hidden; }
@@ -143,7 +149,14 @@
   box-shadow: 0 1px 3px rgb(0 0 0 / .15);
   font-size: .875rem; font-weight: 600; line-height: 1.3; pointer-events: none;
 }
-.map-live { font-size: .85rem; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
+/* Over the map's bottom left, clear of the attribution button at the right */
+.map-live {
+  position: absolute; bottom: .5rem; left: .5rem; max-width: calc(100% - 3.5rem);
+  padding: .15rem .5rem; border-radius: var(--radius-field);
+  background: color-mix(in oklab, var(--color-base-100) 92%, transparent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / .15);
+  font-size: .75rem; line-height: 1.3; pointer-events: none;
+}
 .map-popup-routes { display: flex; flex-wrap: wrap; gap: .25rem; margin: 0; padding: 0; list-style: none; }
 .map-popup-stops { display: grid; gap: .5rem; }
 .map-popup-vehicle { display: grid; gap: .25rem; }
@@ -177,23 +190,24 @@
 [data-theme="dark"] .maplibregl-ctrl-attrib.maplibregl-compact { background-color: var(--color-base-200); color: var(--color-base-content); }
 [data-theme="dark"] .maplibregl-ctrl-attrib a { color: var(--color-base-content); }
 @media (max-width: 40rem) {
-  .route-map { height: 14rem; }
+  .route-maps { height: 14rem; }
   .system-map { height: 24rem; }
-  .route-maps.has-insets { grid-template-columns: 1fr; }
-  .route-maps.has-insets .route-map { height: 14rem; min-height: 0; }
-  .route-insets { flex-direction: row; }
-  .route-inset-map { flex: none; height: 10rem; min-height: 0; }
 }
 
 /* Route accordion on the site's index */
 .route-item > summary { list-style: none; }
 .route-item > summary::-webkit-details-marker { display: none; }
+/* The chevron sits outside the flex flow at the right edge, vertically centered.
+   Its ink (two borders of the rotated box) sits off the box center by
+   (size - stroke) / (2 * sqrt 2), shifted back so the ink is centered */
+.route-item > summary { position: relative; padding-right: 2.5rem; }
 .route-item > summary::after {
-  content: ""; width: .5rem; height: .5rem; margin-left: auto; flex-shrink: 0;
+  content: ""; position: absolute; top: 50%; right: 1rem; width: .5rem; height: .5rem;
   border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
-  transform: rotate(45deg); opacity: .5; transition: transform .15s;
+  --ink: calc((.5rem - 2px) * .35355);
+  transform: translateY(-50%) translateY(calc(-1 * var(--ink))) rotate(45deg); opacity: .5; transition: transform .15s;
 }
-.route-item[open] > summary::after { transform: rotate(225deg); }
+.route-item[open] > summary::after { transform: translateY(-50%) translateY(var(--ink)) rotate(225deg); }
 .route-item[open] > summary { background: var(--color-base-200); }
 
 @media print {

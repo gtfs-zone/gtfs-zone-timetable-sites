@@ -11,7 +11,6 @@
 {%- if row.paths %}<svg viewBox="0 0 {{ gutter }} 100" preserveAspectRatio="none">
 {%- for d in row.paths %}<path class="case" d="{{ d }}"/><path d="{{ d }}"/>{% endfor %}</svg>{% endif %}<span class="dot{% if row.solid %} solid{% endif %}" style="left:{{ row.dot_x }}px">{% if row.num %}{{ row.num }}{% endif %}</span></span>
 {%- if row.google %}<a class="link link-hover" href="{{ row.google }}" target="_blank" rel="noopener">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}
-{%- if row.reading %} <small class="text-base-content/70" lang="{{ row.reading_lang }}">{{ row.reading }}</small>{% endif %}
 {%- if row.code %} <small class="code">{{ row.code }}</small>{% endif %}
 {%- if row.platform %} <small class="code">{{ t("route.platform", platform=row.platform) }}</small>{% endif %}
 {%- if row.fare_zone %} <small class="code fare-zone">{{ row.fare_zone }}</small>{% endif %}
@@ -129,7 +128,8 @@
 {% for row in table.rows %}
 <tr{% if row.approx %} class="approx"{% endif %}><th scope="row"{% if row.num %} data-num="{{ row.num }}"{% endif %}><span class="stop">{{ stop_name(row, table.gutter) }}
 {%- if row.wheelchair %} {{ icon("wheelchair", t("amenity.wheelchair")) }}{% endif %}
-{%- if row.zone %} <small>{{ t("route.zone_time", zone=row.zone) }}</small>{% endif %}</span></th>
+{%- if row.zone %} <small>{{ t("route.zone_time", zone=row.zone) }}</small>{% endif %}
+{%- if row.reading %} <small class="reading text-base-content/70" lang="{{ row.reading_lang }}">{{ row.reading }}</small>{% endif %}</span></th>
 {% for cell in row.cells %}
 {{ time_cell(table.heads[loop.index0], cell) }}
 {% endfor %}

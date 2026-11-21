@@ -84,10 +84,9 @@ function contrast(a, b) {
   const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p);
   return (x + 0.05) / (y + 0.05);
 }
-// A route color, or ink when it would vanish into the basemap
+// A route color, or ink when the route has none
 function lineColor(color) {
-  if (!color) return ink();
-  return contrast(color, paper()) < 1.6 ? ink() : color;
+  return color || ink();
 }
 // Stop number color in a white dot, as pages.dot_text picks it
 function dotText(color) {
@@ -392,41 +391,76 @@ function vehiclePlace(map, card, config, v) {
   return { head, stop: row >= 0 && rows[row]?.cells[0] ? rowStop(rows[row].cells[0]) : null, link };
 }
 
-// Stops whose numbered marks did not fit on the map as placed now
-function hiddenStops(map, data) {
-  const shown = new Set(map.queryRenderedFeatures({ layers: ["stop-marks"] }).map((f) => f.properties.num));
+// MapLibre's world size in pixels at zoom 0
+const WORLD = 512;
+const mercator = ([lon, lat]) => {
+  const sin = Math.sin((lat * Math.PI) / 180);
+  return [((lon + 180) / 360) * WORLD, (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * WORLD];
+};
+
+// The view a w x h map gets when fitted to coords as newMap fits it (padding
+// 30, max zoom 15), computed before the map exists: its zoom, and project and
+// unproject between [lon, lat] and its pixels
+function fitView(coords, w, h) {
+  const pts = coords.map(mercator);
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const zoom = Math.min(15, Math.log2(Math.min((w - 60) / (x1 - x0), (h - 60) / (y1 - y0))));
+  const k = 2 ** zoom;
+  const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2];
+  const project = (c) => {
+    const [x, y] = mercator(c);
+    return { x: (x - cx) * k + w / 2, y: (y - cy) * k + h / 2 };
+  };
+  const unproject = ([px, py]) => {
+    const x = (px - w / 2) / k + cx;
+    const y = (py - h / 2) / k + cy;
+    return [(x / WORLD) * 360 - 180, (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / WORLD))) * 180) / Math.PI];
+  };
+  return { zoom, project, unproject };
+}
+
+// Marks placed by rank, each MARK_GAP from those placed before it, as the
+// stop-marks layer places them: points with { num, rank, x, y } in, the
+// placed ones out
+function placeMarks(points) {
+  const placed = [];
+  for (const s of [...points].sort((a, b) => a.rank - b.rank)) {
+    if (placed.every((p) => Math.hypot(p.x - s.x, p.y - s.y) >= MARK_GAP)) placed.push(s);
+  }
+  return placed;
+}
+
+// Stops whose numbered marks do not fit on a view
+function hiddenStops(view, data) {
+  const shown = new Set(placeMarks(data.stops.map(([lon, lat, num, , , rank]) => ({ num, rank, ...view.project([lon, lat]) }))).map((s) => s.num));
   return data.stops.filter((s) => !shown.has(s[2]));
 }
 
-// Insets of w x h pixels at INSET_ZOOM past the main map, each placed where it
-// reveals the most hidden stops; inside one, marks are placed by rank and
+// Insets of w x h pixels at INSET_ZOOM past the main view, each placed where
+// it reveals the most hidden stops; inside one, marks are placed by rank and
 // MARK_GAP as on the map. Each is its center and the revealed stops' coords.
-function pickInsets(map, data, hidden, w, h) {
+function pickInsets(view, data, hidden, w, h) {
   const k = 2 ** INSET_ZOOM;
   const pad = SIZE.radius + SIZE.stroke;
-  const stops = data.stops
-    .map(([lon, lat, num, , , rank]) => {
-      const p = map.project([lon, lat]);
-      return { num, rank, coords: [lon, lat], x: p.x * k, y: p.y * k };
-    })
-    .sort((a, b) => a.rank - b.rank);
+  const stops = data.stops.map(([lon, lat, num, , , rank]) => {
+    const p = view.project([lon, lat]);
+    return { num, rank, coords: [lon, lat], x: p.x * k, y: p.y * k };
+  });
   let left = new Set(hidden.map((s) => s[2]));
   const picks = [];
   while (picks.length < MAX_INSETS) {
     let best = [];
     for (const c of stops) {
       if (!left.has(c.num)) continue;
-      const placed = [];
-      for (const s of stops) {
-        if (Math.abs(s.x - c.x) > w / 2 - pad || Math.abs(s.y - c.y) > h / 2 - pad) continue;
-        if (placed.every((p) => Math.hypot(p.x - s.x, p.y - s.y) >= MARK_GAP)) placed.push(s);
-      }
-      const revealed = placed.filter((s) => left.has(s.num));
+      const inside = stops.filter((s) => Math.abs(s.x - c.x) <= w / 2 - pad && Math.abs(s.y - c.y) <= h / 2 - pad);
+      const revealed = placeMarks(inside).filter((s) => left.has(s.num));
       if (revealed.length > best.length) best = revealed;
     }
     if (best.length < MIN_REVEAL) break;
     left = new Set([...left].filter((num) => !best.some((s) => s.num === num)));
-    const center = map.unproject([
+    const center = view.unproject([
       (Math.min(...best.map((s) => s.x)) + Math.max(...best.map((s) => s.x))) / 2 / k,
       (Math.min(...best.map((s) => s.y)) + Math.max(...best.map((s) => s.y))) / 2 / k,
     ]);
@@ -519,8 +553,9 @@ function insetFigures(container, n) {
 }
 
 // An inset map per pick in its figure; onView gets each inset's index and
-// view ring whenever it settles
-function buildInsets(L, figs, card, data, picks, zoom, onView) {
+// view ring whenever it settles, and addVehicles(map) draws live vehicles on
+// it, returning their drawer or null
+function buildInsets(L, figs, card, data, picks, zoom, onView, addVehicles) {
   picks.forEach((pick, i) => {
     const { cap, name, div } = figs[i];
     const tag = document.createElement("span");
@@ -528,13 +563,16 @@ function buildInsets(L, figs, card, data, picks, zoom, onView) {
     tag.textContent = letter(i);
     cap.prepend(tag);
     const map = newMap(L, div, null, { center: pick.center, zoom: Math.min(17, zoom + INSET_ZOOM), attributionControl: false });
+    let vehicles;
     const draw = () => {
       quietBasemap(map);
       addRouteLayers(map, data);
+      vehicles?.draw();
     };
     map.once("load", () => {
       draw();
       stopHandlers(L, map, card);
+      vehicles = addVehicles(map);
       map.once("idle", () => (name.textContent = placeName(map, pick.coords) || " "));
       onView(i, viewRing(map));
     });
@@ -543,15 +581,44 @@ function buildInsets(L, figs, card, data, picks, zoom, onView) {
   });
 }
 
+// Insets where stops are hidden on the main map, laid out before any map is
+// made, so the main map never resizes: the insets column narrows it, so
+// hidden stops are found again with the column in place. Returns the picks
+// with their figures and the main map's zoom
+function layoutInsets(holder, data) {
+  const main = holder.querySelector(".route-map");
+  const coords = allCoords(data);
+  if (hiddenStops(fitView(coords, main.clientWidth, main.clientHeight), data).length < MIN_REVEAL) return { picks: [], figs: [] };
+  const figs = insetFigures(holder.querySelector(".route-insets"), MAX_INSETS);
+  holder.classList.add("has-insets");
+  const view = fitView(coords, main.clientWidth, main.clientHeight);
+  const { clientWidth: w, clientHeight: h } = figs[0].div;
+  const picks = pickInsets(view, data, hiddenStops(view, data), w, h);
+  for (const f of figs.slice(picks.length)) f.fig.remove();
+  if (!picks.length) holder.classList.remove("has-insets");
+  return { picks, figs, zoom: view.zoom };
+}
+
 async function initRouteMap(card) {
   const holder = card.querySelector(".route-maps");
   const data = JSON.parse(card.querySelector(".route-data").textContent);
   if (!holder || !data.lines.length) return;
   const L = await maplibre();
-  const bounds = boundsOf(L, allCoords(data));
-  const fit = () => map.fitBounds(bounds, { padding: 30, maxZoom: 15, duration: 0 });
-  const map = newMap(L, holder.querySelector(".route-map"), bounds);
+  const { picks, figs, zoom } = layoutInsets(holder, data);
+  const map = newMap(L, holder.querySelector(".route-map"), boundsOf(L, allCoords(data)));
   map.addControl(new L.NavigationControl({ showCompass: false }), "top-right");
+  // The route's one vehicle poll, drawn by a drawer per map
+  let addVehicles = () => null;
+  if (data.rt) {
+    const routes = new Set(data.rt.routes);
+    const trips = new Set(data.rt.trips);
+    const route = { color: data.color };
+    let config = null;
+    liveConfig(card).then((c) => (config = c), () => {});
+    const poller = vehiclePoller(holder, data.rt.url);
+    const routeOf = (v) => (routes.has(v.routeId) || trips.has(v.tripId) ? route : null);
+    addVehicles = (m, status = null) => poller.add(vehicleDrawer(L, m, routeOf, (v) => vehiclePlace(m, card, config, v), status));
+  }
   let vehicles;
   const rings = [];
   const draw = () => {
@@ -560,50 +627,25 @@ async function initRouteMap(card) {
     if (rings.length) drawBoxes(map, rings);
     vehicles?.draw();
   };
-  // Insets where stops are hidden on the main map; the insets column narrows
-  // it, so hidden stops are found again with the column in place
-  const addInsets = () => {
-    if (hiddenStops(map, data).length < MIN_REVEAL) return;
-    const container = holder.querySelector(".route-insets");
-    const figs = insetFigures(container, MAX_INSETS);
-    holder.classList.add("has-insets");
-    map.resize();
-    fit();
-    map.once("idle", () => {
-      const { clientWidth: w, clientHeight: h } = figs[0].div;
-      const picks = pickInsets(map, data, hiddenStops(map, data), w, h);
-      const zoom = map.getZoom();
-      for (const f of figs.slice(picks.length)) f.fig.remove();
-      if (!picks.length) holder.classList.remove("has-insets");
-      map.resize();
-      fit();
-      buildInsets(L, figs, card, data, picks, zoom, (i, ring) => {
-        rings[i] = ring;
-        drawBoxes(map, rings);
-      });
-    });
-  };
   map.once("load", () => {
     draw();
     stopHandlers(L, map, card);
-    map.once("idle", addInsets);
-    if (data.rt) {
-      const routes = new Set(data.rt.routes);
-      const trips = new Set(data.rt.trips);
-      const route = { color: data.color };
-      let config = null;
-      liveConfig(card).then((c) => (config = c), () => {});
-      vehicles = live(
-        L,
-        map,
-        holder,
-        data.rt.url,
-        (v) => (routes.has(v.routeId) || trips.has(v.tripId) ? route : null),
-        (v) => vehiclePlace(map, card, config, v),
-      );
-    }
+    vehicles = addVehicles(map, holder.querySelector(".map-live"));
   });
   onTheme(map, draw);
+  buildInsets(
+    L,
+    figs,
+    card,
+    data,
+    picks,
+    zoom,
+    (i, ring) => {
+      rings[i] = ring;
+      drawBoxes(map, rings);
+    },
+    addVehicles,
+  );
 }
 
 /* System map */
@@ -712,45 +754,38 @@ async function initSystemMap(el) {
     if (data.rt) {
       const byId = new Map();
       data.routes.forEach((r, i) => r.ids.forEach((id) => byId.set(id, i)));
-      vehicles = live(
-        L,
-        map,
-        el,
-        data.rt,
-        (v) => {
-          const i = byId.get(v.routeId);
-          return i == null || !enabled.has(data.routes[i].mode) ? null : data.routes[i];
-        },
-        (v, route) => vehicleRoute(map, route),
+      vehicles = vehiclePoller(el, data.rt).add(
+        vehicleDrawer(
+          L,
+          map,
+          (v) => {
+            const i = byId.get(v.routeId);
+            return i == null || !enabled.has(data.routes[i].mode) ? null : data.routes[i];
+          },
+          (v, route) => vehicleRoute(map, route),
+          el.querySelector(".map-live"),
+        ),
       );
     }
   });
   onTheme(map, draw);
 
+  // Mode chips come with the page, so the map's place is set before it loads.
+  // Shown modes filled in the text color, hidden ones outlined, for contrast in both themes
   const chips = el.querySelector(".map-modes");
-  if (modes.length > 1 && chips) {
-    // Shown modes filled in the text color, hidden ones outlined, for contrast in both themes
-    const chipClass = (on) => `btn btn-sm ${on ? "border-base-content bg-base-content text-base-100" : "btn-outline"}`;
-    for (const mode of modes) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = chipClass(true);
-      button.setAttribute("aria-pressed", "true");
-      button.textContent = TEXT.modes?.[mode] ?? mode;
-      button.addEventListener("click", () => {
-        if (enabled.has(mode) && enabled.size > 1) enabled.delete(mode);
-        else enabled.add(mode);
-        for (const b of chips.children) {
-          const on = enabled.has(b.dataset.mode);
-          b.className = chipClass(on);
-          b.setAttribute("aria-pressed", String(on));
-        }
-        showModes();
-      });
-      button.dataset.mode = mode;
-      chips.append(button);
-    }
-    chips.hidden = false;
+  const chipClass = (on) => `btn btn-sm ${on ? "border-base-content bg-base-content text-base-100" : "btn-outline"}`;
+  for (const button of chips?.children ?? []) {
+    const mode = button.dataset.mode;
+    button.addEventListener("click", () => {
+      if (enabled.has(mode) && enabled.size > 1) enabled.delete(mode);
+      else enabled.add(mode);
+      for (const b of chips.children) {
+        const on = enabled.has(b.dataset.mode);
+        b.className = chipClass(on);
+        b.setAttribute("aria-pressed", String(on));
+      }
+      showModes();
+    });
   }
 
   const cap = el.querySelector(".map-cap");
@@ -880,50 +915,147 @@ function metres(a, b) {
 // Movement below this between polls gives no bearing
 const MIN_MOVE_M = 15;
 
-// Vehicle layers: a route-colored dot, or a route-colored arrow for vehicles
-// with a bearing, both with the same white border, wider when focused. Sizes
-// grow with zoom from a floor of about 8px, which stays visible zoomed out
-// over whole systems, to rt-viewer's size close in
-const VEHICLE_LAYERS = ["vehicles-halo", "vehicles-dot", "vehicles-arrow", "vehicles-hit"];
+// Vehicle layers after web-common's layer-manager.ts addVehicleLayers: a
+// route-colored dot, or a route-colored arrow for vehicles with a bearing,
+// both in a white ring then a dark ring, and a ring around the focused one
 const byZoom = (...stops) => ["interpolate", ["linear"], ["zoom"], ...stops];
 const FOCUSED = ["boolean", ["feature-state", "focused"], false];
-const VEHICLE_BORDER = "#ffffff";
-const VEHICLE_BORDER_WIDTH = byZoom(10, ["case", FOCUSED, 2, 1.25], 15, ["case", FOCUSED, 3, 2]);
+const VEHICLE_CASING = "#0f172a";
+// Ring widths in pixels: white (web-common's dot stroke, focused and not) and dark
+const VEHICLE_RINGS = { white: { focused: 3, normal: 1.5 }, dark: 1 };
+// Sizes as [zoom, value, ...] stops: web-common's (full) and the ones this
+// page drew before (floor; for the casing, the old dot's outer edge, white
+// border included). Where vehicles crowd, full sizes shrink by the crowd
+// scale, never below the floor
+const VEHICLE_SIZE = {
+  casing: { full: [8, 7, 14, 9.5, 18, 13], floor: [10, 4.25, 12, 5.05, 15, 7.5, 18, 12] },
+  arrow: { full: [8, 0.6, 14, 0.85, 18, 1.15], floor: [10, 0.3, 12, 0.36, 15, 0.6, 18, 1] },
+  halo: { full: [8, 11, 14, 17, 18, 23], floor: [10, 9, 12, 10, 15, 13, 18, 20] },
+  hit: { full: [8, 12, 14, 15, 18, 20], floor: [10, 10, 15, 14, 18, 20] },
+};
+const VEHICLE_ZOOMS = [...new Set(Object.values(VEHICLE_SIZE).flatMap(({ full, floor }) => [...full, ...floor].filter((_, i) => i % 2 === 0)))].sort((a, b) => a - b);
 
-// A north-pointing arrow as an SDF, so icon-color tints it; blurred so the
-// edge has a ramp for the distance field
+// The value of [zoom, value, ...] stops at zoom z, linear between stops
+function stopAt(stops, z) {
+  if (z <= stops[0]) return stops[1];
+  for (let i = 2; i < stops.length; i += 2) {
+    if (z <= stops[i]) return stops[i - 1] + ((stops[i + 1] - stops[i - 1]) * (z - stops[i - 2])) / (stops[i] - stops[i - 2]);
+  }
+  return stops[stops.length - 1];
+}
+
+// A vehicle size at zoom z: the full size times scale, never below the floor
+function sizeAt(kind, scale, z) {
+  const { full, floor } = VEHICLE_SIZE[kind];
+  return Math.max(stopAt(floor, z), stopAt(full, z) * scale);
+}
+
+// A vehicle size by zoom; out wraps each stop's value
+function vehicleSize(kind, scale, out = (v) => v) {
+  return byZoom(...VEHICLE_ZOOMS.flatMap((z) => [z, out(sizeAt(kind, scale, z))]));
+}
+
+// The widest arrow halo an icon-size can draw. MapLibre's SDF shader puts the
+// halo edge at alpha (6 - width / size) / 8, smoothed by 0.105 / size; past
+// this width the edge reaches alpha 0 and the halo fills the whole image square
+const arrowHalo = (size, width) => Math.max(0, Math.min(width, 6 * size - 0.84));
+
+// Every vehicle's rings by zoom, the same for dots and arrows: both shrink
+// together to fit the widest halo the arrow can draw at that zoom.
+// f({ white, dark }, z) gives each stop's value
+function vehicleRings(scale, f) {
+  const rings = (z, focused) => {
+    const white = VEHICLE_RINGS.white[focused ? "focused" : "normal"];
+    const total = white + VEHICLE_RINGS.dark;
+    const fit = arrowHalo(sizeAt("arrow", scale, z), total) / total;
+    return f({ white: white * fit, dark: VEHICLE_RINGS.dark * fit }, z);
+  };
+  return byZoom(...VEHICLE_ZOOMS.flatMap((z) => [z, ["case", FOCUSED, rings(z, true), rings(z, false)]]));
+}
+
+// Each sized vehicle property at scale, as [layer, paint or layout, property, value]
+function vehicleSizes(scale) {
+  return [
+    ["vehicles-halo", "paint", "circle-radius", vehicleSize("halo", scale, (v) => ["case", FOCUSED, v, 0])],
+    ["vehicles-casing", "paint", "circle-radius", vehicleSize("casing", scale)],
+    ["vehicles-dot", "paint", "circle-radius", vehicleRings(scale, (r, z) => sizeAt("casing", scale, z) - r.white - r.dark)],
+    ["vehicles-dot", "paint", "circle-stroke-width", vehicleRings(scale, (r) => r.white)],
+    ["vehicles-arrow-casing", "layout", "icon-size", vehicleSize("arrow", scale)],
+    ["vehicles-arrow-casing", "paint", "icon-halo-width", vehicleRings(scale, (r) => r.white + r.dark)],
+    ["vehicles-arrow", "layout", "icon-size", vehicleSize("arrow", scale)],
+    ["vehicles-arrow", "paint", "icon-halo-width", vehicleRings(scale, (r) => r.white)],
+    ["vehicles-hit", "paint", "circle-radius", vehicleSize("hit", scale)],
+  ];
+}
+
+// How far to shrink vehicles where they crowd: the mean spacing between the
+// vehicles in view over the full hit area's diameter d at this zoom, at most
+// 1. Spacing is sqrt(area / count) over the area they occupy, the cells of a
+// d-pixel grid holding a vehicle, so empty parts of the view do not count:
+// sqrt(cells * d^2 / count) / d
+function crowdScale(map, features) {
+  const d = 2 * stopAt(VEHICLE_SIZE.hit.full, map.getZoom());
+  const view = map.getBounds();
+  const cells = new Set();
+  let n = 0;
+  for (const f of features) {
+    if (!view.contains(f.geometry.coordinates)) continue;
+    const p = map.project(f.geometry.coordinates);
+    cells.add(`${Math.floor(p.x / d)},${Math.floor(p.y / d)}`);
+    n++;
+  }
+  return n ? Math.min(1, Math.sqrt(cells.size / n)) : 1;
+}
+
+// A north-pointing arrow as an SDF, so icon-color tints it: each pixel's
+// alpha is MapLibre's encoding of its signed distance d to the outline,
+// (6 - d) / 8 with d > 0 outside, so halos are even rings out to 6 pixels
 function addArrowImage(map) {
   if (map.hasImage("vehicle-arrow")) return;
   const size = 48;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const g = canvas.getContext("2d");
-  g.filter = "blur(2px)";
-  g.fillStyle = "#000";
-  g.beginPath();
-  g.moveTo(size / 2, 6);
-  g.lineTo(size - 10, size - 8);
-  g.lineTo(size / 2, size - 16);
-  g.lineTo(10, size - 8);
-  g.closePath();
-  g.fill();
-  map.addImage("vehicle-arrow", g.getImageData(0, 0, size, size), { sdf: true });
+  const shape = [[size / 2, 6], [size - 10, size - 8], [size / 2, size - 16], [10, size - 8]];
+  const edges = shape.map((a, i) => [a, shape[(i + 1) % shape.length]]);
+  const segmentDistance = (x, y, [[ax, ay], [bx, by]]) => {
+    const dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - ax - t * dx, y - ay - t * dy);
+  };
+  // Even-odd crossings of a ray to the right
+  const inside = (x, y) => edges.filter(([[ax, ay], [bx, by]]) => ay > y !== by > y && x < ax + ((y - ay) * (bx - ax)) / (by - ay)).length % 2 === 1;
+  const data = new Uint8ClampedArray(size * size * 4);
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      const x = px + 0.5, y = py + 0.5;
+      const d = Math.min(...edges.map((e) => segmentDistance(x, y, e))) * (inside(x, y) ? -1 : 1);
+      data[(py * size + px) * 4 + 3] = Math.round((255 * (6 - d)) / 8);
+    }
+  }
+  map.addImage("vehicle-arrow", { width: size, height: size, data }, { sdf: true });
 }
 
-function addVehicleLayers(map, data) {
+function addVehicleLayers(map, data, scale) {
   addArrowImage(map);
   map.addSource("vehicles", { type: "geojson", data, promoteId: "id" });
+  const size = Object.fromEntries(vehicleSizes(scale).map(([id, , prop, value]) => [`${id} ${prop}`, value]));
   map.addLayer({
     id: "vehicles-halo",
     type: "circle",
     source: "vehicles",
     paint: {
-      "circle-radius": byZoom(10, ["case", FOCUSED, 9, 0], 12, ["case", FOCUSED, 10, 0], 15, ["case", FOCUSED, 13, 0], 18, ["case", FOCUSED, 20, 0]),
+      "circle-radius": size["vehicles-halo circle-radius"],
       "circle-color": ink(),
       "circle-opacity": 0.25,
       "circle-stroke-color": ink(),
       "circle-stroke-width": ["case", FOCUSED, 2, 0],
     },
+  });
+  // Dark casing under the dot: the dot's white stroke leaves its outer ring
+  map.addLayer({
+    id: "vehicles-casing",
+    type: "circle",
+    source: "vehicles",
+    filter: ["==", ["get", "has_bearing"], false],
+    paint: { "circle-radius": size["vehicles-casing circle-radius"], "circle-color": VEHICLE_CASING },
   });
   map.addLayer({
     id: "vehicles-dot",
@@ -931,57 +1063,126 @@ function addVehicleLayers(map, data) {
     source: "vehicles",
     filter: ["==", ["get", "has_bearing"], false],
     paint: {
-      "circle-radius": byZoom(10, 3, 12, 3.5, 15, 5.5, 18, 10),
+      "circle-radius": size["vehicles-dot circle-radius"],
       "circle-color": ["get", "color"],
-      "circle-stroke-color": VEHICLE_BORDER,
-      "circle-stroke-width": VEHICLE_BORDER_WIDTH,
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": size["vehicles-dot circle-stroke-width"],
     },
   });
-  map.addLayer({
-    id: "vehicles-arrow",
-    type: "symbol",
-    source: "vehicles",
-    filter: ["==", ["get", "has_bearing"], true],
-    layout: {
-      "icon-image": "vehicle-arrow",
-      "icon-size": byZoom(10, 0.3, 12, 0.36, 15, 0.6, 18, 1),
-      "icon-rotate": ["get", "bearing"],
-      "icon-rotation-alignment": "map",
-      "icon-allow-overlap": true,
-      "icon-ignore-placement": true,
-    },
-    paint: {
-      "icon-color": ["get", "color"],
-      "icon-halo-color": VEHICLE_BORDER,
-      "icon-halo-width": VEHICLE_BORDER_WIDTH,
-    },
+  // The arrow as the dot: a dark arrow with a dark halo out to both rings,
+  // under the route-colored arrow with a white halo
+  const arrowLayout = (id) => ({
+    "icon-image": "vehicle-arrow",
+    "icon-size": size[`${id} icon-size`],
+    "icon-rotate": ["get", "bearing"],
+    "icon-rotation-alignment": "map",
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
   });
+  for (const [id, color, halo] of [
+    ["vehicles-arrow-casing", VEHICLE_CASING, VEHICLE_CASING],
+    ["vehicles-arrow", ["get", "color"], "#ffffff"],
+  ]) {
+    map.addLayer({
+      id,
+      type: "symbol",
+      source: "vehicles",
+      filter: ["==", ["get", "has_bearing"], true],
+      layout: arrowLayout(id),
+      paint: { "icon-color": color, "icon-halo-color": halo, "icon-halo-width": size[`${id} icon-halo-width`] },
+    });
+  }
   // The only layer clicks and hovers query, never smaller than a drawn vehicle
   map.addLayer({
     id: "vehicles-hit",
     type: "circle",
     source: "vehicles",
-    paint: { "circle-radius": byZoom(10, 10, 15, 14, 18, 20), "circle-color": "transparent", "circle-opacity": 0 },
+    paint: { "circle-radius": size["vehicles-hit circle-radius"], "circle-color": "transparent", "circle-opacity": 0 },
   });
+}
+
+// Resizes the vehicle layers to scale
+function setVehicleScale(map, scale) {
+  for (const [id, kind, prop, value] of vehicleSizes(scale)) {
+    if (!map.getLayer(id)) continue;
+    if (kind === "paint") map.setPaintProperty(id, prop, value);
+    else map.setLayoutProperty(id, prop, value);
+  }
 }
 
 // Where a vehicle is relative to its stop, from currentStatus
 const STATUS_TEXT = ["map.arriving_at", "map.stopped_at", "map.next_stop"];
 
-// Polls url every POLL_MS while el is on screen and the tab is visible.
-// routeOf(v) gives a vehicle's route ({ color, ... }), or null to leave it off
-// this map; describe(v, route) gives { head, stop, link } for its popup: a
-// node above the label, the name of v.stopId and a node below. Returns draw,
-// which puts the vehicle layers on a new basemap style, and refresh, which
-// rebuilds them after routeOf changes
-function live(L, map, el, url, routeOf, describe) {
+// Polls url every POLL_MS while el is on screen and the tab is visible, and
+// passes each poll's vehicles to every map added: add(drawer) calls
+// drawer.update(list, ts) now if a poll has returned and after each poll,
+// drawer.failed() when one fails
+function vehiclePoller(el, url) {
+  const drawers = new Set();
   // Vehicles from the last poll: { id, label, routeId, tripId, stopId, status, at, bearing, ts }
-  let list = [];
+  let list = null;
+  let feedTs = 0;
   // Last position and bearing per vehicle, for feeds that send no bearing
   const last = new Map();
+  pollWhileShown(el, async () => {
+    let feed;
+    try {
+      feed = await fetchFeed(url);
+    } catch (err) {
+      for (const d of drawers) d.failed();
+      throw err;
+    }
+    feedTs = num(feed.header?.timestamp) || Date.now() / 1000;
+    list = [];
+    for (const entity of feed.entity ?? []) {
+      const v = entity.vehicle;
+      const pos = v?.position;
+      if (!pos) continue;
+      const id = v.vehicle?.id || entity.id;
+      const at = [pos.longitude, pos.latitude];
+      const seen = last.get(id);
+      let bearing = Object.hasOwn(pos, "bearing") ? pos.bearing : null;
+      if (bearing == null && seen) bearing = metres(seen.at, at) >= MIN_MOVE_M ? bearingOf(seen.at, at) : seen.bearing;
+      if (!seen || metres(seen.at, at) >= MIN_MOVE_M) last.set(id, { at, bearing });
+      list.push({
+        id,
+        label: v.vehicle?.label || id,
+        routeId: v.trip?.routeId,
+        tripId: v.trip?.tripId,
+        stopId: v.stopId || null,
+        // Unset means IN_TRANSIT_TO, as the spec defaults it
+        status: Object.hasOwn(v, "currentStatus") ? v.currentStatus : 2,
+        at,
+        bearing,
+        ts: num(v.timestamp) || feedTs,
+      });
+    }
+    for (const d of drawers) d.update(list, feedTs);
+  });
+  return {
+    add(drawer) {
+      drawers.add(drawer);
+      if (list) drawer.update(list, feedTs);
+      return drawer;
+    },
+  };
+}
+
+// Draws a poller's vehicles on one map, with its own focus and popup.
+// routeOf(v) gives a vehicle's route ({ color, ... }), or null to leave it off
+// this map; describe(v, route) gives { head, stop, link } for its popup: a
+// node above the label, the name of v.stopId and a node below. status, if
+// given, is the line that counts the vehicles drawn. Returns draw, which puts
+// the vehicle layers on a new basemap style, refresh, which rebuilds them
+// after routeOf changes, and update and failed for the poller
+function vehicleDrawer(L, map, routeOf, describe, status = null) {
+  let list = [];
   // The vehicle whose popup is open
   let focused = null;
   let popup = null;
+  // The features last drawn and their crowd scale
+  let shown = { type: "FeatureCollection", features: [] };
+  let scale = 1;
 
   const features = () => {
     const out = [];
@@ -999,12 +1200,23 @@ function live(L, map, el, url, routeOf, describe) {
     focused = id;
     if (focused != null && map.getSource("vehicles")) map.setFeatureState({ source: "vehicles", id: focused }, { focused: true });
   };
+  const rescale = () => {
+    const next = crowdScale(map, shown.features);
+    if (next === scale) return;
+    scale = next;
+    setVehicleScale(map, scale);
+  };
+  const show = () => {
+    shown = features();
+    map.getSource("vehicles")?.setData(shown);
+    rescale();
+  };
   const draw = () => {
-    addVehicleLayers(map, features());
+    addVehicleLayers(map, shown, scale);
     setFocus(focused);
   };
   const refresh = () => {
-    map.getSource("vehicles")?.setData(features());
+    show();
     if (focused != null && !list.some((v) => v.id === focused && routeOf(v))) popup?.remove();
   };
 
@@ -1054,56 +1266,27 @@ function live(L, map, el, url, routeOf, describe) {
   });
   map.on("mouseenter", "vehicles-hit", () => (map.getCanvas().style.cursor = "pointer"));
   map.on("mouseleave", "vehicles-hit", () => (map.getCanvas().style.cursor = ""));
-
-  const status = el.querySelector(".map-live");
+  map.on("moveend", rescale);
   if (status) statuses.add(status);
-  pollWhileShown(el, async () => {
-    let feed;
-    try {
-      feed = await fetchFeed(url);
-    } catch (err) {
-      if (status) status.hidden = true;
-      throw err;
-    }
-    const feedTs = num(feed.header?.timestamp) || Date.now() / 1000;
-    list = [];
-    for (const entity of feed.entity ?? []) {
-      const v = entity.vehicle;
-      const pos = v?.position;
-      if (!pos) continue;
-      const id = v.vehicle?.id || entity.id;
-      const at = [pos.longitude, pos.latitude];
-      const seen = last.get(id);
-      let bearing = Object.hasOwn(pos, "bearing") ? pos.bearing : null;
-      if (bearing == null && seen) bearing = metres(seen.at, at) >= MIN_MOVE_M ? bearingOf(seen.at, at) : seen.bearing;
-      if (!seen || metres(seen.at, at) >= MIN_MOVE_M) last.set(id, { at, bearing });
-      list.push({
-        id,
-        label: v.vehicle?.label || id,
-        routeId: v.trip?.routeId,
-        tripId: v.trip?.tripId,
-        stopId: v.stopId || null,
-        // Unset means IN_TRANSIT_TO, as the spec defaults it
-        status: Object.hasOwn(v, "currentStatus") ? v.currentStatus : 2,
-        at,
-        bearing,
-        ts: num(v.timestamp) || feedTs,
-      });
-    }
-    const data = features();
-    map.getSource("vehicles")?.setData(data);
+
+  const update = (next, feedTs) => {
+    list = next;
+    show();
     // The open popup follows its vehicle, and closes once it leaves the map
     const v = focused != null && list.find((x) => x.id === focused && routeOf(x));
     if (v && popup) popup.setLngLat(v.at).setDOMContent(content(v));
     else popup?.remove();
     if (status) {
-      status.dataset.n = data.features.length;
+      status.dataset.n = shown.features.length;
       status.dataset.ts = feedTs;
       status.hidden = false;
       showStatus(status);
     }
-  });
-  return { draw, refresh };
+  };
+  const failed = () => {
+    if (status) status.hidden = true;
+  };
+  return { draw, refresh, update, failed };
 }
 
 /* Live times in the timetable */

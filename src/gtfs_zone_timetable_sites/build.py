@@ -81,7 +81,6 @@ from gtfs_zone_timetable_sites.pages import (
     feed_amenities,
     feed_info_range,
     mode_groups,
-    mode_label,
     modes_label,
     modes_text,
     place_jsonld,
@@ -461,7 +460,7 @@ def build_site(
             "feed_notes": feed_notes,
             "marked": marked,
             "source": data_source(text, site),
-            "map_text": map_text(locale, [view.mode for view in views[s.lang]]),
+            "map_text": map_text(locale),
             "trail": [
                 (ROOT_TITLE, f"{BASE_URL}/"),
                 (with_locality(title, site.locality), base_url),
@@ -749,15 +748,12 @@ MAP_TEXT = (
 )
 
 
-def map_text(locale: Locale, modes: list[str]) -> Markup:
-    """map.js's strings and mode names, as JSON for a <script> element."""
+def map_text(locale: Locale) -> Markup:
+    """map.js's strings, as JSON for a <script> element."""
     return script_json(
         {
             **{key: message(locale, key) for key in MAP_TEXT},
             **{key: plural_forms(locale, key) for key in MAP_PLURALS},
-            "modes": {
-                m: capitalize(mode_label(m, locale)) for m in dict.fromkeys(modes)
-            },
         }
     )
 
