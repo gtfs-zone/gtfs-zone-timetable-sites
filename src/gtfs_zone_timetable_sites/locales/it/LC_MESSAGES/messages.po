@@ -327,9 +327,6 @@ msgstr "Il feed si dichiara valido {range}."
 msgid "index.unknown_language"
 msgstr "Il codice lingua {code} del feed non è riconosciuto."
 
-msgid "index.feed_link"
-msgstr "Questo feed su list.gtfs.zone"
-
 # Route page
 msgid "route.title"
 msgstr "Orari {mode} {route} - {site}"
@@ -535,6 +532,9 @@ msgstr ""
 "Generato il {date} dal feed GTFS dell'azienda. Verifica con l'azienda "
 "prima di viaggiare."
 
+msgid "footer.generated_catalog"
+msgstr "Generato il {date} dal catalogo dei feed di gtfs.zone e dai suoi controlli giornalieri."
+
 msgid "footer.source"
 msgstr "Dati degli orari di {publisher}{feed}{terms}."
 
@@ -561,6 +561,223 @@ msgstr "Mobility Database"
 
 msgid "footer.more"
 msgstr "Altri strumenti GTFS su {link}"
+
+# Feed pages
+msgid "feed.title"
+msgstr "Feed {kinds} di {name}"
+
+msgid "feed.description"
+msgstr "Indirizzi del feed {kinds} di {name}, controllati ogni giorno. {state}."
+
+msgid "feed.heading"
+msgstr "Feed"
+
+msgid "feed.kind_static"
+msgstr "GTFS"
+
+msgid "feed.kind_rt"
+msgstr "GTFS Realtime"
+
+msgid "feed.kind_both"
+msgstr "GTFS e GTFS Realtime"
+
+msgid "feed.urls"
+msgstr "Indirizzi"
+
+msgid "feed.rows"
+msgstr "Voci di catalogo"
+
+msgid "feed.license"
+msgstr "Licenza"
+
+msgid "feed.licenses"
+msgstr "Licenze"
+
+msgid "feed.license_none"
+msgstr "Nessuna licenza indicata; i dati sono soggetti alle condizioni dell'editore."
+
+msgid "feed.credits"
+msgstr "Dati di catalogo da {catalogs}."
+
+msgid "feed.editor"
+msgstr "Apri in edit.gtfs.zone"
+
+msgid "feed.viewer"
+msgstr "Segui in diretta su viz.rt.gtfs.zone"
+
+msgid "feed.checked"
+msgstr "{outcome}, controllato il {date}"
+
+msgid "feed.contents"
+msgstr "{routes} linee, {stops} fermate, {trips} corse"
+
+msgid "feed.operator"
+msgstr "gestito da {operator}"
+
+msgid "feed.no_site"
+msgstr "Gli orari di questo feed non sono ancora generati."
+
+msgid "feed.no_site_outcome"
+msgstr "Nessun orario: l'ultimo download è stato {outcome}."
+
+msgid "feed.no_site_realtime"
+msgstr "Nessun orario: questo feed ha solo dati in tempo reale, senza orari."
+
+msgid "feed.no_site_down"
+msgstr "Nessun orario: gli orari non hanno risposto all'ultimo controllo."
+
+msgid "state.up"
+msgstr "Attivo"
+
+msgid "state.partial"
+msgstr "Parziale"
+
+msgid "state.down"
+msgstr "Non attivo"
+
+msgid "state.unknown"
+msgstr "Inaccessibile"
+
+msgid "state.since"
+msgstr "{state} dal {date}"
+
+msgid "state.never_up"
+msgstr "{state}, mai visto attivo"
+
+msgid "role.scheduled"
+msgstr "Orari"
+
+msgid "role.vehicles"
+msgstr "Posizioni dei veicoli"
+
+msgid "role.trip_updates"
+msgstr "Aggiornamenti delle corse"
+
+msgid "role.alerts"
+msgstr "Avvisi di servizio"
+
+msgid "role.realtime"
+msgstr "Tempo reale (tipo non dichiarato)"
+
+msgid "role.chip_up"
+msgstr "{role}: ha risposto all'ultimo controllo giornaliero"
+
+msgid "role.chip_down"
+msgstr "{role}: non ha risposto all'ultimo controllo giornaliero"
+
+msgid "role.chip_partial"
+msgstr "{role}: alcuni indirizzi non hanno risposto all'ultimo controllo giornaliero"
+
+msgid "role.chip_unknown"
+msgstr "{role}: non controllato"
+
+msgid "check.up_since"
+msgstr "Attivo dal {date}"
+
+msgid "check.down_since"
+msgstr "Non attivo dal {date}"
+
+msgid "check.partial_since"
+msgstr "Parziale dal {date}"
+
+msgid "check.never"
+msgstr "Mai raggiunto"
+
+msgid "check.unknown"
+msgstr "Non ancora controllato"
+
+msgid "check.key"
+msgstr "Richiede una chiave API, non controllato"
+
+msgid "check.detail"
+msgstr "{text} ({detail})"
+
+msgid "check.http"
+msgstr "HTTP {code}"
+
+msgid "check.error_dns"
+msgstr "risoluzione DNS non riuscita"
+
+msgid "check.error_refused"
+msgstr "connessione non riuscita"
+
+msgid "check.error_timeout"
+msgstr "tempo scaduto"
+
+msgid "check.error_tls"
+msgstr "errore TLS"
+
+msgid "check.error_relative"
+msgstr "indirizzo incompleto"
+
+msgid "check.error_other"
+msgstr "richiesta non riuscita"
+
+msgid "check.redirect"
+msgstr "Reindirizza a {url}"
+
+msgid "field.download"
+msgstr "Ultimo download"
+
+msgid "field.service"
+msgstr "Validità"
+
+msgid "field.publisher"
+msgstr "Editore"
+
+msgid "field.version"
+msgstr "Versione"
+
+msgid "field.contents"
+msgstr "Contenuto"
+
+msgid "field.size"
+msgstr "Dimensione degli orari"
+
+msgid "field.last_modified"
+msgstr "Ultima modifica"
+
+msgid "field.feed_id"
+msgstr "ID del feed"
+
+msgid "outcome.ok"
+msgstr "uno zip GTFS valido"
+
+msgid "outcome.not_zip"
+msgstr "un file che non è uno zip"
+
+msgid "outcome.missing_files"
+msgstr "uno zip senza i file GTFS richiesti"
+
+msgid "outcome.parse_error"
+msgstr "uno zip illeggibile"
+
+msgid "outcome.http_error"
+msgstr "un download non riuscito"
+
+msgid "outcome.timeout"
+msgstr "un download scaduto"
+
+msgid "outcome.memory"
+msgstr "troppo grande da elaborare"
+
+msgid "outcome.empty"
+msgstr "un feed senza corse programmate"
+
+msgid "outcome.error"
+msgstr "un download che non è stato possibile elaborare"
+
+msgid "size.b"
+msgstr "{size} byte"
+
+msgid "size.kb"
+msgstr "{size} kB"
+
+msgid "size.mb"
+msgstr "{size} MB"
+
+msgid "size.gb"
+msgstr "{size} GB"
 
 msgid "nav.github"
 msgstr "Codice sorgente su GitHub"

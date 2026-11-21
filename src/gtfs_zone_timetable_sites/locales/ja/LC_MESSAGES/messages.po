@@ -322,9 +322,6 @@ msgstr "フィード上の有効期間は{range}です。"
 msgid "index.unknown_language"
 msgstr "フィードの言語コード{code}は認識できません。"
 
-msgid "index.feed_link"
-msgstr "このフィードについて（list.gtfs.zone）"
-
 # Route page
 msgid "route.title"
 msgstr "{route} {mode}時刻表 - {site}"
@@ -519,6 +516,9 @@ msgstr "{duration}以内"
 msgid "footer.generated"
 msgstr "{date}に事業者のGTFSフィードから生成しました。ご利用前に事業者にご確認ください。"
 
+msgid "footer.generated_catalog"
+msgstr "{date}にgtfs.zoneのフィードカタログと毎日の確認から生成しました。"
+
 msgid "footer.source"
 msgstr "時刻表データ：{publisher}{feed}{terms}。"
 
@@ -545,6 +545,223 @@ msgstr "Mobility Database"
 
 msgid "footer.more"
 msgstr "その他のGTFSツール：{link}"
+
+# Feed pages
+msgid "feed.title"
+msgstr "{name}の{kinds}フィード"
+
+msgid "feed.description"
+msgstr "{name}の{kinds}フィードのURL（毎日確認）。{state}。"
+
+msgid "feed.heading"
+msgstr "フィード"
+
+msgid "feed.kind_static"
+msgstr "GTFS"
+
+msgid "feed.kind_rt"
+msgstr "GTFS Realtime"
+
+msgid "feed.kind_both"
+msgstr "GTFSとGTFS Realtime"
+
+msgid "feed.urls"
+msgstr "URL"
+
+msgid "feed.rows"
+msgstr "カタログ登録"
+
+msgid "feed.license"
+msgstr "ライセンス"
+
+msgid "feed.licenses"
+msgstr "ライセンス"
+
+msgid "feed.license_none"
+msgstr "ライセンスの記載はありません。データは公開者の条件に従います。"
+
+msgid "feed.credits"
+msgstr "カタログデータ：{catalogs}。"
+
+msgid "feed.editor"
+msgstr "edit.gtfs.zoneで開く"
+
+msgid "feed.viewer"
+msgstr "viz.rt.gtfs.zoneでリアルタイム表示"
+
+msgid "feed.checked"
+msgstr "{outcome}（{date}に確認）"
+
+msgid "feed.contents"
+msgstr "路線{routes}、停留所{stops}、便{trips}"
+
+msgid "feed.operator"
+msgstr "運行：{operator}"
+
+msgid "feed.no_site"
+msgstr "このフィードの時刻表はまだ作成されていません。"
+
+msgid "feed.no_site_outcome"
+msgstr "時刻表なし：前回のダウンロードは{outcome}でした。"
+
+msgid "feed.no_site_realtime"
+msgstr "時刻表なし：このフィードはリアルタイムのみで、時刻表がありません。"
+
+msgid "feed.no_site_down"
+msgstr "時刻表なし：時刻表が前回の確認に応答しませんでした。"
+
+msgid "state.up"
+msgstr "稼働中"
+
+msgid "state.partial"
+msgstr "一部稼働"
+
+msgid "state.down"
+msgstr "停止中"
+
+msgid "state.unknown"
+msgstr "アクセス不可"
+
+msgid "state.since"
+msgstr "{date}から{state}"
+
+msgid "state.never_up"
+msgstr "{state}（稼働を確認できたことはありません）"
+
+msgid "role.scheduled"
+msgstr "時刻表"
+
+msgid "role.vehicles"
+msgstr "車両位置"
+
+msgid "role.trip_updates"
+msgstr "運行情報の更新"
+
+msgid "role.alerts"
+msgstr "運行情報"
+
+msgid "role.realtime"
+msgstr "リアルタイム（種類の記載なし）"
+
+msgid "role.chip_up"
+msgstr "{role}：前回の毎日の確認に応答しました"
+
+msgid "role.chip_down"
+msgstr "{role}：前回の毎日の確認に応答しませんでした"
+
+msgid "role.chip_partial"
+msgstr "{role}：一部のURLが前回の毎日の確認に応答しませんでした"
+
+msgid "role.chip_unknown"
+msgstr "{role}：未確認"
+
+msgid "check.up_since"
+msgstr "{date}から稼働中"
+
+msgid "check.down_since"
+msgstr "{date}から停止中"
+
+msgid "check.partial_since"
+msgstr "{date}から一部稼働"
+
+msgid "check.never"
+msgstr "接続できたことがありません"
+
+msgid "check.unknown"
+msgstr "まだ確認していません"
+
+msgid "check.key"
+msgstr "APIキーが必要なため未確認"
+
+msgid "check.detail"
+msgstr "{text}（{detail}）"
+
+msgid "check.http"
+msgstr "HTTP {code}"
+
+msgid "check.error_dns"
+msgstr "DNSの名前解決に失敗"
+
+msgid "check.error_refused"
+msgstr "接続に失敗"
+
+msgid "check.error_timeout"
+msgstr "タイムアウト"
+
+msgid "check.error_tls"
+msgstr "TLSエラー"
+
+msgid "check.error_relative"
+msgstr "完全なURLではありません"
+
+msgid "check.error_other"
+msgstr "リクエストに失敗"
+
+msgid "check.redirect"
+msgstr "{url}へリダイレクト"
+
+msgid "field.download"
+msgstr "前回のダウンロード"
+
+msgid "field.service"
+msgstr "運行期間"
+
+msgid "field.publisher"
+msgstr "公開者"
+
+msgid "field.version"
+msgstr "バージョン"
+
+msgid "field.contents"
+msgstr "内容"
+
+msgid "field.size"
+msgstr "時刻表のサイズ"
+
+msgid "field.last_modified"
+msgstr "最終更新"
+
+msgid "field.feed_id"
+msgstr "フィードID"
+
+msgid "outcome.ok"
+msgstr "有効なGTFSのzip"
+
+msgid "outcome.not_zip"
+msgstr "zipファイルではないもの"
+
+msgid "outcome.missing_files"
+msgstr "必要なGTFSファイルがないzip"
+
+msgid "outcome.parse_error"
+msgstr "読み込めないzip"
+
+msgid "outcome.http_error"
+msgstr "失敗したダウンロード"
+
+msgid "outcome.timeout"
+msgstr "タイムアウトしたダウンロード"
+
+msgid "outcome.memory"
+msgstr "大きすぎて処理できないもの"
+
+msgid "outcome.empty"
+msgstr "運行予定の便がないフィード"
+
+msgid "outcome.error"
+msgstr "処理できないダウンロード"
+
+msgid "size.b"
+msgstr "{size}バイト"
+
+msgid "size.kb"
+msgstr "{size} kB"
+
+msgid "size.mb"
+msgstr "{size} MB"
+
+msgid "size.gb"
+msgstr "{size} GB"
 
 msgid "nav.github"
 msgstr "GitHubのソースコード"

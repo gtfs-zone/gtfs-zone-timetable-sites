@@ -1,0 +1,61 @@
+{# A catalog feed's state, URLs, catalog rows, license and schedule facts, from feedpage.FeedView. #}
+{% macro feed_details(feed) %}
+{% set state_badge = {"up": "badge-success", "partial": "badge-warning", "down": "badge-error", "unknown": "badge-ghost"} %}
+<div class="flex flex-wrap items-center gap-2">
+<span class="badge {{ state_badge[feed.state] | default("badge-ghost") }}" title="{{ feed.state_text }}">{{ feed.state_label }}</span>
+{% for role in feed.roles if role.role != "scheduled" %}
+<span class="badge badge-sm {{ state_badge[role.state] | default("badge-ghost") }} font-mono" title="{{ role.chip_title }}">{{ role.short }}</span>
+{% endfor %}
+<span class="text-sm text-base-content/70">{{ feed.state_text }}</span>
+</div>
+{% if feed.editor_url or feed.viewer_url %}
+<div class="flex flex-wrap gap-2">
+{% if feed.editor_url %}<a class="btn btn-sm h-11" href="{{ feed.editor_url }}" target="_blank" rel="noopener">{{ t("feed.editor") }}</a>{% endif %}
+{% if feed.viewer_url %}<a class="btn btn-sm h-11" href="{{ feed.viewer_url }}" target="_blank" rel="noopener">{{ t("feed.viewer") }}</a>{% endif %}
+</div>
+{% endif %}
+{% if feed.roles %}
+<h3 class="font-semibold">{{ t("feed.urls") }}</h3>
+<dl class="space-y-3">
+{% for role in feed.roles %}
+<div>
+<dt class="text-sm font-semibold">{{ role.label }}</dt>
+{% for url in role.urls %}
+<dd class="break-all">{% if url.absolute %}<a class="link" href="{{ url.url }}" rel="nofollow noopener">{{ url.url }}</a>{% else %}{{ url.url }}{% endif %}
+<br><span class="text-sm {% if url.state == "down" %}text-error{% else %}text-base-content/70{% endif %}">{{ url.check }}</span>
+{% if url.redirect %}<br><span class="text-sm text-base-content/70">{{ t("check.redirect", url=url.redirect) }}</span>{% endif %}
+</dd>
+{% endfor %}
+</div>
+{% endfor %}
+</dl>
+{% endif %}
+<dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+{% for label, value in feed.facts %}
+<dt class="text-sm text-base-content/70">{{ label }}</dt>
+<dd class="min-w-0 break-words">{{ value }}</dd>
+{% endfor %}
+</dl>
+{% if feed.rows %}
+<h3 class="font-semibold">{{ t("feed.rows") }}</h3>
+<ul class="space-y-1">
+{% for row in feed.rows %}
+<li>{% if row.href %}<a class="link" href="{{ row.href }}" target="_blank" rel="noopener">{{ row.catalog }}</a>{% else %}{{ row.catalog }}{% endif %}: {{ row.name or row.catalog_id }} <span class="text-sm text-base-content/70">({{ row.catalog_id }}{% if row.operator %}, {{ t("feed.operator", operator=row.operator) }}{% endif %})</span></li>
+{% endfor %}
+</ul>
+{% endif %}
+<h3 class="font-semibold">{{ t("feed.licenses") if feed.licenses | length > 1 else t("feed.license") }}</h3>
+{% if feed.licenses %}
+<ul class="space-y-1">
+{% for url in feed.licenses %}
+<li class="break-all"><a class="link" href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a></li>
+{% endfor %}
+</ul>
+{% else %}
+<p>{{ t("feed.license_none") }}</p>
+{% endif %}
+{% if feed.credits %}
+{% set catalogs %}{% for credit in feed.credits %}<a class="link" href="{{ credit.url }}" target="_blank" rel="noopener">{{ credit.name }}</a> (<a class="link" href="{{ credit.license_url }}" target="_blank" rel="noopener">{{ credit.license }}</a>){% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
+<p class="text-sm text-base-content/70">{{ t("feed.credits", catalogs=catalogs) }}</p>
+{% endif %}
+{% endmacro %}

@@ -334,9 +334,6 @@ msgstr "Według pliku danych ważny {range}."
 msgid "index.unknown_language"
 msgstr "Kod języka {code} w danych nie jest rozpoznawany."
 
-msgid "index.feed_link"
-msgstr "Ten feed w list.gtfs.zone"
-
 # Route page
 msgid "route.title"
 msgstr "Rozkład jazdy: {mode} {route} - {site}"
@@ -543,6 +540,9 @@ msgstr ""
 "Wygenerowano {date} z feedu GTFS przewoźnika. Przed podróżą sprawdź "
 "informacje u przewoźnika."
 
+msgid "footer.generated_catalog"
+msgstr "Wygenerowano {date} z katalogu feedów gtfs.zone i jego codziennych kontroli."
+
 msgid "footer.source"
 msgstr "Dane rozkładowe: {publisher}{feed}{terms}."
 
@@ -569,6 +569,223 @@ msgstr "Mobility Database"
 
 msgid "footer.more"
 msgstr "Więcej narzędzi GTFS: {link}"
+
+# Feed pages
+msgid "feed.title"
+msgstr "Feed {kinds}: {name}"
+
+msgid "feed.description"
+msgstr "Adresy feedu {kinds} dla: {name}, sprawdzane codziennie. {state}."
+
+msgid "feed.heading"
+msgstr "Feed"
+
+msgid "feed.kind_static"
+msgstr "GTFS"
+
+msgid "feed.kind_rt"
+msgstr "GTFS Realtime"
+
+msgid "feed.kind_both"
+msgstr "GTFS i GTFS Realtime"
+
+msgid "feed.urls"
+msgstr "Adresy"
+
+msgid "feed.rows"
+msgstr "Wpisy w katalogach"
+
+msgid "feed.license"
+msgstr "Licencja"
+
+msgid "feed.licenses"
+msgstr "Licencje"
+
+msgid "feed.license_none"
+msgstr "Nie podano licencji; dane podlegają warunkom wydawcy."
+
+msgid "feed.credits"
+msgstr "Dane katalogowe: {catalogs}."
+
+msgid "feed.editor"
+msgstr "Otwórz w edit.gtfs.zone"
+
+msgid "feed.viewer"
+msgstr "Śledź na żywo w viz.rt.gtfs.zone"
+
+msgid "feed.checked"
+msgstr "{outcome}, sprawdzono {date}"
+
+msgid "feed.contents"
+msgstr "linie: {routes}, przystanki: {stops}, kursy: {trips}"
+
+msgid "feed.operator"
+msgstr "przewoźnik: {operator}"
+
+msgid "feed.no_site"
+msgstr "Rozkłady dla tego feedu nie są jeszcze generowane."
+
+msgid "feed.no_site_outcome"
+msgstr "Brak rozkładów: wynik ostatniego pobrania: {outcome}."
+
+msgid "feed.no_site_realtime"
+msgstr "Brak rozkładów: ten feed zawiera tylko dane w czasie rzeczywistym, bez rozkładu."
+
+msgid "feed.no_site_down"
+msgstr "Brak rozkładów: rozkład nie odpowiedział przy ostatniej kontroli."
+
+msgid "state.up"
+msgstr "Działa"
+
+msgid "state.partial"
+msgstr "Częściowo"
+
+msgid "state.down"
+msgstr "Nie działa"
+
+msgid "state.unknown"
+msgstr "Niedostępny"
+
+msgid "state.since"
+msgstr "{state} od {date}"
+
+msgid "state.never_up"
+msgstr "{state}, nigdy nie działał"
+
+msgid "role.scheduled"
+msgstr "Rozkład"
+
+msgid "role.vehicles"
+msgstr "Pozycje pojazdów"
+
+msgid "role.trip_updates"
+msgstr "Aktualizacje kursów"
+
+msgid "role.alerts"
+msgstr "Komunikaty"
+
+msgid "role.realtime"
+msgstr "Czas rzeczywisty (typ nie podany)"
+
+msgid "role.chip_up"
+msgstr "{role}: odpowiedział przy ostatniej codziennej kontroli"
+
+msgid "role.chip_down"
+msgstr "{role}: nie odpowiedział przy ostatniej codziennej kontroli"
+
+msgid "role.chip_partial"
+msgstr "{role}: część adresów nie odpowiedziała przy ostatniej codziennej kontroli"
+
+msgid "role.chip_unknown"
+msgstr "{role}: nie sprawdzono"
+
+msgid "check.up_since"
+msgstr "Działa od {date}"
+
+msgid "check.down_since"
+msgstr "Nie działa od {date}"
+
+msgid "check.partial_since"
+msgstr "Częściowo od {date}"
+
+msgid "check.never"
+msgstr "Nigdy nie osiągnięto"
+
+msgid "check.unknown"
+msgstr "Jeszcze nie sprawdzono"
+
+msgid "check.key"
+msgstr "Wymaga klucza API, nie sprawdzono"
+
+msgid "check.detail"
+msgstr "{text} ({detail})"
+
+msgid "check.http"
+msgstr "HTTP {code}"
+
+msgid "check.error_dns"
+msgstr "błąd wyszukiwania DNS"
+
+msgid "check.error_refused"
+msgstr "błąd połączenia"
+
+msgid "check.error_timeout"
+msgstr "przekroczono limit czasu"
+
+msgid "check.error_tls"
+msgstr "błąd TLS"
+
+msgid "check.error_relative"
+msgstr "niepełny adres"
+
+msgid "check.error_other"
+msgstr "błąd żądania"
+
+msgid "check.redirect"
+msgstr "Przekierowuje do {url}"
+
+msgid "field.download"
+msgstr "Ostatnie pobranie"
+
+msgid "field.service"
+msgstr "Okres obowiązywania"
+
+msgid "field.publisher"
+msgstr "Wydawca"
+
+msgid "field.version"
+msgstr "Wersja"
+
+msgid "field.contents"
+msgstr "Zawartość"
+
+msgid "field.size"
+msgstr "Rozmiar rozkładu"
+
+msgid "field.last_modified"
+msgstr "Ostatnia zmiana"
+
+msgid "field.feed_id"
+msgstr "Identyfikator feedu"
+
+msgid "outcome.ok"
+msgstr "prawidłowy plik zip GTFS"
+
+msgid "outcome.not_zip"
+msgstr "plik, który nie jest plikiem zip"
+
+msgid "outcome.missing_files"
+msgstr "plik zip bez wymaganych plików GTFS"
+
+msgid "outcome.parse_error"
+msgstr "nieczytelny plik zip"
+
+msgid "outcome.http_error"
+msgstr "nieudane pobieranie"
+
+msgid "outcome.timeout"
+msgstr "przekroczony czas pobierania"
+
+msgid "outcome.memory"
+msgstr "plik zbyt duży do przetworzenia"
+
+msgid "outcome.empty"
+msgstr "feed bez zaplanowanych kursów"
+
+msgid "outcome.error"
+msgstr "pobranie, którego nie udało się przetworzyć"
+
+msgid "size.b"
+msgstr "{size} B"
+
+msgid "size.kb"
+msgstr "{size} kB"
+
+msgid "size.mb"
+msgstr "{size} MB"
+
+msgid "size.gb"
+msgstr "{size} GB"
 
 msgid "nav.github"
 msgstr "Kod źródłowy na GitHubie"

@@ -45,8 +45,8 @@
 <ul class="list rounded-box bg-base-100 shadow-sm">
 {% for site in subdivision.sites %}
 {% set status = statuses[site.status] %}
-{% set tag = "a" if site.status != "unavailable" else "div" %}
-<li><{{ tag }} class="flex min-h-11 items-center gap-3 rounded-box px-4 py-2{% if tag == "a" %} hover:bg-base-200{% else %} opacity-70{% endif %}"{% if tag == "a" %} href="{{ root }}{{ site.href }}"{% endif %}>
+{% set tag = "a" if site.linked else "div" %}
+<li><{{ tag }} class="flex min-h-11 items-center gap-3 rounded-box px-4 py-2{% if tag == "a" %} hover:bg-base-200{% endif %}{% if site.status == "unavailable" %} opacity-70{% endif %}"{% if tag == "a" %} href="{{ root }}{{ site.href }}"{% endif %}>
 <span class="size-3 shrink-0 rounded-full {{ status[0] }}" title="{{ status[1] }}"><span class="sr-only">{{ status[1] }}</span></span>
 <span class="flex min-w-0 flex-1 flex-col">
 <span class="font-semibold">{{ site.title }}</span>

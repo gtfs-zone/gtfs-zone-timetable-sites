@@ -98,25 +98,36 @@ def test_build_catalog_sites_in_parallel(tmp_path):
         ]
     }
     (cache / "_catalog.json").write_text(json.dumps(doc))
+    (cache / "_sources.json").write_text(json.dumps({"sources": []}))
+    (cache / "_status.json").write_text(json.dumps({"sources": {}}))
     for slug in ("local", "metro-bus", "metro-bus-2"):
         (cache / f"{slug}.zip").write_bytes(fixture_zip("overnight"))
     out = tmp_path / "dist"
     args = ["build", "--out", str(out), "--config", str(config), "--cache", str(cache)]
     main([*args, "--workers", "2"])
+    # The feed the filter skips gets a feed page, not a site.
     assert {p.name for p in out.iterdir() if (p / "site.json").exists()} == {
         "local",
         "metro-bus",
         "metro-bus-2",
+        "elsewhere",
     }
     assert json.loads((cache / "_slugs.json").read_text()) == {
         "f-0000000001": "metro-bus",
         "f-0000000002": "metro-bus-2",
+        "f-0000000003": "elsewhere",
     }
+    page = (out / "elsewhere" / "index.html").read_text()
+    assert "<h1" in page and "Elsewhere" in page
+    assert not (out / "elsewhere" / "1").exists()
     us = (out / "countries" / "us" / "index.html").read_bytes()
     assert b'href="../../metro-bus-2/"' in us
+    assert not (out / "countries" / "fr").exists()
 
     main([*args, "--listed"])
     assert not (out / "metro-bus").exists() and (out / "local").exists()
     main([*args, "--country", "us", "--limit", "1"])
     assert not (out / "local").exists()
     assert len([p for p in out.iterdir() if (p / "site.json").exists()]) == 1
+    main([*args, "--site", "elsewhere"])
+    assert (out / "elsewhere" / "index.html").exists()

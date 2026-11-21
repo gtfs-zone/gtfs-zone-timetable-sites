@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "feed_card.html" import feed_details with context %}
 {% block title %}{{ t("index.title_place", site=site_title, place=place) if place else t("index.title", site=site_title) }}{% endblock %}
 {% block description %}{{ t("index.description", modes=modes, modes_lower=modes_lower, site=site_place, n=routes | length) }}{% endblock %}
 {% block main %}
@@ -76,9 +77,14 @@
 {% for note in feed_notes %}
 <p>{{ note }}</p>
 {% endfor %}
-{% if feed_url %}
-<p><a class="link" href="{{ feed_url }}" target="_blank" rel="noopener">{{ t("index.feed_link") }}</a></p>
-{% endif %}
 </div>
 </section>
+{% if feed %}
+<section class="card bg-base-100 shadow-sm" id="feed">
+<div class="card-body space-y-3 p-4">
+<h2 class="card-title">{{ t("feed.heading") }}</h2>
+{{ feed_details(feed) }}
+</div>
+</section>
+{% endif %}
 {% endblock %}

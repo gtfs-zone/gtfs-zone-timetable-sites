@@ -195,7 +195,16 @@ def resolve_sites(
         if not entry.slug
     ]
     fixed = {entry.slug for entry in config.sites if entry.slug}
-    slugs = assign_slugs(auto + unslugged, renamed, fixed | set(aliases))
+    # With a catalog filter, every catalog feed has a slug, for its feed page
+    # when it has no site.
+    rest = [
+        feed
+        for feed in feeds.values()
+        if config.catalog is not None
+        and feed.feed_id not in entries
+        and not selected(config, feed)
+    ]
+    slugs = assign_slugs(auto + unslugged + rest, renamed, fixed | set(aliases))
 
     sites = []
     for entry in config.sites:
@@ -225,6 +234,29 @@ def resolve_sites(
     if clash:
         raise ValueError(f"slugs taken twice: {', '.join(clash)}")
     return sites, slugs, aliases
+
+
+def feed_sites(
+    config: Config, feeds_doc: dict[str, Any], slugs: dict[str, str], sites: list[Site]
+) -> list[Site]:
+    """A site for each catalog feed with a slug and no site in `sites`, to
+    publish its feed page only: the defaults with its country's options, not
+    indexed outside `index_countries`."""
+    feeds = parse_feeds(feeds_doc)
+    built = {site.feed for site in sites if site.feed}
+    taken = {site.slug for site in sites}
+    defaults = config.defaults.model_dump()
+    index_countries = config.catalog.index_countries if config.catalog else ()
+    pages = []
+    for feed_id, slug in sorted(slugs.items(), key=lambda item: item[1]):
+        feed = feeds.get(feed_id)
+        if feed is None or feed_id in built or slug in taken:
+            continue
+        options = defaults | country_options(feed)
+        if index_countries and feed.country_code not in index_countries:
+            options["index"] = False
+        pages.append(Site(**options, slug=slug, feed=feed_id, catalog=feed))
+    return pages
 
 
 def redirects(

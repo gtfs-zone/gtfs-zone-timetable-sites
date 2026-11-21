@@ -322,9 +322,6 @@ msgstr "Syötteen mukaan voimassa {range}."
 msgid "index.unknown_language"
 msgstr "Syötteen kielikoodia {code} ei tunnisteta."
 
-msgid "index.feed_link"
-msgstr "Tämä syöte: list.gtfs.zone"
-
 # Route page
 msgid "route.title"
 msgstr "Aikataulu: {mode} {route} - {site}"
@@ -532,6 +529,9 @@ msgstr ""
 "Luotu {date} liikennöitsijän GTFS-syötteestä. Tarkista tiedot "
 "liikennöitsijältä ennen matkaa."
 
+msgid "footer.generated_catalog"
+msgstr "Luotu {date} gtfs.zone-syöteluettelosta ja sen päivittäisistä tarkistuksista."
+
 msgid "footer.source"
 msgstr "Aikataulutiedot: {publisher}{feed}{terms}."
 
@@ -558,6 +558,223 @@ msgstr "Mobility Database"
 
 msgid "footer.more"
 msgstr "Lisää GTFS-työkaluja: {link}"
+
+# Feed pages
+msgid "feed.title"
+msgstr "{name}: {kinds}-syöte"
+
+msgid "feed.description"
+msgstr "Kohteen {name} {kinds}-syötteen osoitteet, tarkistetaan päivittäin. {state}."
+
+msgid "feed.heading"
+msgstr "Syöte"
+
+msgid "feed.kind_static"
+msgstr "GTFS"
+
+msgid "feed.kind_rt"
+msgstr "GTFS Realtime"
+
+msgid "feed.kind_both"
+msgstr "GTFS ja GTFS Realtime"
+
+msgid "feed.urls"
+msgstr "Osoitteet"
+
+msgid "feed.rows"
+msgstr "Luettelomerkinnät"
+
+msgid "feed.license"
+msgstr "Lisenssi"
+
+msgid "feed.licenses"
+msgstr "Lisenssit"
+
+msgid "feed.license_none"
+msgstr "Lisenssiä ei ole ilmoitettu; tietoihin sovelletaan julkaisijan ehtoja."
+
+msgid "feed.credits"
+msgstr "Luettelotiedot: {catalogs}."
+
+msgid "feed.editor"
+msgstr "Avaa edit.gtfs.zone-palvelussa"
+
+msgid "feed.viewer"
+msgstr "Seuraa reaaliajassa viz.rt.gtfs.zone-palvelussa"
+
+msgid "feed.checked"
+msgstr "{outcome}, tarkistettu {date}"
+
+msgid "feed.contents"
+msgstr "linjoja {routes}, pysäkkejä {stops}, vuoroja {trips}"
+
+msgid "feed.operator"
+msgstr "liikennöitsijä {operator}"
+
+msgid "feed.no_site"
+msgstr "Tälle syötteelle ei vielä luoda aikatauluja."
+
+msgid "feed.no_site_outcome"
+msgstr "Ei aikatauluja: viimeisin lataus: {outcome}."
+
+msgid "feed.no_site_realtime"
+msgstr "Ei aikatauluja: syötteessä on vain reaaliaikatietoja, ei aikataulua."
+
+msgid "feed.no_site_down"
+msgstr "Ei aikatauluja: aikataulu ei vastannut viimeisimpään tarkistukseen."
+
+msgid "state.up"
+msgstr "Toiminnassa"
+
+msgid "state.partial"
+msgstr "Osittain"
+
+msgid "state.down"
+msgstr "Ei vastaa"
+
+msgid "state.unknown"
+msgstr "Ei saatavilla"
+
+msgid "state.since"
+msgstr "{state} {date} alkaen"
+
+msgid "state.never_up"
+msgstr "{state}, ei koskaan toiminnassa"
+
+msgid "role.scheduled"
+msgstr "Aikataulu"
+
+msgid "role.vehicles"
+msgstr "Ajoneuvojen sijainnit"
+
+msgid "role.trip_updates"
+msgstr "Vuoropäivitykset"
+
+msgid "role.alerts"
+msgstr "Häiriötiedotteet"
+
+msgid "role.realtime"
+msgstr "Reaaliaika (tyyppiä ei ilmoitettu)"
+
+msgid "role.chip_up"
+msgstr "{role}: vastasi viimeisimpään päivittäiseen tarkistukseen"
+
+msgid "role.chip_down"
+msgstr "{role}: ei vastannut viimeisimpään päivittäiseen tarkistukseen"
+
+msgid "role.chip_partial"
+msgstr "{role}: osa osoitteista ei vastannut viimeisimpään päivittäiseen tarkistukseen"
+
+msgid "role.chip_unknown"
+msgstr "{role}: ei tarkistettu"
+
+msgid "check.up_since"
+msgstr "Toiminnassa {date} alkaen"
+
+msgid "check.down_since"
+msgstr "Ei vastaa {date} alkaen"
+
+msgid "check.partial_since"
+msgstr "Osittain {date} alkaen"
+
+msgid "check.never"
+msgstr "Ei koskaan tavoitettu"
+
+msgid "check.unknown"
+msgstr "Ei vielä tarkistettu"
+
+msgid "check.key"
+msgstr "Vaatii API-avaimen, ei tarkistettu"
+
+msgid "check.detail"
+msgstr "{text} ({detail})"
+
+msgid "check.http"
+msgstr "HTTP {code}"
+
+msgid "check.error_dns"
+msgstr "DNS-haku epäonnistui"
+
+msgid "check.error_refused"
+msgstr "yhteys epäonnistui"
+
+msgid "check.error_timeout"
+msgstr "aikakatkaisu"
+
+msgid "check.error_tls"
+msgstr "TLS-virhe"
+
+msgid "check.error_relative"
+msgstr "ei täydellinen osoite"
+
+msgid "check.error_other"
+msgstr "pyyntö epäonnistui"
+
+msgid "check.redirect"
+msgstr "Ohjaa osoitteeseen {url}"
+
+msgid "field.download"
+msgstr "Viimeisin lataus"
+
+msgid "field.service"
+msgstr "Voimassa"
+
+msgid "field.publisher"
+msgstr "Julkaisija"
+
+msgid "field.version"
+msgstr "Versio"
+
+msgid "field.contents"
+msgstr "Sisältö"
+
+msgid "field.size"
+msgstr "Aikataulun koko"
+
+msgid "field.last_modified"
+msgstr "Muokattu viimeksi"
+
+msgid "field.feed_id"
+msgstr "Syötteen tunnus"
+
+msgid "outcome.ok"
+msgstr "kelvollinen GTFS-zip"
+
+msgid "outcome.not_zip"
+msgstr "ei zip-tiedosto"
+
+msgid "outcome.missing_files"
+msgstr "zip, josta puuttuu pakollisia GTFS-tiedostoja"
+
+msgid "outcome.parse_error"
+msgstr "zip, jota ei voitu lukea"
+
+msgid "outcome.http_error"
+msgstr "epäonnistunut lataus"
+
+msgid "outcome.timeout"
+msgstr "aikakatkaistu lataus"
+
+msgid "outcome.memory"
+msgstr "liian suuri käsiteltäväksi"
+
+msgid "outcome.empty"
+msgstr "syöte ilman aikataulun mukaisia vuoroja"
+
+msgid "outcome.error"
+msgstr "lataus, jota ei voitu käsitellä"
+
+msgid "size.b"
+msgstr "{size} tavua"
+
+msgid "size.kb"
+msgstr "{size} kt"
+
+msgid "size.mb"
+msgstr "{size} Mt"
+
+msgid "size.gb"
+msgstr "{size} Gt"
 
 msgid "nav.github"
 msgstr "Lähdekoodi GitHubissa"

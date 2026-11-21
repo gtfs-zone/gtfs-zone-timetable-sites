@@ -326,9 +326,6 @@ msgstr "Volgens de feed geldig {range}."
 msgid "index.unknown_language"
 msgstr "De taalcode {code} van de feed wordt niet herkend."
 
-msgid "index.feed_link"
-msgstr "Deze feed op list.gtfs.zone"
-
 # Route page
 msgid "route.title"
 msgstr "Dienstregeling {mode} {route} - {site}"
@@ -536,6 +533,9 @@ msgstr ""
 "Gemaakt op {date} uit de GTFS-feed van de vervoerder. Controleer bij de "
 "vervoerder voordat u reist."
 
+msgid "footer.generated_catalog"
+msgstr "Gemaakt op {date} uit de feedcatalogus van gtfs.zone en de dagelijkse controles."
+
 msgid "footer.source"
 msgstr "Dienstregelingsgegevens van {publisher}{feed}{terms}."
 
@@ -562,6 +562,223 @@ msgstr "de Mobility Database"
 
 msgid "footer.more"
 msgstr "Meer GTFS-tools op {link}"
+
+# Feed pages
+msgid "feed.title"
+msgstr "{kinds}-feed van {name}"
+
+msgid "feed.description"
+msgstr "Adressen van de {kinds}-feed van {name}, dagelijks gecontroleerd. {state}."
+
+msgid "feed.heading"
+msgstr "Feed"
+
+msgid "feed.kind_static"
+msgstr "GTFS"
+
+msgid "feed.kind_rt"
+msgstr "GTFS Realtime"
+
+msgid "feed.kind_both"
+msgstr "GTFS en GTFS Realtime"
+
+msgid "feed.urls"
+msgstr "Adressen"
+
+msgid "feed.rows"
+msgstr "Catalogusvermeldingen"
+
+msgid "feed.license"
+msgstr "Licentie"
+
+msgid "feed.licenses"
+msgstr "Licenties"
+
+msgid "feed.license_none"
+msgstr "Er is geen licentie vermeld; de gegevens vallen onder de voorwaarden van de uitgever."
+
+msgid "feed.credits"
+msgstr "Catalogusgegevens van {catalogs}."
+
+msgid "feed.editor"
+msgstr "Openen in edit.gtfs.zone"
+
+msgid "feed.viewer"
+msgstr "Live volgen in viz.rt.gtfs.zone"
+
+msgid "feed.checked"
+msgstr "{outcome}, gecontroleerd op {date}"
+
+msgid "feed.contents"
+msgstr "{routes} lijnen, {stops} haltes, {trips} ritten"
+
+msgid "feed.operator"
+msgstr "uitgevoerd door {operator}"
+
+msgid "feed.no_site"
+msgstr "Voor deze feed worden nog geen dienstregelingen gemaakt."
+
+msgid "feed.no_site_outcome"
+msgstr "Geen dienstregelingen: de laatste download was {outcome}."
+
+msgid "feed.no_site_realtime"
+msgstr "Geen dienstregelingen: deze feed heeft alleen realtime gegevens, geen dienstregeling."
+
+msgid "feed.no_site_down"
+msgstr "Geen dienstregelingen: de dienstregeling reageerde niet op de laatste controle."
+
+msgid "state.up"
+msgstr "Bereikbaar"
+
+msgid "state.partial"
+msgstr "Gedeeltelijk"
+
+msgid "state.down"
+msgstr "Onbereikbaar"
+
+msgid "state.unknown"
+msgstr "Ontoegankelijk"
+
+msgid "state.since"
+msgstr "{state} sinds {date}"
+
+msgid "state.never_up"
+msgstr "{state}, nooit bereikbaar geweest"
+
+msgid "role.scheduled"
+msgstr "Dienstregeling"
+
+msgid "role.vehicles"
+msgstr "Voertuigposities"
+
+msgid "role.trip_updates"
+msgstr "Ritupdates"
+
+msgid "role.alerts"
+msgstr "Storingsmeldingen"
+
+msgid "role.realtime"
+msgstr "Realtime (type niet opgegeven)"
+
+msgid "role.chip_up"
+msgstr "{role}: reageerde op de laatste dagelijkse controle"
+
+msgid "role.chip_down"
+msgstr "{role}: reageerde niet op de laatste dagelijkse controle"
+
+msgid "role.chip_partial"
+msgstr "{role}: sommige adressen reageerden niet op de laatste dagelijkse controle"
+
+msgid "role.chip_unknown"
+msgstr "{role}: niet gecontroleerd"
+
+msgid "check.up_since"
+msgstr "Bereikbaar sinds {date}"
+
+msgid "check.down_since"
+msgstr "Onbereikbaar sinds {date}"
+
+msgid "check.partial_since"
+msgstr "Gedeeltelijk sinds {date}"
+
+msgid "check.never"
+msgstr "Nooit bereikt"
+
+msgid "check.unknown"
+msgstr "Nog niet gecontroleerd"
+
+msgid "check.key"
+msgstr "Vereist een API-sleutel, niet gecontroleerd"
+
+msgid "check.detail"
+msgstr "{text} ({detail})"
+
+msgid "check.http"
+msgstr "HTTP {code}"
+
+msgid "check.error_dns"
+msgstr "DNS-opzoeking mislukt"
+
+msgid "check.error_refused"
+msgstr "verbinding mislukt"
+
+msgid "check.error_timeout"
+msgstr "time-out"
+
+msgid "check.error_tls"
+msgstr "TLS-fout"
+
+msgid "check.error_relative"
+msgstr "geen volledig adres"
+
+msgid "check.error_other"
+msgstr "verzoek mislukt"
+
+msgid "check.redirect"
+msgstr "Verwijst door naar {url}"
+
+msgid "field.download"
+msgstr "Laatste download"
+
+msgid "field.service"
+msgstr "Geldigheid"
+
+msgid "field.publisher"
+msgstr "Uitgever"
+
+msgid "field.version"
+msgstr "Versie"
+
+msgid "field.contents"
+msgstr "Inhoud"
+
+msgid "field.size"
+msgstr "Grootte van de dienstregeling"
+
+msgid "field.last_modified"
+msgstr "Laatst gewijzigd"
+
+msgid "field.feed_id"
+msgstr "Feed-ID"
+
+msgid "outcome.ok"
+msgstr "een geldige GTFS-zip"
+
+msgid "outcome.not_zip"
+msgstr "geen zipbestand"
+
+msgid "outcome.missing_files"
+msgstr "een zip zonder de vereiste GTFS-bestanden"
+
+msgid "outcome.parse_error"
+msgstr "een onleesbare zip"
+
+msgid "outcome.http_error"
+msgstr "een mislukte download"
+
+msgid "outcome.timeout"
+msgstr "een download met een time-out"
+
+msgid "outcome.memory"
+msgstr "te groot om te verwerken"
+
+msgid "outcome.empty"
+msgstr "een feed zonder geplande ritten"
+
+msgid "outcome.error"
+msgstr "een download die niet verwerkt kon worden"
+
+msgid "size.b"
+msgstr "{size} bytes"
+
+msgid "size.kb"
+msgstr "{size} kB"
+
+msgid "size.mb"
+msgstr "{size} MB"
+
+msgid "size.gb"
+msgstr "{size} GB"
 
 msgid "nav.github"
 msgstr "Broncode op GitHub"
