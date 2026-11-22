@@ -601,8 +601,8 @@ wheels = [
 
 [[package]]
 name = "gtfs-zone-feed-fetch"
-version = "0.2.0"
-source = { git = "https://github.com/gtfs-zone/gtfs-zone-feed-fetch.git?tag=v0.2.0#e1764c73115c4e6880de7300c51b88c025a22297" }
+version = "0.4.0"
+source = { git = "https://github.com/gtfs-zone/gtfs-zone-feed-fetch.git?tag=v0.4.0#11a7b1fb061bce48f8914a744e066174768d2d74" }
 dependencies = [
     { name = "babel" },
     { name = "httpx" },
@@ -652,7 +652,7 @@ requires-dist = [
     { name = "babel", specifier = ">=2.16" },
     { name = "dagster", marker = "extra == 'pipeline'", specifier = "==1.13.24" },
     { name = "dagster-postgres", marker = "extra == 'pipeline'", specifier = "==0.29.24" },
-    { name = "gtfs-zone-feed-fetch", git = "https://github.com/gtfs-zone/gtfs-zone-feed-fetch.git?tag=v0.2.0" },
+    { name = "gtfs-zone-feed-fetch", git = "https://github.com/gtfs-zone/gtfs-zone-feed-fetch.git?tag=v0.4.0" },
     { name = "gtfs-zone-vocab", git = "https://github.com/gtfs-zone/gtfs-zone-vocab.git?tag=v0.1.0" },
     { name = "httpx", marker = "extra == 'pipeline'", specifier = ">=0.27" },
     { name = "jinja2", specifier = ">=3.1" },

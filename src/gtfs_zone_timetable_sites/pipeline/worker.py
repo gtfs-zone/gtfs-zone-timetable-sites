@@ -21,5 +21,5 @@ def publish_one(site: Site, today: date, version: str) -> dict:
         headers={"User-Agent": USER_AGENT}, timeout=120.0, follow_redirects=True
     ) as http:
         return build_and_publish(
-            bucket, http, site, today, version, localities_from_env(settings)
+            bucket, http, site, today, version, localities_from_env()
         )
