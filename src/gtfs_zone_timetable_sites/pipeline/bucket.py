@@ -46,9 +46,10 @@ class BucketSettings:
         )
 
 
-def localities_from_env(settings: BucketSettings) -> Localities | None:
+def localities_from_env() -> Localities | None:
     """The locality file at `TIMETABLE_SITES_LOCALITIES` (`<bucket>/<key>`),
-    read over S3 with the bucket's endpoint and keys, or None when unset."""
+    read over S3 with the schedule bucket's `ZIPS_S3_*` endpoint and keys, or
+    None when unset."""
     path = os.environ.get("TIMETABLE_SITES_LOCALITIES", "")
     if not path:
         return None
@@ -56,10 +57,10 @@ def localities_from_env(settings: BucketSettings) -> Localities | None:
 
     return Localities.s3(
         path,
-        settings.endpoint,
-        settings.access_key,
-        settings.secret_key,
-        settings.region,
+        os.environ["ZIPS_S3_ENDPOINT"],
+        os.environ["ZIPS_S3_ACCESS_KEY"],
+        os.environ["ZIPS_S3_SECRET_KEY"],
+        os.environ.get("ZIPS_S3_REGION", "garage"),
     )
 
 

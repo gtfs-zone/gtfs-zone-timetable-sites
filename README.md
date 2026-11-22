@@ -168,7 +168,10 @@ Environment: `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`
 (default `sites.gtfs.zone`), `S3_REGION` (default `garage`), `GATUS_URL`,
 `GATUS_TOKEN`, `TIMETABLE_SITES_CONFIG` (default `sites.yaml`), `TIMETABLE_SITES_WORKERS`
 (default 4), `TIMETABLE_SITES_WORKER_MEMORY` (address space per worker in bytes,
-default 2500000000).
+default 2500000000), `TIMETABLE_SITES_LOCALITIES` (`<bucket>/<key>` of the
+locality file for municipality place tags, unset for none) read with
+`ZIPS_S3_ENDPOINT`, `ZIPS_S3_ACCESS_KEY`, `ZIPS_S3_SECRET_KEY` and
+`ZIPS_S3_REGION` (default `garage`).
 
 ## Boundary data
 

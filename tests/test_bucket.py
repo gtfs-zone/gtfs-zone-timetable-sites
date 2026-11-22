@@ -1,7 +1,11 @@
 import obstore
 from obstore.store import MemoryStore
 
-from gtfs_zone_timetable_sites.pipeline.bucket import Bucket, BucketSettings
+from gtfs_zone_timetable_sites.pipeline.bucket import (
+    Bucket,
+    BucketSettings,
+    localities_from_env,
+)
 
 SETTINGS = BucketSettings(
     endpoint="http://garage:3900",
@@ -36,3 +40,19 @@ def test_put_sets_content_type_and_cache_control():
 
 def test_s3_store_builds_from_settings():
     assert Bucket(SETTINGS).name == "sites.gtfs.zone"
+
+
+def test_localities_read_with_the_zips_keys(monkeypatch):
+    monkeypatch.delenv("TIMETABLE_SITES_LOCALITIES", raising=False)
+    assert localities_from_env() is None
+    monkeypatch.setenv("TIMETABLE_SITES_LOCALITIES", "gtfs-zips/localities/l.parquet")
+    monkeypatch.setenv("ZIPS_S3_ENDPOINT", "http://garage:3900")
+    monkeypatch.setenv("ZIPS_S3_ACCESS_KEY", "GKzips")
+    monkeypatch.setenv("ZIPS_S3_SECRET_KEY", "secret")
+    monkeypatch.setenv("S3_ACCESS_KEY", "sites-key")
+    localities = localities_from_env()
+    assert localities.path == "gtfs-zips/localities/l.parquet"
+    options = localities.filesystem.__reduce__()[1][0]
+    assert options["access_key"] == "GKzips"
+    assert options["region"] == "garage"
+    assert options["scheme"] == "http"
