@@ -1,3 +1,9 @@
+## v0.25.1 (2026-11-22)
+
+### Fix
+
+- **pipeline**: read the locality file with the schedule bucket's ZIPS_S3 keys, feed-fetch v0.4.0
+
 ## v0.25.0 (2026-11-22)
 
 ### Feat
