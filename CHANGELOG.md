@@ -1,3 +1,21 @@
+## v0.25.0 (2026-11-22)
+
+### Feat
+
+- **places**: municipality place tags from a localities file, feed-fetch v0.2.0
+- **feed-pages**: a page for every catalog feed with URL checks, catalog rows and licenses
+- **templates**: route map insets show live vehicles from the route's one poll
+- **templates**: vehicles drawn as in web-common, shrunk by a crowd scale where they crowd
+
+### Fix
+
+- **templates**: vehicles in a white and dark ring alike, arrow halo fits its size, route colors not swapped for contrast
+- **templates**: fare zone names wrap in stop cells and fare charts instead of being cut
+- **templates**: insets laid out before the maps load, vehicles shrink by the area they occupy
+- **templates**: maps keep their height while loading, live line over the map, mode chips in the page
+- **templates**: route accordion chevron centered at the summary's right edge
+- **templates**: stop code, platform, zone and notes follow the stop name inline
+
 ## v0.24.0 (2026-11-20)
 
 ### Feat
