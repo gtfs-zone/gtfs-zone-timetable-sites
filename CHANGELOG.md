@@ -1,3 +1,9 @@
+## v0.26.0 (2026-11-23)
+
+### Feat
+
+- **pipeline**: build sites from feed-catalog's gtfs-zips store, download only feeds without a stored zip; feed-fetch v0.7.0
+
 ## v0.25.1 (2026-11-22)
 
 ### Fix
