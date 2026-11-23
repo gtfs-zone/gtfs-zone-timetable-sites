@@ -131,8 +131,10 @@ site and does no I/O, so it can run anywhere Python does.
 ## Pipeline
 
 `gtfs_zone_timetable_sites.pipeline.definitions` is a Dagster code location with 16
-partitions, each a shard of the sites by slug. A daily schedule at 11:00 UTC
-runs every shard. A run resolves the sites from `sites.yaml` and feeds.json,
+partitions, each a shard of the sites by slug. `site_pages` depends on
+feed-catalog's `published_artifacts` (another code location in the same
+Dagster instance) and every shard runs once after each of its
+materializations. A run resolves the sites from `sites.yaml` and feeds.json,
 then for each of its shard's sites, in worker processes: download the feed,
 build it, upload the files whose hash changed to the `sites.gtfs.zone` bucket,
 delete ones no longer built and write `<slug>/manifest.json`. A site that fails

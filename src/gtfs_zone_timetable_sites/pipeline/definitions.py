@@ -1,5 +1,6 @@
 """Dagster entrypoint: the sites split into SHARDS partitions by slug, each
-rebuilt daily and once more whenever a new timetable-sites version is deployed.
+rebuilt after every feed-catalog `published_artifacts` materialization and once
+more whenever a new timetable-sites version is deployed.
 
 Each run resolves every site from sites.yaml and feeds.json, with each feed's
 catalog rows and checks from sources.json and status.json, builds its shard's
@@ -20,18 +21,18 @@ from pathlib import Path
 import httpx
 from dagster import (
     AssetExecutionContext,
-    DefaultScheduleStatus,
+    AssetKey,
+    AutomationCondition,
+    AutomationConditionSensorDefinition,
     DefaultSensorStatus,
     Definitions,
     MaterializeResult,
     MetadataValue,
     RunRequest,
-    ScheduleEvaluationContext,
     SensorEvaluationContext,
     StaticPartitionsDefinition,
     asset,
     define_asset_job,
-    schedule,
     sensor,
 )
 
@@ -82,9 +83,16 @@ BEHIND_RATIO = 0.05
 
 KEYS = [f"{shard:02d}" for shard in range(SHARDS)]
 shard_partitions = StaticPartitionsDefinition(KEYS)
+# feed-catalog's asset, in another code location of the same instance: it
+# publishes feeds.json and the gtfs-zips index the shards read.
+PUBLISHED_ARTIFACTS = AssetKey("published_artifacts")
 
 
-@asset(partitions_def=shard_partitions)
+@asset(
+    partitions_def=shard_partitions,
+    deps=[PUBLISHED_ARTIFACTS],
+    automation_condition=AutomationCondition.eager(),
+)
 def site_pages(context: AssetExecutionContext) -> MaterializeResult:
     """Build and publish the shard's sites, then rewrite the root."""
     shard = int(context.partition_key)
@@ -201,25 +209,25 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
 
 # The Dagster instance runs one `gtfs.zone/memory: heavy` run at a time, so a
 # shard never overlaps a crimes run on the node.
+HEAVY = {"gtfs.zone/memory": "heavy"}
+
 sites_job = define_asset_job(
     "sites",
     selection=[site_pages],
     partitions_def=shard_partitions,
-    tags={"gtfs.zone/memory": "heavy"},
+    tags=HEAVY,
 )
 
 
-# Two hours after feed-catalog's 09:00 UTC catalog run, which publishes the
-# feeds.json sites are resolved from.
-@schedule(
-    job=sites_job,
-    cron_schedule="0 11 * * *",
-    execution_timezone="UTC",
-    default_status=DefaultScheduleStatus.RUNNING,
+# Requests every shard after each new published_artifacts materialization, one
+# run per shard (not a backfill), so the heavy limit queues them.
+after_catalog = AutomationConditionSensorDefinition(
+    "after_catalog",
+    target=[site_pages],
+    run_tags=HEAVY,
+    default_status=DefaultSensorStatus.RUNNING,
+    emit_backfills=False,
 )
-def daily_sites(context: ScheduleEvaluationContext) -> list[RunRequest]:
-    day = context.scheduled_execution_time.date().isoformat()
-    return [RunRequest(run_key=f"{key}-{day}", partition_key=key) for key in KEYS]
 
 
 # Rebuilds every shard once per deployed version; Dagster skips run keys this
@@ -234,6 +242,5 @@ def new_version(context: SensorEvaluationContext) -> list[RunRequest]:
 defs = Definitions(
     assets=[site_pages],
     jobs=[sites_job],
-    schedules=[daily_sites],
-    sensors=[new_version],
+    sensors=[after_catalog, new_version],
 )
