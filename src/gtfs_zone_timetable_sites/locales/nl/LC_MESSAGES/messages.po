@@ -814,7 +814,7 @@ msgstr[0] "{n} vervoerder"
 msgstr[1] "{n} vervoerders"
 
 msgid "root.search"
-msgstr "Zoek vervoerders, plaatsen"
+msgstr "Zoek feeds, plaatsen, hosts"
 
 msgid "root.map"
 msgstr "Kaart van landen met dienstregelingen"
@@ -822,13 +822,37 @@ msgstr "Kaart van landen met dienstregelingen"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} vervoerder, de eerste {max} getoond"
-msgstr[1] "{n} vervoerders, de eerste {max} getoond"
-
 msgid "root.none_found"
 msgstr "Geen vervoerders gevonden"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} feed"
+msgstr[1] "{n} feeds"
+
+msgid "root.no_feeds"
+msgstr "Geen feeds gevonden"
+
+msgid "root.loading"
+msgstr "Feedlijst laden..."
+
+msgid "root.load_error"
+msgstr "De feedlijst kon niet worden geladen."
+
+msgid "root.modified"
+msgstr "bijgewerkt op {date}"
+
+msgid "root.filters"
+msgstr "Feeds filteren"
+
+msgid "root.no_country"
+msgstr "Zonder land"
+
+msgid "root.only_realtime"
+msgstr "Alleen met realtime"
+
+msgid "root.show_more"
+msgstr "Meer tonen"
 
 msgid "root.generated"
 msgstr ""

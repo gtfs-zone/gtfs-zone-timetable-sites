@@ -792,7 +792,7 @@ msgid_plural "root.agencies"
 msgstr[0] "{n}事業者"
 
 msgid "root.search"
-msgstr "事業者・地名を検索"
+msgstr "フィード・地名・ホストを検索"
 
 msgid "root.map"
 msgstr "時刻表のある国の地図"
@@ -800,12 +800,36 @@ msgstr "時刻表のある国の地図"
 msgid "root.map_count"
 msgstr "{name}：{agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n}事業者（最初の{max}件を表示）"
-
 msgid "root.none_found"
 msgstr "事業者が見つかりません"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n}件のフィード"
+
+msgid "root.no_feeds"
+msgstr "該当するフィードはありません"
+
+msgid "root.loading"
+msgstr "フィード一覧を読み込み中..."
+
+msgid "root.load_error"
+msgstr "フィード一覧を読み込めませんでした。"
+
+msgid "root.modified"
+msgstr "{date}更新"
+
+msgid "root.filters"
+msgstr "フィードを絞り込む"
+
+msgid "root.no_country"
+msgstr "国なし"
+
+msgid "root.only_realtime"
+msgstr "リアルタイムありのみ"
+
+msgid "root.show_more"
+msgstr "さらに表示"
 
 msgid "root.generated"
 msgstr "{link}が各事業者のGTFSフィードから毎日生成しています。ご利用前に事業者にご確認ください。"

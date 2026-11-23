@@ -13,12 +13,25 @@
 {% endblock %}
 {% block main %}
 <h1 class="text-3xl font-bold">{{ t("root.title") }}</h1>
+<div class="flex flex-col gap-4" id="catalog-search" data-src="https://data.gtfs.zone/search.json" data-slugs="{{ root }}slugs.json" data-langs="{{ root }}sites.json" data-root="{{ root }}">
 <label class="input input-lg w-full">
 <svg class="size-5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-<input type="search" id="site-search" data-src="{{ root }}sites.json" data-root="{{ root }}" data-status="search-status" aria-controls="search-results" placeholder="{{ t("root.search") }}" autocomplete="off" aria-describedby="search-status">
+<input type="search" aria-controls="search-results" placeholder="{{ t("root.search") }}" autocomplete="off" aria-describedby="search-status">
 </label>
-<p class="sr-only" id="search-status" role="status"></p>
-<ul class="list rounded-box bg-base-100 shadow-sm" id="search-results" hidden></ul>
+<div class="flex flex-wrap items-center gap-2" role="group" aria-label="{{ t("root.filters") }}">
+{% for state in ("up", "partial", "down", "unknown") %}
+<input class="btn btn-sm min-h-11" type="checkbox" name="status" value="{{ state }}" data-label="{{ t("state." ~ state) }}" aria-label="{{ t("state." ~ state) }}">
+{% endfor %}
+<input class="btn btn-sm min-h-11" type="checkbox" name="np" data-label="{{ t("root.no_country") }}" aria-label="{{ t("root.no_country") }}">
+<label class="label min-h-11 cursor-pointer gap-2 px-2">
+<input class="toggle toggle-sm" type="checkbox" name="rt" data-label="{{ t("root.only_realtime") }}" aria-label="{{ t("root.only_realtime") }}">
+<span aria-hidden="true">{{ t("root.only_realtime") }}</span>
+</label>
+</div>
+<p class="search-status text-sm text-base-content/70" id="search-status" role="status"></p>
+<ul class="search-results list rounded-box bg-base-100 shadow-sm" id="search-results" hidden></ul>
+<button class="search-more btn self-center" type="button" hidden>{{ t("root.show_more") }}</button>
+</div>
 <section class="card area bg-base-100 shadow-sm" data-src="{{ root }}world.json" data-key="key" data-href="{{ root }}countries/{}/">
 <div class="card-body p-2">
 <div class="relative">

@@ -17,6 +17,13 @@ repos:
         exclude: ^src/gtfs_zone_timetable_sites/templates/style\.css$
         pass_filenames: false
         stages: [pre-commit]
+      - id: root-js
+        name: build root.js
+        entry: sh -c 'pnpm run check:js && pnpm run build:js'
+        language: system
+        files: ^(src/js/.*\.ts|package\.json|tsconfig\.json)$
+        pass_filenames: false
+        stages: [pre-commit]
       - id: check
         name: check
         entry: scripts/check.sh

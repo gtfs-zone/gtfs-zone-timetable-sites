@@ -229,6 +229,9 @@ def test_root_pages_carry_root_js_text():
         text = json.loads(re.search(r'id="root-text">(.*?)</script>', page)[1])
         assert text["root.agencies"] == {"one": "{n} agency", "other": "{n} agencies"}
         assert text["root.none_found"] == "No agencies found"
+        assert text["root.feeds"] == {"one": "{n} feed", "other": "{n} feeds"}
+        assert text["state.unknown"] == "Inaccessible"
+        assert text["role.chip_down"] == "{role}: did not answer the last daily check"
     assert "1 agency<" in files["index.html"].decode()
 
 
@@ -802,9 +805,7 @@ def test_root_groups_by_region_and_writes_maps():
         f["properties"]["key"]: f["properties"]["count"] for f in world["features"]
     }
     assert counts["us"] == 4 and counts["fr"] == 0
-    rows = json.loads(files["sites.json"])
-    assert ["a", "Alpha", "", "Massachusetts, United States", "unavailable"] in rows
-    assert ["d", "Delta", "", "Atlantis, United States", "unavailable"] in rows
+    assert json.loads(files["sites.json"]) == {}
 
 
 def test_block_continuations_stop_codes_and_platforms():
@@ -1147,7 +1148,9 @@ def test_root_and_country_pages_per_ui_language():
 
     root_fr = files["lang/fr/index.html"]
     assert '<html lang="fr">' in root_fr
-    assert 'src="../../root.js"' in root_fr and 'data-src="../../sites.json"' in root_fr
+    assert 'src="../../root.js"' in root_fr
+    assert 'data-langs="../../sites.json"' in root_fr
+    assert 'data-slugs="../../slugs.json"' in root_fr
     assert 'href="../../countries/ca/fr/" data-key="ca"' in root_fr
     assert 'href="../../countries/fr/" data-key="fr"' in root_fr
     assert 'href="../../countries/jp/" data-key="jp"' in root_fr
@@ -1157,9 +1160,7 @@ def test_root_and_country_pages_per_ui_language():
     assert 'href="../../" lang="en" hreflang="en"' in root_fr
     assert 'href="lang/fr/" lang="fr" hreflang="fr"' in files["index.html"]
 
-    rows = {row[0]: row for row in json.loads(files["sites.json"])}
-    assert rows["c"][1] == "Charlie" and rows["c"][5] == ["en"]
-    assert len(rows["a"]) == 5
+    assert json.loads(files["sites.json"]) == {"b": ["fr"], "c": ["en"]}
 
     root_map = files["sitemaps/root.xml"]
     assert (

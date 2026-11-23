@@ -35,7 +35,13 @@ from gtfs_zone_timetable_sites.fares import (
     route_fares,
     site_fares,
 )
-from gtfs_zone_timetable_sites.feedpage import dataset, feed_view, place_line
+from gtfs_zone_timetable_sites.feedpage import (
+    RT_ROLES,
+    STATES,
+    dataset,
+    feed_view,
+    place_line,
+)
 from gtfs_zone_timetable_sites.gtfs.reader import (
     Agency,
     FaresError,
@@ -765,9 +771,19 @@ def map_text(locale: Locale) -> Markup:
 
 
 # Plural text root.js shows, by i18n key: forms by CLDR category.
-ROOT_PLURALS = ("root.agencies", "root.found_first")
+ROOT_PLURALS = ("root.agencies", "root.feeds")
 # Text root.js shows, by i18n key.
-ROOT_TEXT = ("root.map_count", "root.none_found")
+ROOT_TEXT = (
+    "root.map_count",
+    "root.none_found",
+    "root.no_feeds",
+    "root.loading",
+    "root.load_error",
+    "root.modified",
+    *(f"state.{state}" for state in STATES),
+    *(f"role.{role}" for role in RT_ROLES),
+    *(f"role.chip_{state}" for state in STATES),
+)
 
 
 def root_text(locale: Locale) -> Markup:
@@ -1168,24 +1184,17 @@ def with_counts(doc: dict, key: str, counts: dict[str, int]) -> bytes:
     ).encode()
 
 
-def search_index(countries: list[dict]) -> bytes:
-    """sites.json for root.js's search: [slug, title, source, where, status] per
-    site, where being its region and country, plus its other page sets'
-    languages when it has any. The title is in the feed's own language."""
-    rows = [
-        [
-            site["slug"],
-            site.get("feed_title", site["title"]),
-            site.get("source") or "",
-            ", ".join(n for n in (group["name"], place["name"]) if n),
-            site["status"],
-            *([codes[1:]] if len(codes := site.get("languages") or []) > 1 else []),
-        ]
+def site_languages(countries: list[dict]) -> bytes:
+    """sites.json for root.js's search: {slug: languages of its other page
+    sets} for each site with more than one."""
+    langs = {
+        site["slug"]: codes[1:]
         for place in countries
         for group in place["subdivisions"]
         for site in group["sites"]
-    ]
-    return json.dumps(rows, separators=(",", ":"), ensure_ascii=False).encode()
+        if len(codes := site.get("languages") or []) > 1
+    }
+    return json.dumps(langs, separators=(",", ":"), ensure_ascii=False).encode()
 
 
 # The root's languages, the default first: every UI catalog.
@@ -1316,7 +1325,7 @@ def build_root(
         "style.css": asset("style.css"),
         "logo.svg": asset("logo.svg"),
         "root.js": asset("root.js"),
-        "sites.json": search_index(countries),
+        "sites.json": site_languages(countries),
         "world.json": with_counts(
             world(), "key", {c["key"]: len(c["sites"]) for c in countries}
         ),

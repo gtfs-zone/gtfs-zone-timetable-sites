@@ -824,7 +824,7 @@ msgstr[1] "{n} przewoźników"
 msgstr[2] "{n} przewoźników"
 
 msgid "root.search"
-msgstr "Szukaj przewoźników, miejsc"
+msgstr "Szukaj feedów, miejsc, hostów"
 
 msgid "root.map"
 msgstr "Mapa krajów z rozkładami"
@@ -832,14 +832,38 @@ msgstr "Mapa krajów z rozkładami"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} przewoźnik, pokazano pierwszych {max}"
-msgstr[1] "{n} przewoźników, pokazano pierwszych {max}"
-msgstr[2] "{n} przewoźników, pokazano pierwszych {max}"
-
 msgid "root.none_found"
 msgstr "Nie znaleziono przewoźników"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} feed"
+msgstr[1] "{n} feedy"
+msgstr[2] "{n} feedów"
+
+msgid "root.no_feeds"
+msgstr "Brak pasujących feedów"
+
+msgid "root.loading"
+msgstr "Wczytywanie listy feedów..."
+
+msgid "root.load_error"
+msgstr "Nie udało się wczytać listy feedów."
+
+msgid "root.modified"
+msgstr "zaktualizowano {date}"
+
+msgid "root.filters"
+msgstr "Filtruj feedy"
+
+msgid "root.no_country"
+msgstr "Bez kraju"
+
+msgid "root.only_realtime"
+msgstr "Tylko z czasem rzeczywistym"
+
+msgid "root.show_more"
+msgstr "Pokaż więcej"
 
 msgid "root.generated"
 msgstr ""

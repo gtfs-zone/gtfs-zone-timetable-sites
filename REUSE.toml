@@ -12,3 +12,10 @@ path = "src/gtfs_zone_timetable_sites/templates/style.css"
 precedence = "override"
 SPDX-FileCopyrightText = ["Tailwind Labs, Inc.", "Pouya Saadeghi"]
 SPDX-License-Identifier = "MIT"
+
+# esbuild bundle of src/js with uFuzzy and gtfs-zone-web-common
+[[annotations]]
+path = "src/gtfs_zone_timetable_sites/templates/root.js"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Leon Sorokin"
+SPDX-License-Identifier = "MIT"

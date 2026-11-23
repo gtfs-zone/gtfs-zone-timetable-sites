@@ -1,10 +1,10 @@
 @import "tailwindcss" source(none);
 @source "./*.html";
 @source "./map.js";
-@source "./root.js";
+@source "../../js/*.ts";
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
-  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap, input, dropdown;
+  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap, input, dropdown, toggle;
   logs: false;
 }
 

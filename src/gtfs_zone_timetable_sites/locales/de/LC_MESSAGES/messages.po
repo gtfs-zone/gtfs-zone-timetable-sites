@@ -821,7 +821,7 @@ msgstr[0] "{n} Verkehrsunternehmen"
 msgstr[1] "{n} Verkehrsunternehmen"
 
 msgid "root.search"
-msgstr "Verkehrsunternehmen, Orte suchen"
+msgstr "Feeds, Orte, Hosts suchen"
 
 msgid "root.map"
 msgstr "Karte der Länder mit Fahrplänen"
@@ -829,13 +829,37 @@ msgstr "Karte der Länder mit Fahrplänen"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} Verkehrsunternehmen, die ersten {max} werden gezeigt"
-msgstr[1] "{n} Verkehrsunternehmen, die ersten {max} werden gezeigt"
-
 msgid "root.none_found"
 msgstr "Keine Verkehrsunternehmen gefunden"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} Feed"
+msgstr[1] "{n} Feeds"
+
+msgid "root.no_feeds"
+msgstr "Keine passenden Feeds"
+
+msgid "root.loading"
+msgstr "Feedliste wird geladen..."
+
+msgid "root.load_error"
+msgstr "Die Feedliste konnte nicht geladen werden."
+
+msgid "root.modified"
+msgstr "aktualisiert am {date}"
+
+msgid "root.filters"
+msgstr "Feeds filtern"
+
+msgid "root.no_country"
+msgstr "Ohne Land"
+
+msgid "root.only_realtime"
+msgstr "Nur mit Echtzeit"
+
+msgid "root.show_more"
+msgstr "Mehr anzeigen"
 
 msgid "root.generated"
 msgstr ""
