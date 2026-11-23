@@ -56,3 +56,21 @@ def test_localities_read_with_the_zips_keys(monkeypatch):
     assert options["access_key"] == "GKzips"
     assert options["region"] == "garage"
     assert options["scheme"] == "http"
+
+
+def test_open_streams_an_object_to_a_file():
+    bucket = Bucket(SETTINGS, store=MemoryStore())
+    bucket.put("gtfs/a.zip", b"PK" * 1000)
+    with bucket.open("gtfs/a.zip") as body:
+        assert body.read() == b"PK" * 1000
+    assert bucket.open("gtfs/missing.zip") is None
+
+
+def test_zips_from_env(monkeypatch):
+    monkeypatch.delenv("ZIPS_S3_ENDPOINT", raising=False)
+    assert BucketSettings.zips_from_env() is None
+    monkeypatch.setenv("ZIPS_S3_ENDPOINT", "http://garage:3900")
+    monkeypatch.setenv("ZIPS_S3_ACCESS_KEY", "key")
+    monkeypatch.setenv("ZIPS_S3_SECRET_KEY", "secret")
+    settings = BucketSettings.zips_from_env()
+    assert settings.bucket == "gtfs-zips" and settings.region == "garage"

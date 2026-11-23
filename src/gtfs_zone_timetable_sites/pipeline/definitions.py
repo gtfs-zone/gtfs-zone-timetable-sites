@@ -66,6 +66,7 @@ from gtfs_zone_timetable_sites.pipeline.publish import (
     read_entries,
     read_json,
     run_shard,
+    stored_entries,
 )
 from gtfs_zone_timetable_sites.pipeline.worker import publish_one
 
@@ -121,7 +122,14 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
             len(pages),
         )
 
-        publish = functools.partial(publish_one, today=today, version=VERSION)
+        # Feeds with a zip in feed-catalog's schedule store are built from it;
+        # the rest are downloaded.
+        zips_settings = BucketSettings.zips_from_env()
+        stored = stored_entries(Bucket(zips_settings), mine) if zips_settings else {}
+        context.log.info("%d of %d sites in the schedule store", len(stored), len(mine))
+        publish = functools.partial(
+            publish_one, today=today, version=VERSION, stored=stored
+        )
         results, failures, skipped = run_shard(
             bucket,
             shard,
@@ -182,6 +190,7 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
             "skipped": len(skipped),
             "outcomes": MetadataValue.json(dict(outcomes)),
             "uploaded": uploaded,
+            "from_store": sum(bool(r.get("stored")) for r in results.values()),
             "behind": len(behind),
             "behind_bad": len(bad),
             "failures": MetadataValue.json(failures),

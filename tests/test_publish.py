@@ -1,8 +1,10 @@
+import io
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 from conftest import fixture_files, fixture_zip, make_zip
+from gtfs_zone_feed_fetch.store import INDEX_KEY, Stored, index_body
 
 from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import CatalogFeed, Site
@@ -17,6 +19,7 @@ from gtfs_zone_timetable_sites.pipeline.publish import (
     read_contents,
     read_entries,
     run_shard,
+    stored_entries,
 )
 
 httpx = pytest.importorskip("httpx")
@@ -577,3 +580,84 @@ def test_run_shard_keeps_memory_failure_when_the_retry_fails_too():
     assert failures == {"a": "MemoryError: "}
     report = json.loads(store.objects["_content/00.json"])["a"]
     assert report["outcome"] == "memory"
+
+
+class FakeZips(FakeStore):
+    def open(self, key):
+        body = self.objects.get(key)
+        return io.BytesIO(body) if body is not None else None
+
+
+def stored_entry(url="https://x/g.zip", sha256="abc"):
+    return Stored(
+        url=url,
+        checked="2026-10-05T09:00:00+00:00",
+        outcome="not_modified",
+        key=f"gtfs/{sha256}.zip",
+        sha256=sha256,
+        kind="zip",
+        etag='"v1"',
+    )
+
+
+def test_build_and_publish_reads_the_store_and_skips_the_same_zip():
+    store = FakeStore()
+    zips = FakeZips({"gtfs/abc.zip": fixture_zip("overnight")})
+    site = Site(slug="s", url="https://x/g.zip")
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(500)
+
+    result = build_and_publish(
+        store, client(handler), site, TODAY, "1", None, zips, stored_entry()
+    )
+    assert result["stored"] and result["counts"]["uploaded"] > 0
+    manifest = json.loads(store.objects["s/manifest.json"])
+    assert manifest["source"] == {
+        "url": "https://x/g.zip",
+        "etag": '"v1"',
+        "last_modified": None,
+        "sha256": "abc",
+    }
+
+    again = build_and_publish(
+        store, client(handler), site, TODAY, "1", None, zips, stored_entry()
+    )
+    assert again["counts"]["uploaded"] == 0 and again["entry"] == result["entry"]
+    assert calls == []
+
+
+def test_build_and_publish_downloads_a_zip_missing_from_the_store():
+    site = Site(slug="s", url="https://x/g.zip")
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200, content=fixture_zip("overnight"))
+
+    for stored in (stored_entry(), None):
+        result = build_and_publish(
+            FakeStore(), client(handler), site, TODAY, "1", None, FakeZips(), stored
+        )
+        assert not result["stored"] and result["counts"]["uploaded"] > 0
+    assert len(calls) == 2
+
+
+def test_stored_entries_by_slug_only_for_stored_zips():
+    index = {
+        "https://x/a.zip": stored_entry("https://x/a.zip", "a"),
+        "https://x/b.zip": Stored(
+            url="https://x/b.zip", checked="c", outcome="too_large"
+        ),
+    }
+    zips = FakeZips({INDEX_KEY: index_body(index, datetime.now(UTC), 100)})
+    sites = [
+        Site(slug="a", url="HTTPS://X:443/a.zip"),
+        Site(slug="b", url="https://x/b.zip"),
+        Site(slug="c", url="https://x/c.zip"),
+        Site(slug="d", feed="f-0123456789"),
+    ]
+    assert stored_entries(zips, sites) == {"a": index["https://x/a.zip"]}
+    assert stored_entries(FakeZips(), sites) == {}

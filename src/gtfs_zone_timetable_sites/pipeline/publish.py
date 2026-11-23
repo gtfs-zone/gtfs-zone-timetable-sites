@@ -36,6 +36,13 @@ from datetime import date
 from typing import TYPE_CHECKING, BinaryIO, Protocol
 
 from gtfs_zone_feed_fetch.pool import isolated, run_all
+from gtfs_zone_feed_fetch.store import (
+    INDEX_KEY,
+    Stored,
+    lookup,
+    parse_index,
+    stored_zip,
+)
 
 from gtfs_zone_timetable_sites.build import (
     UNUSABLE,
@@ -104,6 +111,50 @@ class Store(Protocol):
     def get(self, key: str) -> bytes | None: ...
     def put(self, key: str, body: bytes) -> None: ...
     def delete(self, keys: set[str]) -> None: ...
+
+
+class ZipSource(Protocol):
+    def open(self, key: str) -> BinaryIO | None: ...
+
+
+def from_store(
+    zips: ZipSource, stored: Stored | None, previous: dict | None
+) -> tuple[BinaryIO | None, dict] | None:
+    """The feed zip feed-catalog stored, streamed to a temporary file the
+    caller closes, and its source; None for the body when `previous` names the
+    same zip. None when the store has no zip for the feed."""
+    key = stored_zip(stored)
+    if not key:
+        return None
+    if previous and previous.get("sha256") == stored.sha256:
+        return None, previous
+    body = zips.open(key)
+    if body is None:
+        log.info("%s is in the index but not in the store", key)
+        return None
+    return body, {
+        "url": stored.url,
+        "etag": stored.etag or None,
+        "last_modified": stored.last_modified or None,
+        "sha256": stored.sha256,
+    }
+
+
+def stored_entries(zips: Store, sites: list[Site]) -> dict[str, Stored]:
+    """Each site's entry in the schedule index, by slug, for the sites whose
+    zip is in the store."""
+    body = zips.get(INDEX_KEY)
+    if not body:
+        log.warning("%s missing; every feed is downloaded", INDEX_KEY)
+        return {}
+    index = parse_index(body)
+    entries = {}
+    for site in sites:
+        url = site_url(site)
+        entry = lookup(index, url) if url else None
+        if stored_zip(entry):
+            entries[site.slug] = entry
+    return entries
 
 
 def download(
@@ -231,10 +282,13 @@ def build_and_publish(
     today: date,
     version: str,
     localities: "Localities | None" = None,
+    zips: ZipSource | None = None,
+    stored: Stored | None = None,
 ) -> dict:
-    """Download, build and publish one site, with municipality tags from
-    `localities` when given. Returns its counts, the pages changed today and
-    its shard entry."""
+    """Build and publish one site from its zip in `zips` (`stored` is its
+    index entry), else from a download, with municipality tags from
+    `localities` when given. Returns its counts, the pages changed today, its
+    shard entry and whether the zip came from the store."""
     previous = read_manifest(store, site.slug)
     # Builds depend on the date and the code, so only a second run on the same
     # day with the same version may skip.
@@ -244,7 +298,9 @@ def build_and_publish(
         and previous.get("version") == version
     )
     url = site.download_url()
-    body, source = download(http, url, previous["source"] if same_day else None)
+    prior = previous["source"] if same_day else None
+    found = from_store(zips, stored, prior) if zips is not None else None
+    body, source = found or download(http, url, prior)
     if body is None:
         summary = read_json(store, f"{site.slug}/site.json") or {}
         return {
@@ -252,6 +308,7 @@ def build_and_publish(
             "changed": [],
             "entry": site_entry(summary, previous["built"], previous["pages"]),
             "content": read_json(store, f"{site.slug}/content.json") or {},
+            "stored": found is not None,
         }
     with body:
         files = checked_build(body, site, today, localities)
@@ -264,6 +321,7 @@ def build_and_publish(
         "changed": changed,
         "entry": site_entry(summary, today.isoformat(), pages),
         "content": json.loads(files["content.json"]),
+        "stored": found is not None,
     }
 
 
