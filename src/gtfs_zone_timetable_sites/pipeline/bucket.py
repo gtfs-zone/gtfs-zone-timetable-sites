@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+import tempfile
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO
 
 import obstore
 
@@ -43,6 +45,21 @@ class BucketSettings:
             access_key=os.environ["S3_ACCESS_KEY"],
             secret_key=os.environ["S3_SECRET_KEY"],
             region=os.environ.get("S3_REGION", "garage"),
+        )
+
+    @classmethod
+    def zips_from_env(cls) -> BucketSettings | None:
+        """The schedule bucket feed-catalog writes, read with the `ZIPS_S3_*`
+        keys, or None when `ZIPS_S3_ENDPOINT` is unset."""
+        endpoint = os.environ.get("ZIPS_S3_ENDPOINT", "")
+        if not endpoint:
+            return None
+        return cls(
+            endpoint=endpoint,
+            bucket=os.environ.get("ZIPS_S3_BUCKET", "gtfs-zips"),
+            access_key=os.environ["ZIPS_S3_ACCESS_KEY"],
+            secret_key=os.environ["ZIPS_S3_SECRET_KEY"],
+            region=os.environ.get("ZIPS_S3_REGION", "garage"),
         )
 
 
@@ -105,6 +122,22 @@ class Bucket:
             return bytes(obstore.get(self._store, key).bytes())
         except FileNotFoundError:
             return None
+
+    def open(self, key: str) -> BinaryIO | None:
+        """The object's body streamed to a temporary file the caller closes,
+        or None when there is no such key."""
+        try:
+            result = obstore.get(self._store, key)
+        except FileNotFoundError:
+            return None
+        # Closed here only when the read fails.
+        with ExitStack() as stack:
+            body = stack.enter_context(tempfile.TemporaryFile())
+            for chunk in result:
+                body.write(chunk)
+            stack.pop_all()
+        body.seek(0)
+        return body
 
     def put(self, key: str, body: bytes) -> None:
         obstore.put(
