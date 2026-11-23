@@ -4,7 +4,7 @@
 @source "../../js/*.ts";
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
-  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap, input, dropdown, toggle;
+  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap, input, dropdown, toggle, table;
   logs: false;
 }
 
@@ -15,7 +15,8 @@
 
 /* Sources page counts */
 .stats-table { font-variant-numeric: tabular-nums; }
-.stats-table td { text-align: right; white-space: nowrap; }
+.stats-table td, .stats-table thead th:not(:first-child) { text-align: right; white-space: nowrap; }
+.stats-table th[scope=row] { font-weight: 600; }
 
 /* Timetables */
 /* Isolated so the rail's z-index stays inside the table. Sized to its
