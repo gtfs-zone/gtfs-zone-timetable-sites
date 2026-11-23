@@ -982,3 +982,164 @@ msgstr ""
 msgid "error.find"
 msgstr "Znajdź rozkłady swojego przewoźnika"
 
+msgid "root.sources"
+msgstr "Skąd pochodzą feedy"
+
+msgid "sources.title"
+msgstr "Źródła feedów"
+
+msgid "sources.description"
+msgstr "Ile feedów zawiera każdy katalog, jak katalogi się pokrywają i ile feedów łączy kilka wpisów."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} feed zebrany z katalogów poniżej."
+msgstr[1] "{count} feedy zebrane z katalogów poniżej."
+msgstr[2] "{count} feedów zebranych z katalogów poniżej."
+
+msgid "sources.as_of"
+msgstr "Dane na {date}."
+
+msgid "sources.catalogs"
+msgstr "Katalogi"
+
+msgid "sources.catalog"
+msgstr "Katalog"
+
+msgid "sources.entries"
+msgstr "Wpisy"
+
+msgid "sources.feeds"
+msgstr "Feedy"
+
+msgid "sources.schedule_feeds"
+msgstr "Z rozkładem"
+
+msgid "sources.only_here"
+msgstr "Tylko tutaj"
+
+msgid "sources.countries"
+msgstr "Kraje"
+
+msgid "sources.bytes"
+msgstr "Rozmiar"
+
+msgid "sources.distinct_bytes"
+msgstr "Rozmiar unikalny"
+
+msgid "sources.catalogs_note"
+msgstr "Wpisy to własne rekordy katalogu; feedy to to, w co łączą się tutaj. Tylko tutaj liczy feedy z rozkładem, których nie zawiera żaden inny katalog. Rozmiar sumuje najnowszy zip każdego rozkładu; rozmiar unikalny liczy identyczne zipy raz."
+
+msgid "sources.outcome"
+msgstr "Wynik"
+
+msgid "sources.fetch_title"
+msgstr "Ostatnie pobranie"
+
+msgid "sources.fetch_note"
+msgstr "Adresy URL rozkładów według wyniku ostatniego pobrania."
+
+msgid "sources.fetch.ok"
+msgstr "Pobrano"
+
+msgid "sources.fetch.not_modified"
+msgstr "Bez zmian"
+
+msgid "sources.fetch.http_error"
+msgstr "Błąd HTTP"
+
+msgid "sources.fetch.error"
+msgstr "Niepowodzenie"
+
+msgid "sources.fetch.too_large"
+msgstr "Za duży"
+
+msgid "sources.facts_title"
+msgstr "Zawartość"
+
+msgid "sources.facts_note"
+msgstr "Adresy URL rozkładów według tego, czy udało się odczytać ich najnowszy zip."
+
+msgid "sources.facts.ok"
+msgstr "Odczytano"
+
+msgid "sources.facts.empty"
+msgstr "Brak zaplanowanych kursów"
+
+msgid "sources.facts.http_error"
+msgstr "Pobieranie nie powiodło się"
+
+msgid "sources.facts.missing_files"
+msgstr "Brak wymaganych plików"
+
+msgid "sources.facts.not_zip"
+msgstr "To nie jest zip"
+
+msgid "sources.facts.parse_error"
+msgstr "Nie można odczytać"
+
+msgid "sources.facts.timeout"
+msgstr "Przekroczono limit czasu"
+
+msgid "sources.facts.memory"
+msgstr "Za duży do odczytu"
+
+msgid "sources.facts.error"
+msgstr "Niepowodzenie"
+
+msgid "sources.overlap"
+msgstr "Pokrywanie się"
+
+msgid "sources.combinations_note"
+msgstr "Feedy z rozkładem według katalogów, które je zawierają."
+
+msgid "sources.listed_by"
+msgstr "W katalogach"
+
+msgid "sources.pairs_note"
+msgstr "Feedy, które zawierają oba katalogi, i ile z nich ma w obu ten sam adres URL rozkładu lub ten sam zip."
+
+msgid "sources.pair"
+msgstr "Katalogi"
+
+msgid "sources.same_url"
+msgstr "Ten sam URL"
+
+msgid "sources.same_body"
+msgstr "Ten sam zip"
+
+msgid "sources.duplication"
+msgstr "Feedy z kilku wpisów"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi} z {count} feedu łączy więcej niż jeden wpis katalogu."
+msgstr[1] "{multi} z {count} feedów łączy więcej niż jeden wpis katalogu."
+msgstr[2] "{multi} z {count} feedów łączy więcej niż jeden wpis katalogu."
+
+msgid "sources.evidence_note"
+msgstr "Feedy według tego, co połączyło dwa ich wpisy. Feed liczy się raz dla każdego rodzaju, więc rodzaje się pokrywają."
+
+msgid "sources.joined_by"
+msgstr "Połączone przez"
+
+msgid "sources.evidence.url"
+msgstr "Ten sam URL rozkładu"
+
+msgid "sources.evidence.sha256"
+msgstr "Identyczny zip"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Identyczne tabele"
+
+msgid "sources.evidence.reference"
+msgstr "Odwołanie między katalogami"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Feed czasu rzeczywistego tej samej sieci"
+
+msgid "sources.entries_per_feed"
+msgstr "Wpisy na feed"
+
+msgid "sources.data"
+msgstr "Dane z pliku {link} katalogu."

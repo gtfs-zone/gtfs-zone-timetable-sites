@@ -971,3 +971,162 @@ msgstr ""
 msgid "error.find"
 msgstr "Vind de dienstregelingen van uw vervoerder"
 
+msgid "root.sources"
+msgstr "Waar de feeds vandaan komen"
+
+msgid "sources.title"
+msgstr "Bronnen van de feeds"
+
+msgid "sources.description"
+msgstr "Hoeveel feeds elke catalogus vermeldt, hoe de catalogi overlappen en hoeveel feeds meerdere vermeldingen samenvoegen."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} feed, verzameld uit de catalogi hieronder."
+msgstr[1] "{count} feeds, verzameld uit de catalogi hieronder."
+
+msgid "sources.as_of"
+msgstr "Cijfers per {date}."
+
+msgid "sources.catalogs"
+msgstr "Catalogi"
+
+msgid "sources.catalog"
+msgstr "Catalogus"
+
+msgid "sources.entries"
+msgstr "Vermeldingen"
+
+msgid "sources.feeds"
+msgstr "Feeds"
+
+msgid "sources.schedule_feeds"
+msgstr "Met dienstregeling"
+
+msgid "sources.only_here"
+msgstr "Alleen hier"
+
+msgid "sources.countries"
+msgstr "Landen"
+
+msgid "sources.bytes"
+msgstr "Grootte"
+
+msgid "sources.distinct_bytes"
+msgstr "Unieke grootte"
+
+msgid "sources.catalogs_note"
+msgstr "Vermeldingen zijn de eigen records van de catalogus; feeds zijn wat ze hier samen vormen. Alleen hier telt de feeds met dienstregeling die geen andere catalogus vermeldt. De grootte telt de nieuwste zip van elke dienstregeling op; de unieke grootte telt identieke zips één keer."
+
+msgid "sources.outcome"
+msgstr "Resultaat"
+
+msgid "sources.fetch_title"
+msgstr "Laatste download"
+
+msgid "sources.fetch_note"
+msgstr "Dienstregeling-URL's naar het resultaat van hun laatste download."
+
+msgid "sources.fetch.ok"
+msgstr "Gedownload"
+
+msgid "sources.fetch.not_modified"
+msgstr "Niet gewijzigd"
+
+msgid "sources.fetch.http_error"
+msgstr "HTTP-fout"
+
+msgid "sources.fetch.error"
+msgstr "Mislukt"
+
+msgid "sources.fetch.too_large"
+msgstr "Te groot"
+
+msgid "sources.facts_title"
+msgstr "Inhoud"
+
+msgid "sources.facts_note"
+msgstr "Dienstregeling-URL's naar of hun nieuwste zip gelezen kon worden."
+
+msgid "sources.facts.ok"
+msgstr "Gelezen"
+
+msgid "sources.facts.empty"
+msgstr "Geen geplande ritten"
+
+msgid "sources.facts.http_error"
+msgstr "Download mislukt"
+
+msgid "sources.facts.missing_files"
+msgstr "Verplichte bestanden ontbreken"
+
+msgid "sources.facts.not_zip"
+msgstr "Geen zip"
+
+msgid "sources.facts.parse_error"
+msgstr "Niet leesbaar"
+
+msgid "sources.facts.timeout"
+msgstr "Time-out"
+
+msgid "sources.facts.memory"
+msgstr "Te groot om te lezen"
+
+msgid "sources.facts.error"
+msgstr "Mislukt"
+
+msgid "sources.overlap"
+msgstr "Overlap"
+
+msgid "sources.combinations_note"
+msgstr "Feeds met dienstregeling naar de catalogi die ze vermelden."
+
+msgid "sources.listed_by"
+msgstr "Vermeld door"
+
+msgid "sources.pairs_note"
+msgstr "Feeds die twee catalogi allebei vermelden, en hoeveel daarvan in beide dezelfde dienstregeling-URL of dezelfde zip hebben."
+
+msgid "sources.pair"
+msgstr "Catalogi"
+
+msgid "sources.same_url"
+msgstr "Zelfde URL"
+
+msgid "sources.same_body"
+msgstr "Zelfde zip"
+
+msgid "sources.duplication"
+msgstr "Feeds uit meerdere vermeldingen"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi} van {count} feed voegen meer dan één catalogusvermelding samen."
+msgstr[1] "{multi} van {count} feeds voegen meer dan één catalogusvermelding samen."
+
+msgid "sources.evidence_note"
+msgstr "Feeds naar wat twee van hun vermeldingen samenvoegde. Een feed telt één keer per soort, dus de soorten overlappen."
+
+msgid "sources.joined_by"
+msgstr "Samengevoegd door"
+
+msgid "sources.evidence.url"
+msgstr "Zelfde dienstregeling-URL"
+
+msgid "sources.evidence.sha256"
+msgstr "Identieke zip"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Identieke tabellen"
+
+msgid "sources.evidence.reference"
+msgstr "Verwijzing tussen catalogi"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Realtimefeed van hetzelfde net"
+
+msgid "sources.entries_per_feed"
+msgstr "Vermeldingen per feed"
+
+msgid "sources.data"
+msgstr "Cijfers uit het bestand {link} van de catalogus."

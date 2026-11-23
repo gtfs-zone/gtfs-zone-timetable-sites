@@ -34,6 +34,7 @@ from gtfs_zone_timetable_sites.catalog import feed_sites, resolve_sites
 from gtfs_zone_timetable_sites.config import (
     FEEDS_URL,
     SEARCH_URL,
+    SOURCE_STATS_URL,
     SOURCES_URL,
     STATUS_URL,
     USER_AGENT,
@@ -59,6 +60,7 @@ CATALOG = "_catalog.json"
 SOURCES = "_sources.json"
 STATUS = "_status.json"
 SEARCH = "_search.json"
+SOURCE_STATS = "_source-stats.json"
 SLUG_MAP = "_slugs.json"
 ALIAS_MAP = "_aliases.json"
 
@@ -169,10 +171,13 @@ def clear(path: Path) -> None:
         path.unlink()
 
 
-def write_root(out: Path, catalog: dict, slugs: dict[str, str]) -> None:
+def write_root(
+    out: Path, catalog: dict, slugs: dict[str, str], sources: dict | None = None
+) -> None:
     """The bucket root pages from every built site's site.json under `out`,
-    with each site's pages dated by its build and the root search from
-    `catalog` (search.json) and `slugs` ({feed id: slug})."""
+    with each site's pages dated by its build, the root search from
+    `catalog` (search.json) and `slugs` ({feed id: slug}) and the sources page
+    from `sources` (source-stats.json)."""
     summaries = [json.loads(p.read_text()) for p in sorted(out.glob("*/site.json"))]
     pages = {
         summary["slug"]: {
@@ -182,7 +187,14 @@ def write_root(out: Path, catalog: dict, slugs: dict[str, str]) -> None:
         for summary in summaries
     }
     write_files(
-        build_root(summaries, date.today(), pages, catalog=catalog, slugs=slugs),
+        build_root(
+            summaries,
+            date.today(),
+            pages,
+            catalog=catalog,
+            slugs=slugs,
+            sources=sources,
+        ),
         out,
     )
 
@@ -256,7 +268,12 @@ def build(args: argparse.Namespace) -> None:
             failed.append(site.slug)
         else:
             log.info("wrote %d files to %s", result, args.out / site.slug)
-    write_root(args.out, cached_json(SEARCH_URL, args.cache, SEARCH), slugs)
+    write_root(
+        args.out,
+        cached_json(SEARCH_URL, args.cache, SEARCH),
+        slugs,
+        cached_json(SOURCE_STATS_URL, args.cache, SOURCE_STATS),
+    )
     if failed:
         raise SystemExit(f"{len(failed)} of {len(sites)} sites failed")
 

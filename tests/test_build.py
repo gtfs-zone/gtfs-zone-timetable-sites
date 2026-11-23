@@ -26,6 +26,7 @@ from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import CatalogFeed, Site
 from gtfs_zone_timetable_sites.gtfs.reader import read_feed
 from gtfs_zone_timetable_sites.pages import date_range
+from gtfs_zone_timetable_sites.sources import sources_page
 
 MONDAY = date(2026, 10, 5)
 # The root page in each UI language.
@@ -1313,3 +1314,85 @@ def test_root_search_index():
             {"i": "", "n": "No page", "st": "down", "rs": {}, "u": {}},
         ]
     }
+
+
+SOURCE_STATS = {
+    "generated_at": "2026-11-23T13:10:29+00:00",
+    "catalogs": {
+        "ntd": {
+            "entries": 3,
+            "feeds": 2,
+            "scheduleFeeds": 2,
+            "onlyHere": 1,
+            "fetch": {"ok": 2},
+            "facts": {"ok": 1, "not_zip": 1},
+            "bytes": 2_500_000_000,
+            "distinctBytes": 2_000_000_000,
+            "countries": 1,
+        },
+        "mobilitydatabase": {
+            "entries": 5,
+            "feeds": 4,
+            "scheduleFeeds": 4,
+            "onlyHere": 3,
+            "fetch": {"ok": 1, "http_error": 2, "new_outcome": 1},
+            "facts": {"ok": 1},
+            "bytes": 29_435_589,
+            "distinctBytes": 29_435_589,
+            "countries": 2,
+        },
+    },
+    "combinations": [
+        {"catalogs": ["mobilitydatabase"], "feeds": 3},
+        {"catalogs": ["mobilitydatabase", "ntd"], "feeds": 1},
+    ],
+    "pairs": [
+        {
+            "catalogs": ["mobilitydatabase", "ntd"],
+            "feeds": 1,
+            "scheduleUrls": 1,
+            "bodies": 0,
+        }
+    ],
+    "duplication": {
+        "feeds": 5,
+        "multiEntry": 1,
+        "byEvidence": {"url": 1, "sha256": 2},
+        "entriesPerFeed": {"10": 1, "2": 1, "1": 3},
+    },
+}
+
+
+def test_sources_page_content():
+    stats = sources_page(SOURCE_STATS)
+    assert stats["generated"] == date(2026, 11, 23)
+    assert [c["name"]["name"] for c in stats["catalogs"]] == [
+        "Mobility Database",
+        "National Transit Database",
+    ]
+    assert stats["catalogs"][0]["only_share"] == 0.75
+    assert [(r["key"], r["counts"], r["known"]) for r in stats["fetch"]] == [
+        ("ok", [1, 2], True),
+        ("http_error", [2, 0], True),
+        ("new_outcome", [1, 0], False),
+    ]
+    assert [r["key"] for r in stats["evidence"]] == ["sha256", "url"]
+    assert stats["entries_per_feed"] == [(1, 3), (2, 1), (10, 1)]
+    assert sources_page({})["catalogs"] == []
+
+
+def test_sources_pages_in_every_root_language():
+    files = build_root([], MONDAY, sources=SOURCE_STATS)
+    en = files["sources/index.html"].decode()
+    assert '<meta name="robots" content="noindex">' in en
+    for text in ("Mobility Database", "2.5 GB", "29 MB", "75%"):
+        assert text in en
+    assert "<code>new_outcome</code>" in en
+    assert "Mobility Database + National Transit Database" in en
+    fr = files["lang/fr/sources/index.html"].decode()
+    assert "Sources des flux" in fr and "2,5\u202fGo" in fr
+    assert 'href="sources/"' in files["index.html"].decode()
+    assert 'href="../../../sources/"' in fr
+    sitemap = files["sitemaps/root.xml"].decode()
+    assert "sources" not in sitemap
+    assert "sources/index.html" not in build_root([], MONDAY)

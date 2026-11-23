@@ -966,3 +966,163 @@ msgstr "Timetable pages move when an agency renames a route. {link}."
 
 msgid "error.find"
 msgstr "Find your agency's timetables"
+
+msgid "root.sources"
+msgstr "Where the feeds come from"
+
+msgid "sources.title"
+msgstr "Feed sources"
+
+msgid "sources.description"
+msgstr "How many feeds each catalog lists, how the catalogs overlap and how many feeds join several catalog entries."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} feed, gathered from the catalogs below."
+msgstr[1] "{count} feeds, gathered from the catalogs below."
+
+msgid "sources.as_of"
+msgstr "Counts as of {date}."
+
+msgid "sources.catalogs"
+msgstr "Catalogs"
+
+msgid "sources.catalog"
+msgstr "Catalog"
+
+msgid "sources.entries"
+msgstr "Entries"
+
+msgid "sources.feeds"
+msgstr "Feeds"
+
+msgid "sources.schedule_feeds"
+msgstr "With a schedule"
+
+msgid "sources.only_here"
+msgstr "Only here"
+
+msgid "sources.countries"
+msgstr "Countries"
+
+msgid "sources.bytes"
+msgstr "Size"
+
+msgid "sources.distinct_bytes"
+msgstr "Distinct size"
+
+msgid "sources.catalogs_note"
+msgstr "Entries are the catalog's own records; feeds are what they join into here. Only here counts the feeds with a schedule that no other catalog lists. Size adds up the latest zip of each schedule; distinct size counts identical zips once."
+
+msgid "sources.outcome"
+msgstr "Outcome"
+
+msgid "sources.fetch_title"
+msgstr "Last download"
+
+msgid "sources.fetch_note"
+msgstr "Schedule URLs by the outcome of their last download."
+
+msgid "sources.fetch.ok"
+msgstr "Downloaded"
+
+msgid "sources.fetch.not_modified"
+msgstr "Not modified"
+
+msgid "sources.fetch.http_error"
+msgstr "HTTP error"
+
+msgid "sources.fetch.error"
+msgstr "Failed"
+
+msgid "sources.fetch.too_large"
+msgstr "Too large"
+
+msgid "sources.facts_title"
+msgstr "Contents"
+
+msgid "sources.facts_note"
+msgstr "Schedule URLs by whether their latest zip could be read."
+
+msgid "sources.facts.ok"
+msgstr "Read"
+
+msgid "sources.facts.empty"
+msgstr "No scheduled trips"
+
+msgid "sources.facts.http_error"
+msgstr "Download failed"
+
+msgid "sources.facts.missing_files"
+msgstr "Missing required files"
+
+msgid "sources.facts.not_zip"
+msgstr "Not a zip"
+
+msgid "sources.facts.parse_error"
+msgstr "Could not be read"
+
+msgid "sources.facts.timeout"
+msgstr "Timed out"
+
+msgid "sources.facts.memory"
+msgstr "Too large to read"
+
+msgid "sources.facts.error"
+msgstr "Failed"
+
+msgid "sources.overlap"
+msgstr "Overlap"
+
+msgid "sources.combinations_note"
+msgstr "Feeds with a schedule by the catalogs that list them."
+
+msgid "sources.listed_by"
+msgstr "Listed by"
+
+msgid "sources.pairs_note"
+msgstr "Feeds two catalogs both list, and how many of those have the same schedule URL or the same zip in both."
+
+msgid "sources.pair"
+msgstr "Catalogs"
+
+msgid "sources.same_url"
+msgstr "Same URL"
+
+msgid "sources.same_body"
+msgstr "Same zip"
+
+msgid "sources.duplication"
+msgstr "Feeds joined from several entries"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi} of {count} feed join more than one catalog entry."
+msgstr[1] "{multi} of {count} feeds join more than one catalog entry."
+
+msgid "sources.evidence_note"
+msgstr "Feeds by what joined two of their entries. A feed counts once for each kind, so the kinds overlap."
+
+msgid "sources.joined_by"
+msgstr "Joined by"
+
+msgid "sources.evidence.url"
+msgstr "Same schedule URL"
+
+msgid "sources.evidence.sha256"
+msgstr "Identical zip"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Identical tables"
+
+msgid "sources.evidence.reference"
+msgstr "Catalog cross-reference"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Realtime feed of the same system"
+
+msgid "sources.entries_per_feed"
+msgstr "Entries per feed"
+
+msgid "sources.data"
+msgstr "Counts from the catalog's {link}."

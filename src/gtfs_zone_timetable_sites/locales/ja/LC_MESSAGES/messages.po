@@ -938,3 +938,160 @@ msgstr "事業者が路線名を変更すると、時刻表ページの場所が
 msgid "error.find"
 msgstr "事業者の時刻表を探す"
 
+msgid "root.sources"
+msgstr "フィードの出典"
+
+msgid "sources.title"
+msgstr "フィードの出典"
+
+msgid "sources.description"
+msgstr "各カタログが掲載するフィードの数、カタログ間の重なり、複数のカタログ項目をまとめたフィードの数。"
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "以下のカタログから集めた{count}件のフィード。"
+
+msgid "sources.as_of"
+msgstr "{date}時点の数値。"
+
+msgid "sources.catalogs"
+msgstr "カタログ"
+
+msgid "sources.catalog"
+msgstr "カタログ"
+
+msgid "sources.entries"
+msgstr "項目"
+
+msgid "sources.feeds"
+msgstr "フィード"
+
+msgid "sources.schedule_feeds"
+msgstr "時刻表あり"
+
+msgid "sources.only_here"
+msgstr "ここだけ"
+
+msgid "sources.countries"
+msgstr "国"
+
+msgid "sources.bytes"
+msgstr "サイズ"
+
+msgid "sources.distinct_bytes"
+msgstr "重複なしのサイズ"
+
+msgid "sources.catalogs_note"
+msgstr "項目はカタログ自身の記録で、フィードはここでそれらをまとめたものです。「ここだけ」は他のどのカタログにもない時刻表ありのフィードの数です。サイズは各時刻表の最新のzipの合計で、重複なしのサイズは同一のzipを一度だけ数えます。"
+
+msgid "sources.outcome"
+msgstr "結果"
+
+msgid "sources.fetch_title"
+msgstr "最新のダウンロード"
+
+msgid "sources.fetch_note"
+msgstr "最新のダウンロード結果別の時刻表URL。"
+
+msgid "sources.fetch.ok"
+msgstr "ダウンロード済み"
+
+msgid "sources.fetch.not_modified"
+msgstr "変更なし"
+
+msgid "sources.fetch.http_error"
+msgstr "HTTPエラー"
+
+msgid "sources.fetch.error"
+msgstr "失敗"
+
+msgid "sources.fetch.too_large"
+msgstr "大きすぎる"
+
+msgid "sources.facts_title"
+msgstr "内容"
+
+msgid "sources.facts_note"
+msgstr "最新のzipを読み込めたかどうか別の時刻表URL。"
+
+msgid "sources.facts.ok"
+msgstr "読み込み済み"
+
+msgid "sources.facts.empty"
+msgstr "運行予定の便なし"
+
+msgid "sources.facts.http_error"
+msgstr "ダウンロード失敗"
+
+msgid "sources.facts.missing_files"
+msgstr "必須ファイルがない"
+
+msgid "sources.facts.not_zip"
+msgstr "zipではない"
+
+msgid "sources.facts.parse_error"
+msgstr "読み込めない"
+
+msgid "sources.facts.timeout"
+msgstr "タイムアウト"
+
+msgid "sources.facts.memory"
+msgstr "大きすぎて読み込めない"
+
+msgid "sources.facts.error"
+msgstr "失敗"
+
+msgid "sources.overlap"
+msgstr "重なり"
+
+msgid "sources.combinations_note"
+msgstr "掲載しているカタログの組み合わせ別の時刻表ありのフィード。"
+
+msgid "sources.listed_by"
+msgstr "掲載カタログ"
+
+msgid "sources.pairs_note"
+msgstr "2つのカタログの両方に掲載されているフィードと、そのうち両方で時刻表URLまたはzipが同じものの数。"
+
+msgid "sources.pair"
+msgstr "カタログ"
+
+msgid "sources.same_url"
+msgstr "同じURL"
+
+msgid "sources.same_body"
+msgstr "同じzip"
+
+msgid "sources.duplication"
+msgstr "複数の項目をまとめたフィード"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{count}件のうち{multi}件のフィードが複数のカタログ項目をまとめています。"
+
+msgid "sources.evidence_note"
+msgstr "2つの項目をまとめた根拠別のフィード。フィードは根拠の種類ごとに一度数えるため、種類は重なります。"
+
+msgid "sources.joined_by"
+msgstr "根拠"
+
+msgid "sources.evidence.url"
+msgstr "同じ時刻表URL"
+
+msgid "sources.evidence.sha256"
+msgstr "同一のzip"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "同一のテーブル"
+
+msgid "sources.evidence.reference"
+msgstr "カタログ間の参照"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "同じ路線網のリアルタイムフィード"
+
+msgid "sources.entries_per_feed"
+msgstr "フィードあたりの項目数"
+
+msgid "sources.data"
+msgstr "カタログの{link}による数値。"

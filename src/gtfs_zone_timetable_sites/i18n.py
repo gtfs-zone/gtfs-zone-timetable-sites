@@ -18,7 +18,8 @@ from typing import Annotated
 from babel import Locale as BabelLocale
 from babel.dates import format_date, get_day_names, match_skeleton
 from babel.lists import format_list
-from babel.numbers import format_currency
+from babel.numbers import format_currency, format_decimal, format_percent
+from babel.units import format_unit
 from pydantic import AfterValidator
 
 LOCALES_DIR = Path(__file__).parent / "locales"
@@ -147,6 +148,28 @@ def short_date(day: date, locale: str = "en") -> str:
 def weekday_date(day: date, locale: str = "en") -> str:
     """'Sat, Oct 31', 'sam. 31 oct.'."""
     return date_text(day, "MMMEd", locale)
+
+
+def number(value: int, locale: str = "en") -> str:
+    """'6,411', '6 411'."""
+    return format_decimal(value, locale=locale)
+
+
+def percent(value: float, locale: str = "en") -> str:
+    """'50%', '50 %'."""
+    return format_percent(value, locale=locale)
+
+
+def size(value: int, locale: str = "en") -> str:
+    """A byte count in GB to one decimal ('19.3 GB', '19,3 Go'), in whole MB
+    below a gigabyte ('29 MB')."""
+    if value < 1e9:
+        return format_unit(
+            value / 1e6, "digital-megabyte", "short", "#,##0", locale=locale
+        )
+    return format_unit(
+        value / 1e9, "digital-gigabyte", "short", "#,##0.0", locale=locale
+    )
 
 
 def price(amount: Decimal, currency: str, locale: str = "en") -> str:

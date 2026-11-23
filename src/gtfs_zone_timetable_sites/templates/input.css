@@ -13,6 +13,10 @@
   p, li, h1, h2, h3, summary { overflow-wrap: anywhere; }
 }
 
+/* Sources page counts */
+.stats-table { font-variant-numeric: tabular-nums; }
+.stats-table td { text-align: right; white-space: nowrap; }
+
 /* Timetables */
 /* Isolated so the rail's z-index stays inside the table. Sized to its
    content, since fitting the scroll box would squeeze the stop column */

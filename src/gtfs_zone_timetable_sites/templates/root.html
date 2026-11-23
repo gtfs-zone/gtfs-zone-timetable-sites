@@ -50,6 +50,9 @@
 </ul>
 {% endblock %}
 {% block footer %}
+{% if sources %}
+<p><a class="link" href="{{ root }}{{ sources }}">{{ t("root.sources") }}</a></p>
+{% endif %}
 {% set natural_earth %}<a class="link" href="https://www.naturalearthdata.com" target="_blank" rel="noopener">Natural Earth</a>{% endset %}
 {{ catalog_footer(t("root.borders", link=natural_earth)) }}
 {% endblock %}

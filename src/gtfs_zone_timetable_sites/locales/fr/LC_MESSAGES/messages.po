@@ -970,3 +970,163 @@ msgstr ""
 
 msgid "error.find"
 msgstr "Trouver les horaires de votre organisme"
+
+msgid "root.sources"
+msgstr "D'où viennent les flux"
+
+msgid "sources.title"
+msgstr "Sources des flux"
+
+msgid "sources.description"
+msgstr "Combien de flux chaque catalogue répertorie, comment les catalogues se recoupent et combien de flux réunissent plusieurs entrées."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} flux, réunis à partir des catalogues ci-dessous."
+msgstr[1] "{count} flux, réunis à partir des catalogues ci-dessous."
+
+msgid "sources.as_of"
+msgstr "Chiffres au {date}."
+
+msgid "sources.catalogs"
+msgstr "Catalogues"
+
+msgid "sources.catalog"
+msgstr "Catalogue"
+
+msgid "sources.entries"
+msgstr "Entrées"
+
+msgid "sources.feeds"
+msgstr "Flux"
+
+msgid "sources.schedule_feeds"
+msgstr "Avec horaires"
+
+msgid "sources.only_here"
+msgstr "Seulement ici"
+
+msgid "sources.countries"
+msgstr "Pays"
+
+msgid "sources.bytes"
+msgstr "Taille"
+
+msgid "sources.distinct_bytes"
+msgstr "Taille distincte"
+
+msgid "sources.catalogs_note"
+msgstr "Les entrées sont les fiches propres au catalogue ; les flux sont ce qu'elles forment une fois réunies ici. Seulement ici compte les flux avec horaires qu'aucun autre catalogue ne répertorie. La taille additionne le dernier zip de chaque horaire ; la taille distincte compte une seule fois les zips identiques."
+
+msgid "sources.outcome"
+msgstr "Résultat"
+
+msgid "sources.fetch_title"
+msgstr "Dernier téléchargement"
+
+msgid "sources.fetch_note"
+msgstr "URL d'horaires selon le résultat de leur dernier téléchargement."
+
+msgid "sources.fetch.ok"
+msgstr "Téléchargé"
+
+msgid "sources.fetch.not_modified"
+msgstr "Non modifié"
+
+msgid "sources.fetch.http_error"
+msgstr "Erreur HTTP"
+
+msgid "sources.fetch.error"
+msgstr "Échec"
+
+msgid "sources.fetch.too_large"
+msgstr "Trop volumineux"
+
+msgid "sources.facts_title"
+msgstr "Contenu"
+
+msgid "sources.facts_note"
+msgstr "URL d'horaires selon que leur dernier zip a pu être lu."
+
+msgid "sources.facts.ok"
+msgstr "Lu"
+
+msgid "sources.facts.empty"
+msgstr "Aucun trajet programmé"
+
+msgid "sources.facts.http_error"
+msgstr "Échec du téléchargement"
+
+msgid "sources.facts.missing_files"
+msgstr "Fichiers obligatoires manquants"
+
+msgid "sources.facts.not_zip"
+msgstr "Pas un zip"
+
+msgid "sources.facts.parse_error"
+msgstr "Illisible"
+
+msgid "sources.facts.timeout"
+msgstr "Délai dépassé"
+
+msgid "sources.facts.memory"
+msgstr "Trop volumineux pour être lu"
+
+msgid "sources.facts.error"
+msgstr "Échec"
+
+msgid "sources.overlap"
+msgstr "Recoupements"
+
+msgid "sources.combinations_note"
+msgstr "Flux avec horaires selon les catalogues qui les répertorient."
+
+msgid "sources.listed_by"
+msgstr "Répertorié par"
+
+msgid "sources.pairs_note"
+msgstr "Flux que deux catalogues répertorient tous les deux, et combien d'entre eux ont la même URL d'horaires ou le même zip dans les deux."
+
+msgid "sources.pair"
+msgstr "Catalogues"
+
+msgid "sources.same_url"
+msgstr "Même URL"
+
+msgid "sources.same_body"
+msgstr "Même zip"
+
+msgid "sources.duplication"
+msgstr "Flux réunissant plusieurs entrées"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi} flux sur {count} réunissent plus d'une entrée de catalogue."
+msgstr[1] "{multi} flux sur {count} réunissent plus d'une entrée de catalogue."
+
+msgid "sources.evidence_note"
+msgstr "Flux selon ce qui a réuni deux de leurs entrées. Un flux compte une fois par type, les types se recoupent donc."
+
+msgid "sources.joined_by"
+msgstr "Réuni par"
+
+msgid "sources.evidence.url"
+msgstr "Même URL d'horaires"
+
+msgid "sources.evidence.sha256"
+msgstr "Zip identique"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Tables identiques"
+
+msgid "sources.evidence.reference"
+msgstr "Renvoi entre catalogues"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Flux temps réel du même réseau"
+
+msgid "sources.entries_per_feed"
+msgstr "Entrées par flux"
+
+msgid "sources.data"
+msgstr "Chiffres issus du fichier {link} du catalogue."

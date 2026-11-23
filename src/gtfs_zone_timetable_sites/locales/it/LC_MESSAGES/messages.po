@@ -970,3 +970,162 @@ msgstr ""
 msgid "error.find"
 msgstr "Trova gli orari della tua azienda"
 
+msgid "root.sources"
+msgstr "Da dove vengono i feed"
+
+msgid "sources.title"
+msgstr "Fonti dei feed"
+
+msgid "sources.description"
+msgstr "Quanti feed elenca ogni catalogo, come si sovrappongono i cataloghi e quanti feed uniscono più voci."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} feed, raccolto dai cataloghi qui sotto."
+msgstr[1] "{count} feed, raccolti dai cataloghi qui sotto."
+
+msgid "sources.as_of"
+msgstr "Dati al {date}."
+
+msgid "sources.catalogs"
+msgstr "Cataloghi"
+
+msgid "sources.catalog"
+msgstr "Catalogo"
+
+msgid "sources.entries"
+msgstr "Voci"
+
+msgid "sources.feeds"
+msgstr "Feed"
+
+msgid "sources.schedule_feeds"
+msgstr "Con orari"
+
+msgid "sources.only_here"
+msgstr "Solo qui"
+
+msgid "sources.countries"
+msgstr "Paesi"
+
+msgid "sources.bytes"
+msgstr "Dimensione"
+
+msgid "sources.distinct_bytes"
+msgstr "Dimensione distinta"
+
+msgid "sources.catalogs_note"
+msgstr "Le voci sono i record propri del catalogo; i feed sono ciò che formano una volta uniti qui. Solo qui conta i feed con orari che nessun altro catalogo elenca. La dimensione somma l'ultimo zip di ogni orario; la dimensione distinta conta una sola volta gli zip identici."
+
+msgid "sources.outcome"
+msgstr "Esito"
+
+msgid "sources.fetch_title"
+msgstr "Ultimo download"
+
+msgid "sources.fetch_note"
+msgstr "URL degli orari secondo l'esito del loro ultimo download."
+
+msgid "sources.fetch.ok"
+msgstr "Scaricato"
+
+msgid "sources.fetch.not_modified"
+msgstr "Non modificato"
+
+msgid "sources.fetch.http_error"
+msgstr "Errore HTTP"
+
+msgid "sources.fetch.error"
+msgstr "Non riuscito"
+
+msgid "sources.fetch.too_large"
+msgstr "Troppo grande"
+
+msgid "sources.facts_title"
+msgstr "Contenuto"
+
+msgid "sources.facts_note"
+msgstr "URL degli orari secondo se il loro ultimo zip è stato letto."
+
+msgid "sources.facts.ok"
+msgstr "Letto"
+
+msgid "sources.facts.empty"
+msgstr "Nessuna corsa programmata"
+
+msgid "sources.facts.http_error"
+msgstr "Download non riuscito"
+
+msgid "sources.facts.missing_files"
+msgstr "File obbligatori mancanti"
+
+msgid "sources.facts.not_zip"
+msgstr "Non è uno zip"
+
+msgid "sources.facts.parse_error"
+msgstr "Illeggibile"
+
+msgid "sources.facts.timeout"
+msgstr "Tempo scaduto"
+
+msgid "sources.facts.memory"
+msgstr "Troppo grande da leggere"
+
+msgid "sources.facts.error"
+msgstr "Non riuscito"
+
+msgid "sources.overlap"
+msgstr "Sovrapposizioni"
+
+msgid "sources.combinations_note"
+msgstr "Feed con orari secondo i cataloghi che li elencano."
+
+msgid "sources.listed_by"
+msgstr "Elencato da"
+
+msgid "sources.pairs_note"
+msgstr "Feed che due cataloghi elencano entrambi, e quanti di essi hanno lo stesso URL degli orari o lo stesso zip in entrambi."
+
+msgid "sources.pair"
+msgstr "Cataloghi"
+
+msgid "sources.same_url"
+msgstr "Stesso URL"
+
+msgid "sources.same_body"
+msgstr "Stesso zip"
+
+msgid "sources.duplication"
+msgstr "Feed che uniscono più voci"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi} feed su {count} uniscono più di una voce di catalogo."
+msgstr[1] "{multi} feed su {count} uniscono più di una voce di catalogo."
+
+msgid "sources.evidence_note"
+msgstr "Feed secondo ciò che ha unito due delle loro voci. Un feed conta una volta per tipo, quindi i tipi si sovrappongono."
+
+msgid "sources.joined_by"
+msgstr "Unito da"
+
+msgid "sources.evidence.url"
+msgstr "Stesso URL degli orari"
+
+msgid "sources.evidence.sha256"
+msgstr "Zip identico"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Tabelle identiche"
+
+msgid "sources.evidence.reference"
+msgstr "Rimando tra cataloghi"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Feed in tempo reale della stessa rete"
+
+msgid "sources.entries_per_feed"
+msgstr "Voci per feed"
+
+msgid "sources.data"
+msgstr "Dati dal file {link} del catalogo."

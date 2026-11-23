@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}{{ t("sources.title") }} - sites.gtfs.zone{% endblock %}
+{% block description %}{{ t("sources.description") }}{% endblock %}
+{% block brand %}
+<a class="btn btn-ghost h-auto min-h-11 gap-3 py-2" href="{{ root }}{{ home }}">
+<img class="w-8 rounded-lg" src="{{ root }}logo.svg" alt="">
+<span class="text-xl font-bold"><span class="text-primary">sites</span>.gtfs.zone</span>
+</a>
+{% endblock %}
+{% macro catalog_link(catalog) %}{% if catalog.url %}<a class="link" href="{{ catalog.url }}" target="_blank" rel="noopener">{{ catalog.name }}</a>{% else %}{{ catalog.name }}{% endif %}{% endmacro %}
+{% macro label(group, row) %}{% if row.known %}{{ t("sources." ~ group ~ "." ~ row.key) }}{% else %}<code>{{ row.key }}</code>{% endif %}{% endmacro %}
+{% macro outcome_table(group, rows) %}
+<div class="overflow-x-auto rounded-box bg-base-100 shadow-sm">
+<table class="table table-sm stats-table">
+<thead><tr><th scope="col">{{ t("sources.outcome") }}</th>{% for catalog in stats.catalogs %}<th scope="col">{{ catalog.name.name }}</th>{% endfor %}</tr></thead>
+<tbody>
+{% for row in rows %}
+<tr><th scope="row">{{ label(group, row) }}</th>{% for n in row.counts %}<td>{{ n | number }}</td>{% endfor %}</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endmacro %}
+{% block main %}
+<h1 class="text-3xl font-bold">{{ t("sources.title") }}</h1>
+{% set as_of %}{% if stats.generated %}<time datetime="{{ stats.generated.isoformat() }}">{{ stats.generated | long_date }}</time>{% endif %}{% endset %}
+<p>{{ t("sources.intro", n=stats.feeds, count=stats.feeds | number) }}{% if stats.generated %} {{ t("sources.as_of", date=as_of) }}{% endif %}</p>
+
+<section class="flex flex-col gap-3">
+<h2 class="text-xl font-semibold">{{ t("sources.catalogs") }}</h2>
+<div class="overflow-x-auto rounded-box bg-base-100 shadow-sm">
+<table class="table table-sm stats-table">
+<thead><tr>
+<th scope="col">{{ t("sources.catalog") }}</th>
+<th scope="col">{{ t("sources.entries") }}</th>
+<th scope="col">{{ t("sources.feeds") }}</th>
+<th scope="col">{{ t("sources.schedule_feeds") }}</th>
+<th scope="col">{{ t("sources.only_here") }}</th>
+<th scope="col">{{ t("sources.countries") }}</th>
+<th scope="col">{{ t("sources.bytes") }}</th>
+<th scope="col">{{ t("sources.distinct_bytes") }}</th>
+</tr></thead>
+<tbody>
+{% for catalog in stats.catalogs %}
+<tr>
+<th scope="row">{{ catalog_link(catalog.name) }}</th>
+<td>{{ catalog.entries | default(0) | number }}</td>
+<td>{{ catalog.feeds | default(0) | number }}</td>
+<td>{{ catalog.scheduleFeeds | default(0) | number }}</td>
+<td>{{ catalog.onlyHere | default(0) | number }}{% if catalog.only_share is not none %} <span class="text-base-content/70">({{ catalog.only_share | percent }})</span>{% endif %}</td>
+<td>{{ catalog.countries | default(0) | number }}</td>
+<td>{{ catalog.bytes | default(0) | size }}</td>
+<td>{{ catalog.distinctBytes | default(0) | size }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<p class="text-sm text-base-content/70">{{ t("sources.catalogs_note") }}</p>
+</section>
+
+{% if stats.fetch %}
+<section class="flex flex-col gap-3">
+<h2 class="text-xl font-semibold">{{ t("sources.fetch_title") }}</h2>
+<p class="text-sm text-base-content/70">{{ t("sources.fetch_note") }}</p>
+{{ outcome_table("fetch", stats.fetch) }}
+</section>
+{% endif %}
+
+{% if stats.facts %}
+<section class="flex flex-col gap-3">
+<h2 class="text-xl font-semibold">{{ t("sources.facts_title") }}</h2>
+<p class="text-sm text-base-content/70">{{ t("sources.facts_note") }}</p>
+{{ outcome_table("facts", stats.facts) }}
+</section>
+{% endif %}
+
+{% if stats.combinations or stats.pairs %}
+<section class="flex flex-col gap-3">
+<h2 class="text-xl font-semibold">{{ t("sources.overlap") }}</h2>
+{% if stats.combinations %}
+<p class="text-sm text-base-content/70">{{ t("sources.combinations_note") }}</p>
+<div class="overflow-x-auto rounded-box bg-base-100 shadow-sm">
+<table class="table table-sm stats-table">
+<thead><tr><th scope="col">{{ t("sources.listed_by") }}</th><th scope="col">{{ t("sources.feeds") }}</th></tr></thead>
+<tbody>
+{% for combination in stats.combinations %}
+<tr><th scope="row">{{ combination.catalogs | map(attribute="name") | join(" + ") }}</th><td>{{ combination.feeds | number }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+{% if stats.pairs %}
+<p class="text-sm text-base-content/70">{{ t("sources.pairs_note") }}</p>
+<div class="overflow-x-auto rounded-box bg-base-100 shadow-sm">
+<table class="table table-sm stats-table">
+<thead><tr>
+<th scope="col">{{ t("sources.pair") }}</th>
+<th scope="col">{{ t("sources.feeds") }}</th>
+<th scope="col">{{ t("sources.same_url") }}</th>
+<th scope="col">{{ t("sources.same_body") }}</th>
+</tr></thead>
+<tbody>
+{% for pair in stats.pairs %}
+<tr>
+<th scope="row">{{ pair.catalogs | map(attribute="name") | join(" + ") }}</th>
+<td>{{ pair.feeds | default(0) | number }}</td>
+<td>{{ pair.scheduleUrls | default(0) | number }}</td>
+<td>{{ pair.bodies | default(0) | number }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+</section>
+{% endif %}
+
+{% if stats.feeds %}
+<section class="flex flex-col gap-3">
+<h2 class="text-xl font-semibold">{{ t("sources.duplication") }}</h2>
+<p>{{ t("sources.multi_entry", n=stats.feeds, count=stats.feeds | number, multi=stats.multi_entry | number) }}</p>
+{% if stats.evidence %}
+<p class="text-sm text-base-content/70">{{ t("sources.evidence_note") }}</p>
+<div class="overflow-x-auto rounded-box bg-base-100 shadow-sm">
+<table class="table table-sm stats-table">
+<thead><tr><th scope="col">{{ t("sources.joined_by") }}</th><th scope="col">{{ t("sources.feeds") }}</th></tr></thead>
+<tbody>
+{% for row in stats.evidence %}
+<tr><th scope="row">{{ label("evidence", row) }}</th><td>{{ row.feeds | number }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+{% if stats.entries_per_feed %}
+<div class="overflow-x-auto rounded-box bg-base-100 shadow-sm">
+<table class="table table-sm stats-table">
+<thead><tr><th scope="col">{{ t("sources.entries_per_feed") }}</th><th scope="col">{{ t("sources.feeds") }}</th></tr></thead>
+<tbody>
+{% for entries, feeds in stats.entries_per_feed %}
+<tr><th scope="row">{{ entries | number }}</th><td>{{ feeds | number }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+</section>
+{% endif %}
+{% endblock %}
+{% block footer %}
+{% set source_stats %}<a class="link" href="https://data.gtfs.zone/source-stats.json" target="_blank" rel="noopener">source-stats.json</a>{% endset %}
+<p>{{ t("sources.data", link=source_stats) }}</p>
+{{ catalog_footer() }}
+{% endblock %}

@@ -18,6 +18,8 @@ SOURCES_URL = f"{DATA_URL}/sources.json"
 STATUS_URL = f"{DATA_URL}/status.json"
 # Every feed in the short form pickers search, read by the root search.
 SEARCH_URL = f"{DATA_URL}/search.json"
+# Per catalog counts, overlap and joins, read by the sources page.
+SOURCE_STATS_URL = f"{DATA_URL}/source-stats.json"
 USER_AGENT = "gtfs-zone-timetable-sites (+https://sites.gtfs.zone)"
 
 # Parallel puts per site. Each put is a round trip to the object store, so a

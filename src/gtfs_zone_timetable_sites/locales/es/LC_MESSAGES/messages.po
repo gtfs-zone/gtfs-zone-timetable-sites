@@ -982,3 +982,162 @@ msgstr ""
 msgid "error.find"
 msgstr "Buscar los horarios de su operador"
 
+msgid "root.sources"
+msgstr "De dónde vienen los feeds"
+
+msgid "sources.title"
+msgstr "Fuentes de los feeds"
+
+msgid "sources.description"
+msgstr "Cuántos feeds incluye cada catálogo, cómo se solapan los catálogos y cuántos feeds reúnen varias entradas."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} feed, reunido a partir de los catálogos de abajo."
+msgstr[1] "{count} feeds, reunidos a partir de los catálogos de abajo."
+
+msgid "sources.as_of"
+msgstr "Cifras al {date}."
+
+msgid "sources.catalogs"
+msgstr "Catálogos"
+
+msgid "sources.catalog"
+msgstr "Catálogo"
+
+msgid "sources.entries"
+msgstr "Entradas"
+
+msgid "sources.feeds"
+msgstr "Feeds"
+
+msgid "sources.schedule_feeds"
+msgstr "Con horarios"
+
+msgid "sources.only_here"
+msgstr "Solo aquí"
+
+msgid "sources.countries"
+msgstr "Países"
+
+msgid "sources.bytes"
+msgstr "Tamaño"
+
+msgid "sources.distinct_bytes"
+msgstr "Tamaño distinto"
+
+msgid "sources.catalogs_note"
+msgstr "Las entradas son los registros propios del catálogo; los feeds son lo que forman al reunirse aquí. Solo aquí cuenta los feeds con horarios que ningún otro catálogo incluye. El tamaño suma el último zip de cada horario; el tamaño distinto cuenta una sola vez los zips idénticos."
+
+msgid "sources.outcome"
+msgstr "Resultado"
+
+msgid "sources.fetch_title"
+msgstr "Última descarga"
+
+msgid "sources.fetch_note"
+msgstr "URL de horarios según el resultado de su última descarga."
+
+msgid "sources.fetch.ok"
+msgstr "Descargado"
+
+msgid "sources.fetch.not_modified"
+msgstr "Sin cambios"
+
+msgid "sources.fetch.http_error"
+msgstr "Error HTTP"
+
+msgid "sources.fetch.error"
+msgstr "Fallido"
+
+msgid "sources.fetch.too_large"
+msgstr "Demasiado grande"
+
+msgid "sources.facts_title"
+msgstr "Contenido"
+
+msgid "sources.facts_note"
+msgstr "URL de horarios según si su último zip pudo leerse."
+
+msgid "sources.facts.ok"
+msgstr "Leído"
+
+msgid "sources.facts.empty"
+msgstr "Sin viajes programados"
+
+msgid "sources.facts.http_error"
+msgstr "Descarga fallida"
+
+msgid "sources.facts.missing_files"
+msgstr "Faltan archivos obligatorios"
+
+msgid "sources.facts.not_zip"
+msgstr "No es un zip"
+
+msgid "sources.facts.parse_error"
+msgstr "No se pudo leer"
+
+msgid "sources.facts.timeout"
+msgstr "Tiempo agotado"
+
+msgid "sources.facts.memory"
+msgstr "Demasiado grande para leerlo"
+
+msgid "sources.facts.error"
+msgstr "Fallido"
+
+msgid "sources.overlap"
+msgstr "Solapamiento"
+
+msgid "sources.combinations_note"
+msgstr "Feeds con horarios según los catálogos que los incluyen."
+
+msgid "sources.listed_by"
+msgstr "Incluido en"
+
+msgid "sources.pairs_note"
+msgstr "Feeds que dos catálogos incluyen a la vez, y cuántos de ellos tienen la misma URL de horarios o el mismo zip en ambos."
+
+msgid "sources.pair"
+msgstr "Catálogos"
+
+msgid "sources.same_url"
+msgstr "Misma URL"
+
+msgid "sources.same_body"
+msgstr "Mismo zip"
+
+msgid "sources.duplication"
+msgstr "Feeds que reúnen varias entradas"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi} de {count} feed reúnen más de una entrada de catálogo."
+msgstr[1] "{multi} de {count} feeds reúnen más de una entrada de catálogo."
+
+msgid "sources.evidence_note"
+msgstr "Feeds según lo que reunió dos de sus entradas. Un feed cuenta una vez por tipo, así que los tipos se solapan."
+
+msgid "sources.joined_by"
+msgstr "Reunido por"
+
+msgid "sources.evidence.url"
+msgstr "Misma URL de horarios"
+
+msgid "sources.evidence.sha256"
+msgstr "Zip idéntico"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Tablas idénticas"
+
+msgid "sources.evidence.reference"
+msgstr "Referencia entre catálogos"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Feed en tiempo real de la misma red"
+
+msgid "sources.entries_per_feed"
+msgstr "Entradas por feed"
+
+msgid "sources.data"
+msgstr "Cifras del archivo {link} del catálogo."

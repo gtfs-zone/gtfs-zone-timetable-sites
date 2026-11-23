@@ -102,6 +102,7 @@ from gtfs_zone_timetable_sites.pages import (
 )
 from gtfs_zone_timetable_sites.places import locate
 from gtfs_zone_timetable_sites.render import asset, compact_json, render
+from gtfs_zone_timetable_sites.sources import sources_page
 from gtfs_zone_timetable_sites.timetable import (
     Blocks,
     Timetable,
@@ -1312,6 +1313,7 @@ def build_root(
     outcomes: dict[str, dict] | None = None,
     catalog: dict | None = None,
     slugs: dict[str, str] | None = None,
+    sources: dict | None = None,
 ) -> dict[str, bytes]:
     """The bucket root: an index of countries in each UI language (English at
     `/`, others at `/lang/<lang>/`), a page per country listing its sites in
@@ -1322,9 +1324,11 @@ def build_root(
     `pages` each site's page paths with the date they last changed and
     `outcomes` each site's last download and build outcome and detail,
     `catalog` data.gtfs.zone's search.json and `slugs` each feed id's slug,
-    for the root search. A
-    summary's `noindex` paths stay out of the sitemap, and a feed page's
-    summary (`feed_only`) is not listed. No I/O."""
+    for the root search, and `sources` feed-catalog's source-stats.json for
+    the sources page in each UI language (`sources/`, others at
+    `lang/<lang>/sources/`, noindex), linked from the root. A summary's
+    `noindex` paths stay out of the sitemap, and a feed page's summary
+    (`feed_only`) is not listed. No I/O."""
     outcomes = outcomes or {}
     by_locale: dict[str, list[dict]] = {}
     for locale in ROOT_LOCALES:
@@ -1342,6 +1346,7 @@ def build_root(
     countries = by_locale[FALLBACK]
     codes = {group["key"]: country_languages(group["sites"]) for group in countries}
     root_paths = {locale: root_path(locale) for locale in ROOT_LOCALES}
+    sources_paths = {locale: f"{path}sources/" for locale, path in root_paths.items()}
     version_text = version("gtfs-zone-timetable-sites")
     website = {
         "@context": "https://schema.org",
@@ -1389,8 +1394,29 @@ def build_root(
             total=sum(len(g["sites"]) for g in groups),
             jsonld=website | {"url": f"{BASE_URL}/{path}"},
             languages=picker(root_paths, root, locale),
+            sources=sources is not None and sources_paths[locale],
             root=root,
         )
+        if sources is not None:
+            path = sources_paths[locale]
+            root = "../" * path.count("/")
+            url = f"{BASE_URL}/{path}"
+            files[f"{path}index.html"] = render(
+                "sources.html",
+                **common,
+                base_url=url,
+                stats=sources_page(sources),
+                noindex=True,
+                jsonld=breadcrumbs(
+                    [
+                        (ROOT_TITLE, f"{BASE_URL}/{root_paths[locale]}"),
+                        (t(locale, "sources.title"), url),
+                    ]
+                ),
+                languages=picker(sources_paths, root, locale),
+                home=root_paths[locale],
+                root=root,
+            )
         for group in groups:
             key = group["key"]
             if locale not in codes[key]:
