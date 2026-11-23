@@ -1,3 +1,9 @@
+## v0.27.0 (2026-11-24)
+
+### Feat
+
+- **pipeline**: run every shard after feed-catalog's published_artifacts instead of the 11:00 UTC schedule
+
 ## v0.26.0 (2026-11-23)
 
 ### Feat
