@@ -22,7 +22,7 @@ from gtfs_zone_timetable_sites.fares import (
     Transfers,
     ZoneFares,
 )
-from gtfs_zone_timetable_sites.gtfs.reader import Feed, Route, Timeframe
+from gtfs_zone_timetable_sites.gtfs.reader import BookingRule, Feed, Route, Timeframe
 from gtfs_zone_timetable_sites.gtfs.service import (
     DayType,
     dates_label,
@@ -54,6 +54,7 @@ from gtfs_zone_timetable_sites.strip import (
 from gtfs_zone_timetable_sites.timetable import (
     Cell,
     Column,
+    Row,
     Timetable,
     headsign,
     mode_name,
@@ -227,6 +228,10 @@ class CellView:
     untimed: bool
     mark: str
     arrival: TimeText | None = None
+    # A GTFS-Flex window's start and end, in place of a time.
+    window: tuple[TimeText, TimeText] | None = None
+    # The booking marks of the cell's booking rules.
+    booking: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -268,6 +273,10 @@ class RowView:
     # The name's reading (kana) and its language code.
     reading: str = ""
     reading_lang: str = ""
+    # A GTFS-Flex location the feed gives no name; `name` is its id.
+    unnamed: bool = False
+    # A location group's stop names.
+    members: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -427,9 +436,14 @@ def mode_groups(routes: Sequence[RouteView], locale: Locale = "en") -> list[Mode
     ]
 
 
-def cell_view(cell: Cell | None, time_format: TimeFormat) -> CellView:
+def cell_view(
+    cell: Cell | None,
+    time_format: TimeFormat,
+    booking_marks: Mapping[str, str] | None = None,
+) -> CellView:
     if cell is None:
         return CellView(None, False, "")
+    booking = " ".join((booking_marks or {}).get(rule, "") for rule in cell.booking)
     mark = ""
     if not cell.pickup and cell.drop_off:
         mark = "d"
@@ -437,8 +451,11 @@ def cell_view(cell: Cell | None, time_format: TimeFormat) -> CellView:
         mark = "p"
     if cell.request:
         mark += "f"
+    if cell.window is not None and cell.time is None:
+        start, end = (clock(time, time_format) for time in cell.window)
+        return CellView(None, False, mark, window=(start, end), booking=booking)
     if cell.time is None:
-        return CellView(None, True, mark)
+        return CellView(None, True, mark, booking=booking)
     arrival = None
     if (
         cell.arrival is not None
@@ -446,7 +463,32 @@ def cell_view(cell: Cell | None, time_format: TimeFormat) -> CellView:
         and cell.departure - cell.arrival > DWELL_SECONDS
     ):
         arrival = clock(cell.arrival, time_format)
-    return CellView(clock(cell.time, time_format), False, mark, arrival)
+    return CellView(clock(cell.time, time_format), False, mark, arrival, None, booking)
+
+
+def booking_marks(tables: Sequence[Timetable]) -> dict[str, str]:
+    """booking_rule_id -> its cell mark, in order of first use: "b" when the
+    tables use one rule, else "b1", "b2", ..."""
+    rules = dict.fromkeys(
+        rule
+        for table in tables
+        for column in table.columns
+        for cell in column.cells
+        if cell
+        for rule in cell.booking
+    )
+    if len(rules) == 1:
+        return {next(iter(rules)): "b"}
+    return {rule: f"b{i + 1}" for i, rule in enumerate(rules)}
+
+
+def place_members(feed: Feed, row: Row) -> tuple[str, ...]:
+    if row.kind != "group":
+        return ()
+    return tuple(
+        tidy(feed.place_name(stop_id))
+        for stop_id in feed.flex.groups[row.stop_id].stop_ids
+    )
 
 
 def column_head(
@@ -565,6 +607,95 @@ def feed_amenities(
     return tuple(notes), frozenset(marked)
 
 
+@dataclass(frozen=True, slots=True)
+class BookingView:
+    """A booking rule on a route page: its mark, lines of text, and links."""
+
+    mark: str
+    lines: tuple[str, ...]
+    phone: str = ""
+    info_url: str = ""
+    booking_url: str = ""
+
+
+def booking_lines(
+    rule: BookingRule, time_format: TimeFormat, locale: Locale = "en"
+) -> list[str]:
+    """The rule's type and prior notice, then its messages, as given."""
+    kind = rule.booking_type
+    if kind is None:
+        lines = [t(locale, "booking.no_type")]
+    elif kind in (0, 1, 2):
+        lines = [t(locale, f"booking.type_{kind}")]
+    else:
+        lines = [t(locale, "booking.type", value=kind)]
+    if (minutes := rule.prior_notice_duration_min) is not None:
+        lines.append(t(locale, "booking.min", n=minutes))
+    if (minutes := rule.prior_notice_duration_max) is not None:
+        lines.append(t(locale, "booking.max", n=minutes))
+    for edge, day, seconds in (
+        ("start", rule.prior_notice_start_day, rule.prior_notice_start_time),
+        ("last", rule.prior_notice_last_day, rule.prior_notice_last_time),
+    ):
+        if day is not None and seconds is not None:
+            label = clock_label(seconds, time_format)
+            lines.append(t(locale, f"booking.{edge}_time", n=day, time=label))
+        elif day is not None:
+            lines.append(t(locale, f"booking.{edge}", n=day))
+    if rule.prior_notice_service_id:
+        lines.append(t(locale, "booking.service", service=rule.prior_notice_service_id))
+    lines += [text for text in (rule.message,) if text]
+    if rule.pickup_message:
+        lines.append(t(locale, "booking.pickup", message=rule.pickup_message))
+    if rule.drop_off_message:
+        lines.append(t(locale, "booking.drop_off", message=rule.drop_off_message))
+    return lines
+
+
+def booking_views(
+    feed: Feed,
+    marks: Mapping[str, str],
+    time_format: TimeFormat,
+    locale: Locale = "en",
+) -> list[BookingView]:
+    """The route's booking rules by `booking_marks`; a rule id the feed's
+    booking_rules.txt lacks says so."""
+    views = []
+    for rule_id, mark in marks.items():
+        rule = feed.flex.booking_rules.get(rule_id)
+        if rule is None:
+            views.append(BookingView(mark, (t(locale, "booking.missing", id=rule_id),)))
+            continue
+        views.append(
+            BookingView(
+                mark,
+                tuple(booking_lines(rule, time_format, locale)),
+                phone=rule.phone_number,
+                info_url=rule.info_url,
+                booking_url=rule.booking_url,
+            )
+        )
+    return views
+
+
+def flex_notes(feed: Feed, locale: Locale = "en") -> tuple[str, ...]:
+    """Why a GTFS-Flex file could not be read, Flex names the feed spells
+    otherwise than GTFS, and locations or groups given in stop_id."""
+    in_stop_id = (feed.flex.locations or feed.flex.groups) and any(
+        st.stop_id and feed.flex_place(st.stop_id)
+        for times in feed.stop_times.values()
+        for st in times
+    )
+    return (
+        *(t(locale, "flex.unreadable", error=error) for error in feed.flex.errors),
+        *(
+            t(locale, "flex.misnamed", given=given, spec=spec)
+            for given, spec in feed.flex.misnamed
+        ),
+        *((t(locale, "flex.in_stop_id"),) if in_stop_id else ()),
+    )
+
+
 def minute_steps(times: Sequence[int | None]) -> tuple[int | None, ...]:
     """Times in seconds as minutes: the first time, then minutes since the
     previous time, None where there is none. Trips of a pattern share their
@@ -601,6 +732,7 @@ def table_view(
     numbers: Mapping[str, int] | None = None,
     routes: Mapping[str, "RouteView"] | None = None,
     fare_zones: Mapping[str, str] | None = None,
+    bookings: Mapping[str, str] | None = None,
 ) -> TableView:
     # Per column, its date note and the trip on another route it continues
     # as, each lettered by its first column.
@@ -645,7 +777,8 @@ def table_view(
             name=tidy(row.name),
             zone=zone_label(row.timezone, table.day_type.start),
             cells=tuple(
-                cell_view(column.cells[k], time_format) for column in table.columns
+                cell_view(column.cells[k], time_format, bookings)
+                for column in table.columns
             ),
             google=stop_link(feed, row.stop_id),
             paths=() if straight(graph.rows[k]) else tuple(row_paths(graph, k)),
@@ -660,14 +793,18 @@ def table_view(
             fare_zone=(fare_zones or {}).get(row.stop_id, ""),
             reading=tidy(row.reading) if row.reading != row.name else "",
             reading_lang=row.reading_lang,
+            unnamed=row.kind == "location" and not feed.place_name(row.stop_id),
+            members=place_members(feed, row),
         )
         for k, row in enumerate(table.rows)
     )
     cells = [cell for row in rows for cell in row.cells]
     keys = []
-    if time_format == "12h" and any(c.time and c.time.pm for c in cells):
+    shown_times = [
+        time for c in cells for time in (c.time, c.arrival, *(c.window or ())) if time
+    ]
+    if time_format == "12h" and any(time.pm for time in shown_times):
         keys.append("pm")
-    shown_times = [time for c in cells for time in (c.time, c.arrival) if time]
     days = {time.days for time in shown_times if time.days}
     if days == {1}:
         keys.append("next_day")
@@ -677,6 +814,10 @@ def table_view(
         keys.append("evening_before")
     if any(c.untimed for c in cells):
         keys.append("untimed")
+    if any(c.window for c in cells):
+        keys.append("window")
+    if any(row.unnamed for row in rows):
+        keys.append("unnamed")
     if any("d" in c.mark for c in cells):
         keys.append("drop_off")
     if any("p" in c.mark for c in cells):
@@ -687,9 +828,15 @@ def table_view(
         keys.append("dwell")
     if any(row.approx and any(c.time for c in row.cells) for row in rows):
         keys.append("approx")
+    marks = {mark for c in cells for mark in c.booking.split()}
     legend = [
         *(Key("", n.text, letter=letter, href=n.href) for n, letter in letters.items()),
         *(Key("", t(locale, f"legend.{key}")) for key in keys),
+        *(
+            Key("", t(locale, "legend.booking", mark=mark))
+            for mark in (bookings or {}).values()
+            if mark in marks
+        ),
     ]
     shown_icons = {
         "bikes": any(head.bikes for head in heads),
@@ -820,7 +967,7 @@ def stop_numbers(tables: list[Timetable]) -> dict[str, int]:
     for _, group in ordered_days(tables):
         for table in group:
             for row in table.rows:
-                if row.stop_id not in numbers:
+                if not row.kind and row.stop_id not in numbers:
                     numbers[row.stop_id] = len(numbers) + 1
     return numbers
 
@@ -856,10 +1003,12 @@ def day_views(
     routes: Mapping[str, "RouteView"] | None = None,
     today: date | None = None,
     fare_zones: Mapping[str, str] | None = None,
+    bookings: Mapping[str, str] | None = None,
 ) -> list[DayView]:
     """A view per day type in page order (see `ordered_days`), stops numbered
     by `stop_numbers`; `routes` links block continuations to other routes,
-    `fare_zones` is the fare zone badge text by stop id."""
+    `fare_zones` is the fare zone badge text by stop id, `bookings` the
+    booking mark by booking_rule_id."""
     numbers = stop_numbers(tables)
     views = []
     anchors: set[str] = set()
@@ -887,6 +1036,7 @@ def day_views(
                             numbers,
                             routes,
                             fare_zones,
+                            bookings,
                         )
                         for i, table in enumerate(group)
                     ],

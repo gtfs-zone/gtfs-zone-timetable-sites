@@ -73,6 +73,8 @@ from gtfs_zone_timetable_sites.maps.geo import (
 )
 from gtfs_zone_timetable_sites.pages import (
     RouteView,
+    booking_marks,
+    booking_views,
     breadcrumbs,
     date_range,
     day_views,
@@ -82,6 +84,7 @@ from gtfs_zone_timetable_sites.pages import (
     fare_sections,
     feed_amenities,
     feed_info_range,
+    flex_notes,
     mode_groups,
     modes_label,
     modes_text,
@@ -437,6 +440,7 @@ def build_site(
         ]
         set_labels = route_labels(text, [rt.route for rt in timetables])
         feed_notes, marked = feed_amenities(all_tables, locale)
+        feed_notes = (*feed_notes, *flex_notes(feed, locale))
         title = site_title(text, site, locale)
         label = place_label(place, title, site.locality)
         base_url = f"{site_url}{s.prefix}"
@@ -578,6 +582,7 @@ def build_site(
     for i, rt in enumerate(timetables):
         slug = routes[i].slug
         numbers = stop_numbers(rt.tables)
+        bookings = booking_marks(rt.tables)
         # The route map per feed text, shared by sets whose text is the same.
         route_maps: dict[int, str] = {}
         fares = routes_fares[i]
@@ -615,6 +620,7 @@ def build_site(
                 by_route[s.lang],
                 today,
                 fare_badges(fares, locale),
+                bookings,
             )
             if live and not s.prefix:
                 files[f"{slug}/{LIVE_FILE}"] = compact_json(
@@ -643,6 +649,7 @@ def build_site(
                 fare_charts=fare_charts(fares, locale),
                 fares_page=fares_page,
                 fares_error=fares_error,
+                booking=booking_views(text, bookings, site.time_format, locale),
                 fares_by=(
                     t(locale, "fare.by_zone")
                     if isinstance(fares, ZoneFares) and fares.zones

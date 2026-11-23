@@ -1,0 +1,3 @@
+booking_rule_id,booking_type,prior_notice_last_day,prior_notice_last_time,message,phone_number,info_url,booking_url
+br_day,2,1,17:00:00,Call the day before.,555-0100,https://example.com/ride,
+br_now,0,,,,,,https://example.com/book

@@ -1,22 +1,29 @@
+from dataclasses import replace
 from datetime import date
 
-from conftest import fixture_zip, make_zip
+from conftest import fixture_files, fixture_zip, make_zip
 from gtfs_zone_vocab.route_types import ROUTE_TYPES
 
 from gtfs_zone_timetable_sites.build import site_feed, site_timetables
 from gtfs_zone_timetable_sites.config import Site
 from gtfs_zone_timetable_sites.gtfs.reader import Route, read_feed
+from gtfs_zone_timetable_sites.gtfs.service import day_types
 from gtfs_zone_timetable_sites.i18n import UI_LOCALES, t
 from gtfs_zone_timetable_sites.pages import (
     MODE_ORDER,
     ColumnHead,
     HeadsignSpan,
     badge_colors,
+    booking_lines,
+    booking_marks,
+    booking_views,
+    cell_view,
     clock,
     clock_label,
     day_views,
     dot_text,
     feed_amenities,
+    flex_notes,
     google_link,
     headsign_spans,
     join_and,
@@ -29,7 +36,13 @@ from gtfs_zone_timetable_sites.pages import (
     slugify,
     table_title,
 )
-from gtfs_zone_timetable_sites.timetable import Column, Row, Timetable
+from gtfs_zone_timetable_sites.timetable import (
+    Cell,
+    Column,
+    Row,
+    Timetable,
+    route_timetables,
+)
 
 
 def route(route_id="r", short="", long="", color=None, text=None) -> Route:
@@ -318,3 +331,105 @@ def test_note_letters_go_past_z():
         "ZZ",
         "AAA",
     ]
+
+
+def flex_feed_tables():
+    feed = read_feed(fixture_zip("flex"))
+    types = day_types(feed, feed.trips, date(2026, 10, 5), 7)
+    return feed, route_timetables(feed, "D", types)
+
+
+def test_window_cell_shows_both_ends():
+    cell = Cell(None, None, window=(9 * 3600, 21 * 3600), booking=("x", "y"))
+    view = cell_view(cell, "12h", {"x": "b1", "y": "b2"})
+    assert view.time is None and not view.untimed
+    assert view.window == (clock(9 * 3600, "12h"), clock(21 * 3600, "12h"))
+    assert view.booking == "b1 b2"
+
+
+def test_booking_marks_number_rules_only_when_several():
+    _, tables = flex_feed_tables()
+    assert booking_marks(tables) == {"br_day": "b1", "br_now": "b2"}
+    one = [
+        replace(
+            tables[0],
+            columns=tuple(
+                replace(
+                    column,
+                    cells=tuple(
+                        replace(c, booking=()) if c and "br_now" in c.booking else c
+                        for c in column.cells
+                    ),
+                )
+                for column in tables[0].columns
+            ),
+        )
+    ]
+    assert booking_marks(one) == {"br_day": "b"}
+
+
+def test_booking_views_read_rules_as_given():
+    feed, _ = flex_feed_tables()
+    day, now, missing = booking_views(
+        feed, {"br_day": "b1", "br_now": "b2", "gone": "b3"}, "12h"
+    )
+    assert day.lines == (
+        "Book on an earlier day.",
+        "Book by 5:00 PM, 1 day before travel.",
+        "Call the day before.",
+    )
+    assert (day.phone, day.info_url, day.booking_url) == (
+        "555-0100",
+        "https://example.com/ride",
+        "",
+    )
+    assert now.lines == ("Book in real time.",) and now.booking_url
+    assert missing.lines == (
+        "The feed names booking rule gone, which booking_rules.txt does not have.",
+    )
+
+
+def test_booking_lines_without_a_type_or_with_another():
+    feed, _ = flex_feed_tables()
+    rule = feed.flex.booking_rules["br_now"]
+    assert booking_lines(replace(rule, booking_type=None), "24h")[0] == (
+        "The feed gives no booking type."
+    )
+    assert booking_lines(replace(rule, booking_type=7), "24h")[0] == "booking_type 7."
+    lines = booking_lines(
+        replace(
+            rule,
+            booking_type=1,
+            prior_notice_duration_min=1,
+            prior_notice_duration_max=90,
+        ),
+        "24h",
+    )
+    assert lines[1:] == ["At least 1 minute ahead.", "At most 90 minutes ahead."]
+
+
+def test_flex_notes_say_what_was_not_read():
+    files = fixture_files("flex")
+    files["location.geojson"] = files.pop("locations.geojson")
+    files["booking_rules.txt"] = "booking_rule_id,booking_type\nbr,soon\n"
+    assert flex_notes(read_feed(make_zip(files))) == (
+        "The feed's GTFS-Flex data could not be read: "
+        "booking_rules.txt: booking_type 'soon' is not valid",
+        "The feed has location.geojson, which GTFS names locations.geojson; "
+        "nothing is read from it.",
+    )
+
+
+def test_areas_given_in_stop_id_are_noted_and_shown_as_areas():
+    files = fixture_files("flex")
+    files["stop_times.txt"] = files["stop_times.txt"].replace(
+        "d1,,,,area_2,,2,", "d1,,,area_2,,,2,"
+    )
+    feed = read_feed(make_zip(files))
+    assert flex_notes(feed) == (
+        "The feed gives GTFS-Flex areas in stop_times.stop_id, which GTFS keeps "
+        "for stops.txt; they are shown as areas.",
+    )
+    types = day_types(feed, feed.trips, date(2026, 10, 5), 7)
+    (table,) = route_timetables(feed, "D", types)
+    assert (table.rows[1].stop_id, table.rows[1].kind) == ("area_2", "location")

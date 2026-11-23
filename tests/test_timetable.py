@@ -194,3 +194,43 @@ def test_station_with_mixed_platforms_is_unknown():
     feed = read_feed(make_zip(files))
     (table,) = route_timetables(feed, "R", day_types(feed, feed.trips, MONDAY, 7))
     assert table.rows[0].wheelchair == 0
+
+
+def flex_tables(route_id):
+    feed = read_feed(fixture_zip("flex"))
+    types = day_types(feed, feed.trips, MONDAY, 7)
+    return route_timetables(feed, route_id, types)
+
+
+def test_flex_zone_and_group_rows_show_windows_and_booking():
+    zone, group = flex_tables("Z")
+    assert [(row.stop_id, row.name, row.kind) for row in zone.rows] == [
+        ("area_1", "North zone", "location"),
+        ("area_1", "North zone", "location"),
+    ]
+    (column,) = zone.columns
+    assert column.headsign == "North zone"
+    assert [(c.time, c.window, c.booking) for c in column.cells] == [
+        (None, (7 * 3600, 19 * 3600), ("br_day",)),
+        (None, (7 * 3600, 19 * 3600), ("br_day",)),
+    ]
+    assert [(row.name, row.kind) for row in group.rows] == [
+        ("Town stops", "group"),
+        ("Town stops", "group"),
+    ]
+
+
+def test_flex_deviated_route_keeps_stops_and_areas_in_order():
+    (table,) = flex_tables("D")
+    assert [(row.stop_id, row.name, row.kind) for row in table.rows] == [
+        ("A", "Alpha", ""),
+        ("area_2", "area_2", "location"),
+        ("B", "Bravo", ""),
+        ("C", "Charlie", ""),
+    ]
+    deviated, window = table.columns
+    assert deviated.cells[1].window == (9 * 3600, 9 * 3600 + 1800)
+    assert deviated.cells[0].window is None and deviated.cells[0].booking == ()
+    assert window.cells[2].window == (10 * 3600, 11 * 3600)
+    assert window.cells[2].booking == ("br_now",)
+    assert window.cells[3].booking == ("br_now",)

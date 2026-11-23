@@ -8,8 +8,9 @@
 {%- if cell.time and cell.time.pm %}{% set _ = classes.append("pm") %}{% endif %}
 <td{% if classes %} class="{{ classes | join(" ") }}"{% endif %}>
 {%- if cell.arrival %}<span{% if cell.arrival.pm %} class="pm"{% endif %}>{{ clock_time(cell.arrival) }}</span>{% endif %}
-{%- if cell.time %}{{ clock_time(cell.time) }}{% elif cell.untimed %}|{% endif %}
-{%- if cell.mark %}<sup>{{ cell.mark }}</sup>{% endif %}</td>
+{%- if cell.time %}{{ clock_time(cell.time) }}{% elif cell.window %}{% for time in cell.window %}{% if not loop.first %}-{% endif %}<span{% if time.pm %} class="pm"{% endif %}>{{ clock_time(time) }}</span>{% endfor %}{% elif cell.untimed %}|{% endif %}
+{%- if cell.mark %}<sup>{{ cell.mark }}</sup>{% endif %}
+{%- if cell.booking %}<sup>{{ cell.booking }}</sup>{% endif %}</td>
 {%- endmacro %}
 {% macro catalog_footer(borders="") %}
 {% set tool %}<a class="link" href="https://github.com/gtfs-zone/gtfs-zone-timetable-sites" target="_blank" rel="noopener">timetable-sites</a>{% endset %}

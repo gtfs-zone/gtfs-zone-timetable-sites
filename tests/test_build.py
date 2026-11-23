@@ -1258,3 +1258,17 @@ def test_date_filter_builds_the_same_files(monkeypatch):
     whole = build_site(body, site, today=MONDAY)
     assert whole != filtered
     assert without_center(whole) == without_center(filtered)
+
+
+def test_flex_route_pages_show_areas_windows_and_booking():
+    files = build("flex")
+    deviated, zone = files["5/index.html"], files["dial-a-ride/index.html"]
+    assert "<i>area_2</i>" in deviated
+    assert "In italics: an area the feed gives no name" in deviated
+    assert '<span class="pm">10:00</span>' not in deviated
+    assert "10:00</span>-<span>11:00</span>" in deviated
+    assert '<a class="link" href="tel:555-0100">Call 555-0100</a>' in deviated
+    assert "b2: must be booked, see Booking." in deviated
+    assert "Any of 2 stops</summary>Alpha, Bravo</details>" in zone
+    assert '<span class="pm">7:00</span>' in zone
+    assert "PM times are in bold." in zone

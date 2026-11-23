@@ -15,6 +15,7 @@ from gtfs_zone_timetable_sites.fares import (
     ZoneFares,
     route_fares,
     site_fares,
+    trip_stops,
 )
 from gtfs_zone_timetable_sites.gtfs.reader import FaresError, read_feed
 from gtfs_zone_timetable_sites.pages import (
@@ -479,3 +480,12 @@ def test_v2_transfer_timeframe_not_all_day_raises():
     files["fare_leg_rules.txt"] += "leg_bus,bus,,,bus,,peak,,\n"
     with pytest.raises(FaresError, match="to_timeframe_group_id 'peak' is not all day"):
         fares_of(files, ["b1"])
+
+
+def test_areas_given_in_stop_id_are_in_no_zone():
+    files = fixture_files("flex")
+    files["stop_times.txt"] = files["stop_times.txt"].replace(
+        "d1,,,,area_2,,2,", "d1,,,area_2,,,2,"
+    )
+    feed = read_feed(make_zip(files))
+    assert trip_stops(feed, feed.trips["d1"]) == ["A", "C"]

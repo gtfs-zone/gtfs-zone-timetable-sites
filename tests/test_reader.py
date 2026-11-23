@@ -5,11 +5,14 @@ import pytest
 from conftest import fixture_files, fixture_zip, make_zip
 
 from gtfs_zone_timetable_sites.gtfs.reader import (
+    BookingRule,
     FareAttribute,
     FareLegRule,
     FareProduct,
     FareRule,
     FareTransferRule,
+    FlexStop,
+    LocationGroup,
     Timeframe,
     Translation,
     parse_color,
@@ -276,3 +279,107 @@ def test_read_shapes_thins_each_shape():
     thinned = read_feed(make_zip(files), thin_shapes=shape_points)
     assert thinned.shapes["S"] == ((42.0, -73.0), (42.0, -72.98), (42.03, -72.95))
     assert thinned.shapes["T"] == ((40.0, -70.0),)
+
+
+def test_flex_stop_times():
+    feed = read_feed(fixture_zip("flex"))
+    zone = feed.stop_times["z1"][0]
+    assert zone.stop_id == "" and zone.time is None
+    assert zone.flex == FlexStop(
+        location_id="area_1",
+        start_window=7 * 3600,
+        end_window=19 * 3600,
+        pickup_booking_rule_id="br_day",
+        drop_off_booking_rule_id="br_day",
+    )
+    assert feed.stop_times["g1"][0].flex.location_group_id == "group_1"
+    assert feed.stop_times["g1"][0].flex.start_window == 8 * 3600
+    deviated = feed.stop_times["d1"]
+    assert deviated[0].flex is None and deviated[0].stop_id == "A"
+    assert deviated[1].flex.location_id == "area_2"
+    window = feed.stop_times["w1"]
+    assert window[0].stop_id == "B" and window[0].flex.end_window == 11 * 3600
+    assert window[1].flex == FlexStop(drop_off_booking_rule_id="br_now")
+
+
+def test_flex_tables():
+    flex = read_feed(fixture_zip("flex")).flex
+    assert flex.errors == () and flex.misnamed == ()
+    north, other = flex.locations["area_1"], flex.locations["area_2"]
+    assert (north.name, north.desc) == ("North zone", "North of the river")
+    assert north.polygons[0][0][0] == (-93.0, 42.0)
+    assert other.name == "" and len(other.polygons) == 2
+    assert flex.groups == {
+        "group_1": LocationGroup("group_1", "Town stops", ("A", "B"))
+    }
+    assert flex.booking_rules["br_day"] == BookingRule(
+        booking_type=2,
+        prior_notice_duration_min=None,
+        prior_notice_duration_max=None,
+        prior_notice_last_day=1,
+        prior_notice_last_time=17 * 3600,
+        prior_notice_start_day=None,
+        prior_notice_start_time=None,
+        prior_notice_service_id="",
+        message="Call the day before.",
+        pickup_message="",
+        drop_off_message="",
+        phone_number="555-0100",
+        info_url="https://example.com/ride",
+        booking_url="",
+    )
+    assert flex.booking_rules["br_now"].booking_type == 0
+
+
+def test_no_flex_files():
+    feed = read_feed(fixture_zip("branching"))
+    assert feed.flex.locations == {} and feed.flex.booking_rules == {}
+    assert all(st.flex is None for sts in feed.stop_times.values() for st in sts)
+
+
+@pytest.mark.parametrize(
+    ("geojson", "error"),
+    [
+        ('{"type": "FeatureCollection", "features": null}', "features is not a list"),
+        ("not json", "is not JSON"),
+        (
+            '{"features": [{"id": "x", "geometry": {"type": "Point", '
+            '"coordinates": [1, 2]}}]}',
+            "'x' geometry 'Point' is not a Polygon",
+        ),
+        ('{"features": [{"properties": {}}]}', "a feature has no id"),
+    ],
+)
+def test_unreadable_locations_drop_only_locations(geojson, error):
+    files = fixture_files("flex") | {"locations.geojson": geojson}
+    feed = read_feed(make_zip(files))
+    assert len(feed.flex.errors) == 1 and error in feed.flex.errors[0]
+    assert feed.flex.locations == {}
+    assert len(feed.flex.booking_rules) == 2 and len(feed.flex.groups) == 1
+    assert feed.stop_times["z1"][0].flex.location_id == "area_1"
+
+
+def test_unreadable_booking_rule_names_field():
+    files = fixture_files("flex")
+    files["booking_rules.txt"] = "booking_rule_id,booking_type\nbr,soon\n"
+    flex = read_feed(make_zip(files)).flex
+    assert flex.errors == ("booking_rules.txt: booking_type 'soon' is not valid",)
+    assert flex.booking_rules == {} and len(flex.locations) == 2
+
+
+def test_misnamed_flex_names_are_listed_and_not_read():
+    files = fixture_files("flex")
+    files["location.geojson"] = files.pop("locations.geojson")
+    files["stop_times.txt"] = files["stop_times.txt"].replace(
+        "start_pickup_drop_off_window", "start_pickup_dropoff_window"
+    )
+    feed = read_feed(make_zip(files))
+    assert feed.flex.misnamed == (
+        (
+            "stop_times.txt start_pickup_dropoff_window",
+            "stop_times.txt start_pickup_drop_off_window",
+        ),
+        ("location.geojson", "locations.geojson"),
+    )
+    assert feed.flex.locations == {}
+    assert feed.stop_times["z1"][0].flex.start_window is None

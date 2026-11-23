@@ -17,8 +17,12 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def fixture_files(name: str) -> dict[str, str]:
-    """The text files in tests/fixtures/<name>/ by file name."""
-    return {path.name: path.read_text() for path in (FIXTURES / name).glob("*.txt")}
+    """The text and GeoJSON files in tests/fixtures/<name>/ by file name."""
+    return {
+        path.name: path.read_text()
+        for path in sorted((FIXTURES / name).iterdir())
+        if path.suffix in (".txt", ".geojson")
+    }
 
 
 def fixture_zip(name: str) -> bytes:

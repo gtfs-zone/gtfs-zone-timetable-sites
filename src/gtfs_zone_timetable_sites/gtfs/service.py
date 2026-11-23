@@ -388,7 +388,14 @@ def trip_key(feed: Feed, trip_id: str) -> TripKey:
         trip.short_name,
         trip.headsign,
         tuple(
-            (st.stop_id, st.arrival, st.departure, st.pickup_type, st.drop_off_type)
+            (
+                st.stop_id,
+                st.arrival,
+                st.departure,
+                st.pickup_type,
+                st.drop_off_type,
+                st.flex,
+            )
             for st in feed.stop_times.get(trip_id, ())
         ),
         feed.frequencies.get(trip_id, ()),

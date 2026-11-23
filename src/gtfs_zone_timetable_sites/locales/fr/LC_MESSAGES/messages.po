@@ -946,3 +946,95 @@ msgstr ""
 
 msgid "error.find"
 msgstr "Trouver les horaires de votre organisme"
+
+msgid "legend.window"
+msgstr "Deux heures : prise en charge ou dépose à tout moment entre les deux."
+
+msgid "legend.unnamed"
+msgstr "En italique : une zone sans nom dans le flux ; son location_id est affiché."
+
+msgid "legend.booking"
+msgstr "{mark} : sur réservation, voir Réservation."
+
+msgid "booking.heading"
+msgstr "Réservation"
+
+msgid "booking.no_type"
+msgstr "Le flux ne donne pas de type de réservation."
+
+msgid "booking.type_0"
+msgstr "Réservation en temps réel."
+
+msgid "booking.type_1"
+msgstr "Réservation à l'avance le jour du trajet."
+
+msgid "booking.type_2"
+msgstr "Réservation un jour précédent."
+
+msgid "booking.type"
+msgstr "booking_type {value}."
+
+msgid "booking.service"
+msgstr "Les jours comptent les jours où circule le service {service}."
+
+msgid "booking.pickup"
+msgstr "Montée : {message}"
+
+msgid "booking.drop_off"
+msgstr "Descente : {message}"
+
+msgid "booking.phone"
+msgstr "Appeler le {phone}"
+
+msgid "booking.book"
+msgstr "Réserver en ligne"
+
+msgid "booking.info"
+msgstr "Plus d'informations"
+
+msgid "booking.missing"
+msgstr "Le flux cite la règle de réservation {id}, absente de booking_rules.txt."
+
+msgid "flex.unreadable"
+msgstr "Les données GTFS-Flex du flux n'ont pas pu être lues : {error}"
+
+msgid "flex.misnamed"
+msgstr "Le flux contient {given}, que GTFS nomme {spec} ; rien n'en est lu."
+
+msgid "booking.min"
+msgid_plural "booking.min"
+msgstr[0] "Au moins {n} minute à l'avance."
+msgstr[1] "Au moins {n} minutes à l'avance."
+
+msgid "booking.max"
+msgid_plural "booking.max"
+msgstr[0] "Au plus {n} minute à l'avance."
+msgstr[1] "Au plus {n} minutes à l'avance."
+
+msgid "booking.start"
+msgid_plural "booking.start"
+msgstr[0] "Réservation ouverte {n} jour avant le trajet."
+msgstr[1] "Réservation ouverte {n} jours avant le trajet."
+
+msgid "booking.start_time"
+msgid_plural "booking.start_time"
+msgstr[0] "Réservation ouverte {n} jour avant le trajet, à {time}."
+msgstr[1] "Réservation ouverte {n} jours avant le trajet, à {time}."
+
+msgid "booking.last"
+msgid_plural "booking.last"
+msgstr[0] "Réserver au moins {n} jour avant le trajet."
+msgstr[1] "Réserver au moins {n} jours avant le trajet."
+
+msgid "booking.last_time"
+msgid_plural "booking.last_time"
+msgstr[0] "Réserver avant {time}, {n} jour avant le trajet."
+msgstr[1] "Réserver avant {time}, {n} jours avant le trajet."
+
+msgid "route.group_stops"
+msgid_plural "route.group_stops"
+msgstr[0] "{n} arrêt possible"
+msgstr[1] "{n} arrêts possibles"
+
+msgid "flex.in_stop_id"
+msgstr "Le flux donne des zones GTFS-Flex dans stop_times.stop_id, que GTFS réserve à stops.txt ; elles sont affichées comme zones."

@@ -1,5 +1,8 @@
 """GTFS zip to typed rows, streaming each file and keeping only needed columns."""
 
+import csv
+import io
+import json
 import logging
 from array import array
 from collections import defaultdict
@@ -38,6 +41,10 @@ class FaresError(ValueError):
     """Fares tables that cannot be read or linked, with the file and field."""
 
 
+class FlexError(ValueError):
+    """GTFS-Flex files that cannot be read, with the file and field."""
+
+
 @dataclass(frozen=True, slots=True)
 class Route:
     route_id: str
@@ -72,6 +79,18 @@ class Trip:
 
 
 @dataclass(frozen=True, slots=True)
+class FlexStop:
+    """A stop_time's GTFS-Flex fields, as given."""
+
+    location_id: str = ""
+    location_group_id: str = ""
+    start_window: int | None = None
+    end_window: int | None = None
+    pickup_booking_rule_id: str = ""
+    drop_off_booking_rule_id: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class StopTime:
     stop_id: str
     sequence: int
@@ -80,10 +99,20 @@ class StopTime:
     timepoint: int | None
     pickup_type: int
     drop_off_type: int
+    # None when the row has no GTFS-Flex field.
+    flex: FlexStop | None = None
 
     @property
     def time(self) -> int | None:
         return self.departure if self.departure is not None else self.arrival
+
+    @property
+    def place_id(self) -> str:
+        """The stop_id, else the location_id or location_group_id; GTFS keeps
+        the three unique among each other."""
+        if self.stop_id or self.flex is None:
+            return self.stop_id
+        return self.flex.location_id or self.flex.location_group_id
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,6 +232,60 @@ class Fares:
     error: str = ""
 
 
+type Ring = tuple[Point, ...]
+# Rings of one polygon, the outer ring first; points as (lon, lat).
+type Polygon = tuple[Ring, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class Location:
+    """A locations.geojson feature."""
+
+    location_id: str
+    name: str
+    desc: str
+    polygons: tuple[Polygon, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class LocationGroup:
+    location_group_id: str
+    name: str
+    stop_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class BookingRule:
+    booking_type: int | None
+    prior_notice_duration_min: int | None
+    prior_notice_duration_max: int | None
+    prior_notice_last_day: int | None
+    prior_notice_last_time: int | None
+    prior_notice_start_day: int | None
+    prior_notice_start_time: int | None
+    prior_notice_service_id: str
+    message: str
+    pickup_message: str
+    drop_off_message: str
+    phone_number: str
+    info_url: str
+    booking_url: str
+
+
+@dataclass(frozen=True, slots=True)
+class Flex:
+    """GTFS-Flex locations, location groups and booking rules. A file that
+    cannot be read leaves its table empty and its reason in `errors`.
+    `misnamed` lists (name in the feed, name in GTFS) for Flex files and
+    columns the feed names otherwise, which are not read."""
+
+    locations: dict[str, Location] = field(default_factory=dict)
+    groups: dict[str, LocationGroup] = field(default_factory=dict)
+    booking_rules: dict[str, BookingRule] = field(default_factory=dict)
+    misnamed: tuple[tuple[str, str], ...] = ()
+    errors: tuple[str, ...] = ()
+
+
 @dataclass(frozen=True, slots=True)
 class Feed:
     agencies: dict[str, Agency]
@@ -217,6 +300,7 @@ class Feed:
     feed_info: FeedInfo | None
     fares: Fares
     translations: tuple[Translation, ...] = ()
+    flex: Flex = field(default_factory=Flex)
     # Each route's service_ids and the trip count, before trips are dropped
     # by date.
     route_services: dict[str, frozenset[str]] = field(default_factory=dict)
@@ -234,6 +318,21 @@ class Feed:
         if stop is not None and stop.parent_station in self.stops:
             return stop.parent_station
         return stop_id
+
+    def flex_place(self, place_id: str) -> bool:
+        """Whether the id is a GTFS-Flex location or location group."""
+        return place_id in self.flex.locations or place_id in self.flex.groups
+
+    def place_name(self, place_id: str) -> str:
+        """The name of a stop, location or location group; "" for a location
+        the feed gives no name, the id when the feed has no such place."""
+        if stop := self.stops.get(place_id):
+            return stop.name
+        if location := self.flex.locations.get(place_id):
+            return location.name
+        if group := self.flex.groups.get(place_id):
+            return group.name
+        return place_id
 
     def stop_timezone(self, stop_id: str) -> str:
         """The stop's own timezone, else its parent station's, else empty."""
@@ -366,9 +465,40 @@ def read_trips(
     }
 
 
+FLEX_STOP_COLUMNS = (
+    "location_id",
+    "location_group_id",
+    "start_pickup_drop_off_window",
+    "end_pickup_drop_off_window",
+    "pickup_booking_rule_id",
+    "drop_off_booking_rule_id",
+)
+# Names seen in feeds for Flex files and columns, by the name in GTFS.
+FLEX_MISNAMED = {
+    "stop_times.txt start_pickup_dropoff_window": (
+        "stop_times.txt start_pickup_drop_off_window"
+    ),
+    "stop_times.txt end_pickup_dropoff_window": (
+        "stop_times.txt end_pickup_drop_off_window"
+    ),
+    "location.geojson": "locations.geojson",
+}
+
+
+def header(archive: Archive, table: str) -> list[str]:
+    """The column names of `table`, empty when the file is missing."""
+    if not archive.has(table):
+        return []
+    with archive.archive.open(archive.members[table]) as raw:
+        reader = csv.reader(io.TextIOWrapper(raw, encoding="utf-8-sig"))
+        return [name.strip() for name in next(reader, [])]
+
+
 def read_stop_times(
     archive: Archive, trip_ids: set[str]
 ) -> dict[str, tuple[StopTime, ...]]:
+    present = set(header(archive, "stop_times"))
+    flex_columns = tuple(column for column in FLEX_STOP_COLUMNS if column in present)
     columns = (
         "trip_id",
         "arrival_time",
@@ -378,15 +508,36 @@ def read_stop_times(
         "timepoint",
         "pickup_type",
         "drop_off_type",
+        *flex_columns,
     )
-    # Rows repeat the same stop_ids and times, so each distinct value is kept once.
+    # Rows repeat the same stop_ids, times and Flex fields, so each distinct
+    # value is kept once.
     stop_ids: dict[str, str] = {}
     times: dict[str, int | None] = {}
+    flex_stops: dict[tuple[str, ...], FlexStop | None] = {}
 
     def shared_time(text: str) -> int | None:
         if text not in times:
             times[text] = parse_time(text)
         return times[text]
+
+    def flex_stop(row: dict[str, str]) -> FlexStop | None:
+        values = tuple(row.get(column, "") for column in FLEX_STOP_COLUMNS)
+        if values not in flex_stops:
+            location, group, start, end, pickup, drop_off = values
+            flex_stops[values] = (
+                FlexStop(
+                    location_id=location,
+                    location_group_id=group,
+                    start_window=shared_time(start),
+                    end_window=shared_time(end),
+                    pickup_booking_rule_id=pickup,
+                    drop_off_booking_rule_id=drop_off,
+                )
+                if any(values)
+                else None
+            )
+        return flex_stops[values]
 
     by_trip: dict[str, list[StopTime]] = defaultdict(list)
     for row in archive.rows("stop_times", columns):
@@ -401,6 +552,7 @@ def read_stop_times(
                 timepoint=parse_int(row["timepoint"]),
                 pickup_type=parse_int(row["pickup_type"]) or 0,
                 drop_off_type=parse_int(row["drop_off_type"]) or 0,
+                flex=flex_stop(row) if flex_columns else None,
             )
         )
     return {
@@ -699,6 +851,165 @@ def read_fares(archive: Archive) -> Fares:
     )
 
 
+def flex_field[T](
+    table: str, row: dict[str, str], column: str, parse: Callable[[str], T]
+) -> T:
+    """`parse` of a Flex field; a value it cannot read raises FlexError
+    naming the file, field and value."""
+    value = row[column]
+    try:
+        return parse(value)
+    except ValueError as error:
+        raise FlexError(f"{table}.txt: {column} {value!r} is not valid") from error
+
+
+def geojson_member(archive: Archive, filename: str) -> str | None:
+    """The zip member `filename` next to stops.txt, or None."""
+    folder = archive.members["stops"].rpartition("/")[0]
+    name = f"{folder}/{filename}" if folder else filename
+    return name if name in archive.archive.namelist() else None
+
+
+def read_polygons(location_id: str, geometry: object) -> tuple[Polygon, ...]:
+    """A Polygon or MultiPolygon geometry's polygons."""
+    if not isinstance(geometry, dict):
+        raise FlexError(f"locations.geojson: {location_id!r} has no geometry")
+    kind, coordinates = geometry.get("type"), geometry.get("coordinates")
+    if kind not in ("Polygon", "MultiPolygon") or not isinstance(coordinates, list):
+        raise FlexError(
+            f"locations.geojson: {location_id!r} geometry {kind!r} is not a "
+            "Polygon or MultiPolygon"
+        )
+    polygons = coordinates if kind == "MultiPolygon" else [coordinates]
+    try:
+        return tuple(
+            tuple(
+                tuple((float(lon), float(lat)) for lon, lat, *_ in ring)
+                for ring in polygon
+            )
+            for polygon in polygons
+        )
+    except (TypeError, ValueError) as error:
+        raise FlexError(
+            f"locations.geojson: {location_id!r} coordinates are not valid"
+        ) from error
+
+
+def read_locations(archive: Archive) -> dict[str, Location]:
+    """locations.geojson features by id."""
+    member = geojson_member(archive, "locations.geojson")
+    if member is None:
+        return {}
+    try:
+        collection = json.loads(archive.archive.read(member))
+    except ValueError as error:
+        raise FlexError(f"locations.geojson is not JSON: {error}") from error
+    features = collection.get("features") if isinstance(collection, dict) else None
+    if not isinstance(features, list):
+        raise FlexError("locations.geojson: features is not a list")
+    locations: dict[str, Location] = {}
+    for feature in features:
+        location_id = str(feature.get("id", "")) if isinstance(feature, dict) else ""
+        if not location_id:
+            raise FlexError("locations.geojson: a feature has no id")
+        properties = feature.get("properties") or {}
+        locations[location_id] = Location(
+            location_id=location_id,
+            name=str(properties.get("stop_name") or ""),
+            desc=str(properties.get("stop_desc") or ""),
+            polygons=read_polygons(location_id, feature.get("geometry")),
+        )
+    return locations
+
+
+def read_location_groups(archive: Archive) -> dict[str, LocationGroup]:
+    stop_ids: dict[str, list[str]] = defaultdict(list)
+    for group_id, stop_id in archive.values(
+        "location_group_stops", ("location_group_id", "stop_id")
+    ):
+        stop_ids[group_id].append(stop_id)
+    return {
+        group_id: LocationGroup(group_id, name, tuple(stop_ids[group_id]))
+        for group_id, name in archive.values(
+            "location_groups", ("location_group_id", "location_group_name")
+        )
+    }
+
+
+def read_booking_rules(archive: Archive) -> dict[str, BookingRule]:
+    columns = (
+        "booking_rule_id",
+        "booking_type",
+        "prior_notice_duration_min",
+        "prior_notice_duration_max",
+        "prior_notice_last_day",
+        "prior_notice_last_time",
+        "prior_notice_start_day",
+        "prior_notice_start_time",
+        "prior_notice_service_id",
+        "message",
+        "pickup_message",
+        "drop_off_message",
+        "phone_number",
+        "info_url",
+        "booking_url",
+    )
+    rules: dict[str, BookingRule] = {}
+    for row in archive.rows("booking_rules", columns):
+        ints = {
+            column: flex_field("booking_rules", row, column, parse_int)
+            for column in (
+                "booking_type",
+                "prior_notice_duration_min",
+                "prior_notice_duration_max",
+                "prior_notice_last_day",
+                "prior_notice_start_day",
+            )
+        }
+        times = {
+            column: flex_field("booking_rules", row, column, parse_time)
+            for column in ("prior_notice_last_time", "prior_notice_start_time")
+        }
+        texts = {
+            column: row[column].strip()
+            for column in columns[1:]
+            if column not in ints and column not in times
+        }
+        rules[row["booking_rule_id"]] = BookingRule(**texts, **ints, **times)
+    return rules
+
+
+def flex_misnamed(archive: Archive) -> tuple[tuple[str, str], ...]:
+    """(name in the feed, name in GTFS) for Flex files and columns named
+    otherwise."""
+    present = {f"stop_times.txt {column}" for column in header(archive, "stop_times")}
+    if geojson_member(archive, "location.geojson") is not None:
+        present.add("location.geojson")
+    return tuple(
+        (given, spec) for given, spec in FLEX_MISNAMED.items() if given in present
+    )
+
+
+def read_flex(archive: Archive) -> Flex:
+    """The Flex tables, each empty when its file cannot be read."""
+    errors: list[str] = []
+
+    def read[T](reader: Callable[[Archive], dict[str, T]]) -> dict[str, T]:
+        try:
+            return reader(archive)
+        except FlexError as error:
+            errors.append(str(error))
+            return {}
+
+    return Flex(
+        locations=read(read_locations),
+        groups=read(read_location_groups),
+        booking_rules=read(read_booking_rules),
+        misnamed=flex_misnamed(archive),
+        errors=tuple(errors),
+    )
+
+
 def read_feed(
     source: ZipSource,
     keep_route: Callable[[Route], bool] | None = None,
@@ -748,6 +1059,7 @@ def read_feed(
             feed_info=read_feed_info(archive),
             fares=fares,
             translations=read_translations(archive),
+            flex=read_flex(archive),
             route_services=route_services,
             trip_count=trip_count,
         )

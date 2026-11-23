@@ -941,3 +941,94 @@ msgstr ""
 msgid "error.find"
 msgstr "Etsi liikennöitsijäsi aikataulut"
 
+msgid "legend.window"
+msgstr "Kaksi aikaa: nousu tai poistuminen milloin tahansa niiden välillä."
+
+msgid "legend.unnamed"
+msgstr "Kursiivilla: alue, jolla ei ole nimeä syötteessä; sen location_id näytetään."
+
+msgid "legend.booking"
+msgstr "{mark}: varattava, katso Varaus."
+
+msgid "booking.heading"
+msgstr "Varaus"
+
+msgid "booking.no_type"
+msgstr "Syöte ei kerro varauksen tyyppiä."
+
+msgid "booking.type_0"
+msgstr "Varaus reaaliajassa."
+
+msgid "booking.type_1"
+msgstr "Varaus etukäteen matkapäivänä."
+
+msgid "booking.type_2"
+msgstr "Varaus jonain aiempana päivänä."
+
+msgid "booking.type"
+msgstr "booking_type {value}."
+
+msgid "booking.service"
+msgstr "Päivät lasketaan palvelun {service} liikennöintipäivinä."
+
+msgid "booking.pickup"
+msgstr "Nousu: {message}"
+
+msgid "booking.drop_off"
+msgstr "Poistuminen: {message}"
+
+msgid "booking.phone"
+msgstr "Soita {phone}"
+
+msgid "booking.book"
+msgstr "Varaa verkossa"
+
+msgid "booking.info"
+msgstr "Lisätietoja"
+
+msgid "booking.missing"
+msgstr "Syöte viittaa varaussääntöön {id}, jota booking_rules.txt ei sisällä."
+
+msgid "flex.unreadable"
+msgstr "Syötteen GTFS-Flex-tietoja ei voitu lukea: {error}"
+
+msgid "flex.misnamed"
+msgstr "Syötteessä on {given}, jonka GTFS nimeää {spec}; siitä ei lueta mitään."
+
+msgid "booking.min"
+msgid_plural "booking.min"
+msgstr[0] "Vähintään {n} minuutti etukäteen."
+msgstr[1] "Vähintään {n} minuuttia etukäteen."
+
+msgid "booking.max"
+msgid_plural "booking.max"
+msgstr[0] "Enintään {n} minuutti etukäteen."
+msgstr[1] "Enintään {n} minuuttia etukäteen."
+
+msgid "booking.start"
+msgid_plural "booking.start"
+msgstr[0] "Varaus alkaa {n} päivä ennen matkaa."
+msgstr[1] "Varaus alkaa {n} päivää ennen matkaa."
+
+msgid "booking.start_time"
+msgid_plural "booking.start_time"
+msgstr[0] "Varaus alkaa {n} päivä ennen matkaa klo {time}."
+msgstr[1] "Varaus alkaa {n} päivää ennen matkaa klo {time}."
+
+msgid "booking.last"
+msgid_plural "booking.last"
+msgstr[0] "Varaa viimeistään {n} päivä ennen matkaa."
+msgstr[1] "Varaa viimeistään {n} päivää ennen matkaa."
+
+msgid "booking.last_time"
+msgid_plural "booking.last_time"
+msgstr[0] "Varaa klo {time} mennessä, {n} päivä ennen matkaa."
+msgstr[1] "Varaa klo {time} mennessä, {n} päivää ennen matkaa."
+
+msgid "route.group_stops"
+msgid_plural "route.group_stops"
+msgstr[0] "{n} mahdollinen pysäkki"
+msgstr[1] "Mikä tahansa {n} pysäkistä"
+
+msgid "flex.in_stop_id"
+msgstr "Syöte antaa GTFS-Flex-alueita kentässä stop_times.stop_id, jonka GTFS varaa stops.txt:lle; ne näytetään alueina."
