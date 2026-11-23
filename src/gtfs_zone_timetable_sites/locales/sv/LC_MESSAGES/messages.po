@@ -945,3 +945,39 @@ msgstr ""
 msgid "error.find"
 msgstr "Hitta ditt trafikföretags tidtabeller"
 
+msgid "overlap.part_of"
+msgstr "Publiceras också som en del av: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Innehåller också alla trafikföretag i: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Delar trafikföretag med {n} annat flöde"
+msgstr[1] "Delar trafikföretag med {n} andra flöden"
+
+msgid "overlap.heading"
+msgstr "Flöden med samma trafikföretag"
+
+msgid "overlap.intro"
+msgstr "Andra flöden i gtfs.zones katalog som anger samma trafikföretag där deras hållplatser överlappar detta flödes."
+
+msgid "overlap.kind_contains"
+msgstr "alla dess trafikföretag finns i detta flöde"
+
+msgid "overlap.kind_contained_in"
+msgstr "har alla trafikföretag i detta flöde"
+
+msgid "overlap.kind_shares"
+msgstr "delar några trafikföretag"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Trafikföretag i båda: {agencies}"
+msgstr[1] "Trafikföretag i båda: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} publiceras också i: {feeds}."
+
+msgid "field.sha256"
+msgstr "Zipfilens SHA-256"

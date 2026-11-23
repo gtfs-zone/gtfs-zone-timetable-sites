@@ -958,3 +958,41 @@ msgstr ""
 msgid "error.find"
 msgstr "Znajdź rozkłady swojego przewoźnika"
 
+msgid "overlap.part_of"
+msgstr "Publikowany także jako część: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Obejmuje też wszystkich przewoźników z: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Ma wspólnych przewoźników z {n} innym feedem"
+msgstr[1] "Ma wspólnych przewoźników z {n} innymi feedami"
+msgstr[2] "Ma wspólnych przewoźników z {n} innymi feedami"
+
+msgid "overlap.heading"
+msgstr "Feedy z tymi samymi przewoźnikami"
+
+msgid "overlap.intro"
+msgstr "Inne feedy w katalogu gtfs.zone, które podają tych samych przewoźników tam, gdzie ich przystanki pokrywają się z przystankami tego feedu."
+
+msgid "overlap.kind_contains"
+msgstr "wszyscy jego przewoźnicy są w tym feedzie"
+
+msgid "overlap.kind_contained_in"
+msgstr "ma wszystkich przewoźników tego feedu"
+
+msgid "overlap.kind_shares"
+msgstr "ma niektórych przewoźników wspólnych"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Wspólny przewoźnik: {agencies}"
+msgstr[1] "Wspólni przewoźnicy: {agencies}"
+msgstr[2] "Wspólni przewoźnicy: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} jest publikowany także w: {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 pliku zip"

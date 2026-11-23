@@ -14,8 +14,8 @@ from urllib.parse import quote, urlencode
 
 from babel.numbers import format_decimal
 
-from gtfs_zone_timetable_sites.config import CatalogFeed, CatalogRow
-from gtfs_zone_timetable_sites.i18n import Locale, long_date, t
+from gtfs_zone_timetable_sites.config import CatalogFeed, CatalogRow, OverlapLink
+from gtfs_zone_timetable_sites.i18n import Locale, join_and, long_date, t
 
 EDITOR_BASE = "https://edit.gtfs.zone"
 VIEWER_BASE = "https://viz.rt.gtfs.zone"
@@ -300,11 +300,12 @@ def outcome_label(outcome: str, locale: Locale) -> str:
 
 
 def fact_rows(
-    feed: CatalogFeed, locale: Locale, built: bool = False
+    feed: CatalogFeed, locale: Locale, built: bool = False, sha256: str = ""
 ) -> tuple[tuple[str, str], ...]:
     """What the feed's schedule is and held, as (label, value) pairs; the
     last download's outcome only for a feed without a site (`built`), whose
-    page would otherwise contradict it."""
+    page would otherwise contradict it, and the sha256 of the zip a site was
+    built from."""
     facts = []
     content = feed.content
     if content.get("state") and not built:
@@ -357,6 +358,8 @@ def fact_rows(
         facts.append((t(locale, "field.size"), size(feed.static_bytes, locale)))
     if modified := day(feed.last_modified):
         facts.append((t(locale, "field.last_modified"), long_date(modified, locale)))
+    if sha256:
+        facts.append((t(locale, "field.sha256"), sha256))
     facts.append((t(locale, "field.feed_id"), feed.feed_id))
     return tuple(facts)
 
@@ -398,8 +401,11 @@ def no_site_reason(feed: CatalogFeed, locale: Locale) -> str:
     return t(locale, "feed.no_site")
 
 
-def feed_view(feed: CatalogFeed, locale: Locale, built: bool = False) -> FeedView:
-    """The page view of a feed, on its site's index when `built`."""
+def feed_view(
+    feed: CatalogFeed, locale: Locale, built: bool = False, sha256: str = ""
+) -> FeedView:
+    """The page view of a feed, on its site's index when `built` (from the
+    zip with `sha256`)."""
     licenses = feed.licenses or tuple(
         sorted({row.license_url for row in feed.rows if row.license_url})
     )
@@ -412,7 +418,7 @@ def feed_view(feed: CatalogFeed, locale: Locale, built: bool = False) -> FeedVie
         state_label=t(locale, f"state.{feed.state}"),
         state_text=state_text(feed, locale),
         roles=role_views(feed, locale),
-        facts=fact_rows(feed, locale, built),
+        facts=fact_rows(feed, locale, built, sha256),
         rows=row_views(feed),
         licenses=licenses,
         credits=credits(feed),
@@ -420,6 +426,93 @@ def feed_view(feed: CatalogFeed, locale: Locale, built: bool = False) -> FeedVie
         viewer_url=viewer_url(feed),
         reason=no_site_reason(feed, locale),
     )
+
+
+# feeds.json overlap kinds, as this feed relates to the other.
+CONTAINS = "contains"
+CONTAINED_IN = "containedIn"
+SHARES = "shares"
+KIND_KEYS = {
+    CONTAINS: "overlap.kind_contains",
+    CONTAINED_IN: "overlap.kind_contained_in",
+    SHARES: "overlap.kind_shares",
+}
+
+
+@dataclass(frozen=True)
+class OverlapRow:
+    link: OverlapLink
+    # The kind as a sentence, empty for a kind feeds.json did not have before.
+    kind_text: str
+    agencies_text: str
+
+
+@dataclass(frozen=True)
+class OverlapsView:
+    # Feeds holding all of this feed's agencies.
+    part_of: tuple[OverlapLink, ...]
+    # Feeds whose agencies this feed all holds.
+    holds: tuple[OverlapLink, ...]
+    shares_text: str
+    rows: tuple[OverlapRow, ...]
+
+
+def overlap_order(link: OverlapLink) -> tuple[str, str, str]:
+    return (link.name.casefold(), link.place, link.slug or "")
+
+
+def overlaps_view(
+    links: tuple[OverlapLink, ...], locale: Locale
+) -> OverlapsView | None:
+    """The hatnote and section of a feed's overlaps, by name; None without
+    any."""
+    if not links:
+        return None
+    ordered = sorted(links, key=overlap_order)
+    shares = sum(1 for link in ordered if link.kind == SHARES)
+    return OverlapsView(
+        part_of=tuple(link for link in ordered if link.kind == CONTAINED_IN),
+        holds=tuple(link for link in ordered if link.kind == CONTAINS),
+        shares_text=t(locale, "overlap.shares", n=shares) if shares else "",
+        rows=tuple(
+            OverlapRow(
+                link=link,
+                kind_text=t(locale, KIND_KEYS[link.kind])
+                if link.kind in KIND_KEYS
+                else "",
+                agencies_text=t(
+                    locale,
+                    "overlap.agencies",
+                    n=len(link.agencies),
+                    agencies=join_and(link.agencies, locale),
+                ),
+            )
+            for link in ordered
+        ),
+    )
+
+
+def route_overlaps(
+    links: tuple[OverlapLink, ...], agencies: tuple[str, ...]
+) -> tuple[tuple[str, tuple[OverlapLink, ...]], ...]:
+    """Per agency of a route (as the feed names it), the overlaps that share
+    it, by name."""
+    found = []
+    for agency in agencies:
+        key = " ".join(agency.split())
+        shared = tuple(
+            sorted(
+                (
+                    link
+                    for link in links
+                    if key in {" ".join(name.split()) for name in link.agencies}
+                ),
+                key=overlap_order,
+            )
+        )
+        if shared:
+            found.append((key, shared))
+    return tuple(found)
 
 
 def place_line(feed: CatalogFeed) -> str:

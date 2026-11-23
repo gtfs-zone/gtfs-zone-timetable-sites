@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import re
@@ -23,7 +24,7 @@ from gtfs_zone_timetable_sites.build import (
     window_services,
 )
 from gtfs_zone_timetable_sites.catalog import shard_of
-from gtfs_zone_timetable_sites.config import CatalogFeed, Site
+from gtfs_zone_timetable_sites.config import CatalogFeed, OverlapLink, Site
 from gtfs_zone_timetable_sites.gtfs.reader import read_feed
 from gtfs_zone_timetable_sites.pages import date_range
 
@@ -1258,3 +1259,43 @@ def test_date_filter_builds_the_same_files(monkeypatch):
     whole = build_site(body, site, today=MONDAY)
     assert whole != filtered
     assert without_center(whole) == without_center(filtered)
+
+
+def test_overlaps_on_the_index_and_the_routes_of_their_agency():
+    feed = CatalogFeed(feedId="f-0123456789", name="Test")
+    site = Site(
+        slug="test",
+        feed=feed.feed_id,
+        catalog=feed,
+        overlaps=(
+            OverlapLink(
+                kind="containedIn", agencies=("Test Transit",), name="All", slug="all"
+            ),
+            OverlapLink(kind="shares", agencies=("Other",), name="Near"),
+        ),
+    )
+    files = build_site(fixture_zip("branching"), site, MONDAY)
+    home = files["index.html"].decode()
+    assert 'Also published as part of: <a class="link" href="../all/">All</a>.' in home
+    assert (
+        '<a class="link" href="#overlaps">Shares agencies with 1 other feed</a>' in home
+    )
+    assert "Agency in both: Other" in home
+    route = next(
+        body.decode()
+        for path, body in files.items()
+        if path.endswith("/index.html") and path.count("/") == 1
+    )
+    assert (
+        'Test Transit is also published in: <a class="link" href="../../all/">All</a>.'
+        in route
+    )
+    assert "Near" not in route
+
+
+def test_index_feed_card_gives_the_zips_sha256():
+    body = fixture_zip("branching")
+    feed = CatalogFeed(feedId="f-0123456789", name="Test")
+    site = Site(slug="test", feed=feed.feed_id, catalog=feed)
+    home = build_site(body, site, MONDAY)["index.html"].decode()
+    assert hashlib.sha256(body).hexdigest() in home

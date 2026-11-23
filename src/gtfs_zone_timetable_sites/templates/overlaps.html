@@ -1,0 +1,43 @@
+{# Other catalog feeds with the same agencies, from feedpage.OverlapsView. #}
+{% macro overlap_link(link) -%}
+{% if link.slug %}<a class="link" href="{{ assets | default("") }}../{{ link.slug }}/">{{ link.name }}</a>{% else %}{{ link.name }}{% endif %}{% if link.place %} ({{ link.place }}){% endif %}
+{%- endmacro %}
+
+{% macro overlap_links(links) -%}
+{% for link in links %}{{ overlap_link(link) }}{% if not loop.last %}, {% endif %}{% endfor %}
+{%- endmacro %}
+
+{# The note at the top of a site's index or feed page. #}
+{% macro overlap_hatnote(overlaps) %}
+<div class="space-y-1 border-l-4 border-base-300 pl-3 text-base-content/80">
+{% if overlaps.part_of %}<p>{{ t("overlap.part_of", feeds=overlap_links(overlaps.part_of)) }}</p>{% endif %}
+{% if overlaps.holds %}<p>{{ t("overlap.holds", feeds=overlap_links(overlaps.holds)) }}</p>{% endif %}
+{% if overlaps.shares_text %}<p><a class="link" href="#overlaps">{{ overlaps.shares_text }}</a></p>{% endif %}
+</div>
+{% endmacro %}
+
+{# Every overlapping feed with its kind and the agencies both have. #}
+{% macro overlap_section(overlaps) %}
+<section class="card bg-base-100 shadow-sm" id="overlaps">
+<div class="card-body space-y-3 p-4">
+<h2 class="card-title">{{ t("overlap.heading") }}</h2>
+<p class="text-sm text-base-content/70">{{ t("overlap.intro") }}</p>
+<ul class="space-y-2">
+{% for row in overlaps.rows %}
+<li><details>
+<summary class="cursor-pointer">{{ overlap_link(row.link) }}: {% if row.kind_text %}{{ row.kind_text }}{% else %}<code>{{ row.link.kind }}</code>{% endif %}</summary>
+<p class="mt-1 text-sm text-base-content/70">{{ row.agencies_text }}</p>
+</details></li>
+{% endfor %}
+</ul>
+</div>
+</section>
+{% endmacro %}
+
+{# The note on a route page: other feeds that also publish the route's agency. #}
+{% macro route_hatnote(shared) %}
+<div class="space-y-1 border-l-4 border-base-300 pl-3 text-base-content/80">
+{% for agency, links in shared %}<p>{{ t("overlap.route", agency=agency, feeds=overlap_links(links)) }}</p>
+{% endfor %}
+</div>
+{% endmacro %}

@@ -121,6 +121,19 @@ class CatalogRow(BaseModel):
         return data
 
 
+class Overlap(BaseModel):
+    """Another feed sharing agencies with this one, as feeds.json `overlaps`
+    has it: `contains` when this feed has all of the other's agencies,
+    `containedIn` when the other has all of this one's, else `shares`."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True, populate_by_name=True)
+
+    feed_id: str = Field(alias="feedId")
+    kind: str = "shares"
+    # The shared agencies, named as this feed names them.
+    agencies: tuple[str, ...] = ()
+
+
 class CatalogFeed(BaseModel):
     """One entry of feeds.json, as feed-catalog's `artifacts.feed_entry` writes it."""
 
@@ -153,6 +166,7 @@ class CatalogFeed(BaseModel):
     content: dict[str, Any] = {}
     # The member rows, when sources.json was read with feeds.json.
     rows: tuple[CatalogRow, ...] = ()
+    overlaps: tuple[Overlap, ...] = ()
 
 
 def with_rows(
@@ -186,6 +200,17 @@ def parse_feeds(feeds_doc: dict[str, Any]) -> dict[str, CatalogFeed]:
     return {feed.feed_id: feed for feed in feeds}
 
 
+class OverlapLink(Strict):
+    """An overlap with the other feed's name, place and slug (None when it
+    has no page)."""
+
+    kind: str
+    agencies: tuple[str, ...]
+    name: str
+    place: str = ""
+    slug: str | None = None
+
+
 class Site(Options):
     """One site with its options fully resolved against the defaults."""
 
@@ -199,6 +224,8 @@ class Site(Options):
     catalog: CatalogFeed | None = None
     # The town that sets the site apart from others with the same feed name.
     locality: str | None = None
+    # The catalog feed's overlaps, resolved to the other feeds' pages.
+    overlaps: tuple[OverlapLink, ...] = ()
 
     def licenses(self) -> tuple[str, ...]:
         """The configured license URL, else the catalog's."""

@@ -941,3 +941,39 @@ msgstr ""
 msgid "error.find"
 msgstr "Etsi liikennöitsijäsi aikataulut"
 
+msgid "overlap.part_of"
+msgstr "Julkaistu myös osana syötettä: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Sisältää myös kaikki liikennöitsijät syötteestä: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Yhteisiä liikennöitsijöitä {n} muun syötteen kanssa"
+msgstr[1] "Yhteisiä liikennöitsijöitä {n} muun syötteen kanssa"
+
+msgid "overlap.heading"
+msgstr "Syötteet, joissa on samat liikennöitsijät"
+
+msgid "overlap.intro"
+msgstr "Muut gtfs.zone-luettelon syötteet, jotka nimeävät samat liikennöitsijät alueella, jossa niiden pysäkit ovat päällekkäin tämän syötteen pysäkkien kanssa."
+
+msgid "overlap.kind_contains"
+msgstr "kaikki sen liikennöitsijät ovat tässä syötteessä"
+
+msgid "overlap.kind_contained_in"
+msgstr "sisältää kaikki tämän syötteen liikennöitsijät"
+
+msgid "overlap.kind_shares"
+msgstr "jakaa osan liikennöitsijöistä"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Yhteinen liikennöitsijä: {agencies}"
+msgstr[1] "Yhteiset liikennöitsijät: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} julkaistaan myös syötteessä: {feeds}."
+
+msgid "field.sha256"
+msgstr "Zip-tiedoston SHA-256"

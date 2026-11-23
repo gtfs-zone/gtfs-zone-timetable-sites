@@ -946,3 +946,39 @@ msgstr ""
 msgid "error.find"
 msgstr "Trova gli orari della tua azienda"
 
+msgid "overlap.part_of"
+msgstr "Pubblicato anche come parte di: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Comprende anche tutte le aziende di: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Ha aziende in comune con {n} altro feed"
+msgstr[1] "Ha aziende in comune con altri {n} feed"
+
+msgid "overlap.heading"
+msgstr "Feed con le stesse aziende"
+
+msgid "overlap.intro"
+msgstr "Altri feed del catalogo di gtfs.zone che indicano le stesse aziende dove le loro fermate si sovrappongono a quelle di questo feed."
+
+msgid "overlap.kind_contains"
+msgstr "tutte le sue aziende sono in questo feed"
+
+msgid "overlap.kind_contained_in"
+msgstr "contiene tutte le aziende di questo feed"
+
+msgid "overlap.kind_shares"
+msgstr "ha alcune aziende in comune"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Azienda in comune: {agencies}"
+msgstr[1] "Aziende in comune: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} è pubblicata anche in: {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 dello zip"

@@ -914,3 +914,37 @@ msgstr "事業者が路線名を変更すると、時刻表ページの場所が
 msgid "error.find"
 msgstr "事業者の時刻表を探す"
 
+msgid "overlap.part_of"
+msgstr "次のフィードの一部としても公開：{feeds}。"
+
+msgid "overlap.holds"
+msgstr "次のフィードの事業者もすべて含みます：{feeds}。"
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "ほか{n}件のフィードと事業者が共通"
+
+msgid "overlap.heading"
+msgstr "同じ事業者のフィード"
+
+msgid "overlap.intro"
+msgstr "gtfs.zoneカタログのうち、停留所がこのフィードと重なる範囲で同じ事業者を挙げているほかのフィード。"
+
+msgid "overlap.kind_contains"
+msgstr "その事業者はすべてこのフィードにあります"
+
+msgid "overlap.kind_contained_in"
+msgstr "このフィードの事業者をすべて含みます"
+
+msgid "overlap.kind_shares"
+msgstr "一部の事業者が共通"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "両方にある事業者：{agencies}"
+
+msgid "overlap.route"
+msgstr "{agency}は次のフィードでも公開：{feeds}。"
+
+msgid "field.sha256"
+msgstr "zipのSHA-256"

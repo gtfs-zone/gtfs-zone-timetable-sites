@@ -946,3 +946,40 @@ msgstr ""
 
 msgid "error.find"
 msgstr "Trouver les horaires de votre organisme"
+
+msgid "overlap.part_of"
+msgstr "Également publié au sein de : {feeds}."
+
+msgid "overlap.holds"
+msgstr "Comprend aussi tous les organismes de : {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Partage des organismes avec {n} autre flux"
+msgstr[1] "Partage des organismes avec {n} autres flux"
+
+msgid "overlap.heading"
+msgstr "Flux avec les mêmes organismes"
+
+msgid "overlap.intro"
+msgstr "Autres flux du catalogue gtfs.zone qui nomment les mêmes organismes là où leurs arrêts recoupent ceux de ce flux."
+
+msgid "overlap.kind_contains"
+msgstr "tous ses organismes sont dans ce flux"
+
+msgid "overlap.kind_contained_in"
+msgstr "contient tous les organismes de ce flux"
+
+msgid "overlap.kind_shares"
+msgstr "partage certains organismes"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Organisme commun : {agencies}"
+msgstr[1] "Organismes communs : {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} est aussi publié dans : {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 du zip"

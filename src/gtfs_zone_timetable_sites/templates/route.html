@@ -6,6 +6,7 @@
   between=t("route.between", first=route.endpoints[0], last=route.endpoints[1]) if route.endpoints else "",
   days=t("route.days", days=route.days_label) if route.days else "",
   site=site_place) }}{% endblock %}
+{% from "overlaps.html" import route_hatnote with context %}
 {% block canonical %}{{ base_url }}{{ route.slug }}/{% endblock %}
 {% macro stop_name(row, gutter) %}<span class="rail{% if row.rail %} {{ row.rail }}{% endif %}" aria-hidden="true">
 {%- if row.paths %}<svg viewBox="0 0 {{ gutter }} 100" preserveAspectRatio="none">
@@ -32,6 +33,7 @@
   days=route.days_label) }}</p>
 {% endif %}
 {% if route.desc %}<p class="text-base-content/80">{{ route.desc }}</p>{% endif %}
+{% if overlaps %}{{ route_hatnote(overlaps) }}{% endif %}
 {% for note in feed_notes %}
 <p class="text-base-content/80">{{ note }}</p>
 {% endfor %}

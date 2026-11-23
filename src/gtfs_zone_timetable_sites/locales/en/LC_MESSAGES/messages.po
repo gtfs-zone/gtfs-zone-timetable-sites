@@ -942,3 +942,40 @@ msgstr "Timetable pages move when an agency renames a route. {link}."
 
 msgid "error.find"
 msgstr "Find your agency's timetables"
+
+msgid "overlap.part_of"
+msgstr "Also published as part of: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Also includes every agency of: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Shares agencies with {n} other feed"
+msgstr[1] "Shares agencies with {n} other feeds"
+
+msgid "overlap.heading"
+msgstr "Feeds with the same agencies"
+
+msgid "overlap.intro"
+msgstr "Other feeds in the gtfs.zone catalog that name the same agencies where their stops overlap this feed's."
+
+msgid "overlap.kind_contains"
+msgstr "all of its agencies are in this feed"
+
+msgid "overlap.kind_contained_in"
+msgstr "has all of this feed's agencies"
+
+msgid "overlap.kind_shares"
+msgstr "shares some agencies"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Agency in both: {agencies}"
+msgstr[1] "Agencies in both: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} is also published in: {feeds}."
+
+msgid "field.sha256"
+msgstr "Zip SHA-256"

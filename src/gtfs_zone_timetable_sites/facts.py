@@ -10,11 +10,16 @@ from gtfs_zone_timetable_sites.languages import feed_languages
 
 
 def feed_facts(
-    source: ZipSource, feed: Feed, filtered: bool, stations: list[Located]
+    source: ZipSource,
+    feed: Feed,
+    filtered: bool,
+    stations: list[Located],
+    digest: tuple[int, str] | None = None,
 ) -> dict:
     """Size, hash, feed_info, service range, agencies, counts, languages and
     location of a parsed feed, with `stations` its located stations.
-    `filtered` marks counts taken after a site's route filter."""
+    `filtered` marks counts taken after a site's route filter; `digest` is the
+    zip's size and sha256 when already known."""
     summary = Summary(
         agencies=tuple(feed.agencies.values()),
         feed_info=feed.feed_info,
@@ -26,7 +31,7 @@ def feed_facts(
         end=last_service_date(feed),
         languages=feed_languages(feed),
     )
-    return facts_of(*zip_digest(source), summary, filtered, stations)
+    return facts_of(*(digest or zip_digest(source)), summary, filtered, stations)
 
 
 def sniff(body: bytes) -> str:

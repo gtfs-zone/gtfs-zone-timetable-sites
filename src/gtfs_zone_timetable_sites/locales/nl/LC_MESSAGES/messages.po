@@ -947,3 +947,39 @@ msgstr ""
 msgid "error.find"
 msgstr "Vind de dienstregelingen van uw vervoerder"
 
+msgid "overlap.part_of"
+msgstr "Ook gepubliceerd als deel van: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Bevat ook alle vervoerders van: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Deelt vervoerders met {n} andere feed"
+msgstr[1] "Deelt vervoerders met {n} andere feeds"
+
+msgid "overlap.heading"
+msgstr "Feeds met dezelfde vervoerders"
+
+msgid "overlap.intro"
+msgstr "Andere feeds in de catalogus van gtfs.zone die dezelfde vervoerders noemen waar hun haltes die van deze feed overlappen."
+
+msgid "overlap.kind_contains"
+msgstr "al zijn vervoerders staan in deze feed"
+
+msgid "overlap.kind_contained_in"
+msgstr "bevat alle vervoerders van deze feed"
+
+msgid "overlap.kind_shares"
+msgstr "deelt enkele vervoerders"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Vervoerder in beide: {agencies}"
+msgstr[1] "Vervoerders in beide: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} wordt ook gepubliceerd in: {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 van de zip"
