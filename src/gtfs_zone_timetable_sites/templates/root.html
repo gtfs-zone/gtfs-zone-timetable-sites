@@ -13,7 +13,7 @@
 {% endblock %}
 {% block main %}
 <h1 class="text-3xl font-bold">{{ t("root.title") }}</h1>
-<div class="flex flex-col gap-4" id="catalog-search" data-src="https://data.gtfs.zone/search.json" data-slugs="{{ root }}slugs.json" data-langs="{{ root }}sites.json" data-root="{{ root }}">
+<div class="flex flex-col gap-4" id="catalog-search" data-src="{{ root }}search.json" data-root="{{ root }}">
 <label class="input input-lg w-full">
 <svg class="size-5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
 <input type="search" aria-controls="search-results" placeholder="{{ t("root.search") }}" autocomplete="off" aria-describedby="search-status">

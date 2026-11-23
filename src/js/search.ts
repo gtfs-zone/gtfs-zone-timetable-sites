@@ -39,12 +39,11 @@ interface Filters {
 }
 
 interface Catalog {
+  /** The bucket's search.json: each feed's `feedId` is its slug, "" with none. */
   feeds: CatalogFeed[];
   matcher: FeedMatcher;
-  /** Feed id to slug, from the bucket's slugs.json. */
-  slugs: Record<string, string>;
-  /** Slug to its page sets' languages other than the default. */
-  langs: Record<string, string[]>;
+  /** Per feed, its page sets' languages other than the default. */
+  langs: string[][];
   /** Feed indexes by schedule last modified, newest first. */
   recent: number[];
 }
@@ -73,17 +72,11 @@ function writeFilters(f: Filters): void {
 const active = (f: Filters): boolean => Boolean(f.q.trim() || f.status.length || f.rt || f.np);
 
 async function loadCatalog(el: HTMLElement): Promise<Catalog> {
-  const json = (url: string) =>
-    fetch(url).then((r) => {
-      if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
-      return r.json();
-    });
-  const [doc, slugs, langs] = await Promise.all([
-    json(el.dataset.src!),
-    json(el.dataset.slugs!),
-    json(el.dataset.langs!),
-  ]);
+  const response = await fetch(el.dataset.src!);
+  if (!response.ok) throw new Error(`${el.dataset.src}: HTTP ${response.status}`);
+  const doc = (await response.json()) as { feeds?: { lg?: string[] }[] };
   const feeds = parseSearchDocument(doc);
+  const langs = (doc.feeds ?? []).map((f) => f.lg ?? []);
   const recent = feeds
     .map((_, i) => i)
     .sort((a, b) => {
@@ -91,7 +84,7 @@ async function loadCatalog(el: HTMLElement): Promise<Catalog> {
       const mb = feeds[b].lastModified ?? '';
       return ma === mb ? feeds[a].name.localeCompare(feeds[b].name) : mb.localeCompare(ma);
     });
-  return { feeds, matcher: new FeedMatcher(feeds), slugs, langs, recent };
+  return { feeds, matcher: new FeedMatcher(feeds), langs, recent };
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -107,12 +100,13 @@ function el<K extends keyof HTMLElementTagNameMap>(
 
 // A feed's row: its page in the page's language when it has that page set,
 // else its default set; unlinked when it has no page
-function resultItem(feed: CatalogFeed, catalog: Catalog, root: string): HTMLLIElement {
+function resultItem(index: number, catalog: Catalog, root: string): HTMLLIElement {
   const li = document.createElement('li');
-  const slug = catalog.slugs[feed.feedId];
+  const feed = catalog.feeds[index];
+  const slug = feed.feedId;
   const row = el(slug ? 'a' : 'div', 'flex min-h-11 items-center gap-3 rounded-box px-4 py-2');
   if (slug && row instanceof HTMLAnchorElement) {
-    const lang = (catalog.langs[slug] ?? []).includes(LANG) ? `${LANG.toLowerCase()}/` : '';
+    const lang = catalog.langs[index].includes(LANG) ? `${LANG.toLowerCase()}/` : '';
     row.href = `${root}${slug}/${lang}`;
     row.classList.add('hover:bg-base-200', 'focus-visible:bg-base-200');
   }
@@ -151,7 +145,8 @@ function initCatalogSearch(box: HTMLElement): void {
   let catalog: Promise<Catalog> | undefined;
   let loaded: Catalog | undefined;
   let shown = PAGE;
-  let found: CatalogFeed[] = [];
+  // Indexes into the catalog's feeds
+  let found: number[] = [];
 
   const filters = (): Filters => ({
     q: input.value,
@@ -181,7 +176,7 @@ function initCatalogSearch(box: HTMLElement): void {
 
   const draw = () => {
     results.replaceChildren(
-      ...(loaded ? found.slice(0, shown).map((f) => resultItem(f, loaded!, root)) : [])
+      ...(loaded ? found.slice(0, shown).map((i) => resultItem(i, loaded!, root)) : [])
     );
     results.hidden = !found.length;
     more.hidden = found.length <= shown;
@@ -210,14 +205,14 @@ function initCatalogSearch(box: HTMLElement): void {
     if (JSON.stringify(filters()) !== JSON.stringify(f)) return;
     const order = c.matcher.match(f.q) ?? c.recent;
     const states = new Set(f.status);
-    found = order
-      .map((i) => c.feeds[i])
-      .filter(
-        (feed) =>
-          (!states.size || states.has(feed.state)) &&
-          (!f.rt || realtimeRoles(feed).length > 0) &&
-          (!f.np || !feed.countryCode)
+    found = order.filter((i) => {
+      const feed = c.feeds[i];
+      return (
+        (!states.size || states.has(feed.state)) &&
+        (!f.rt || realtimeRoles(feed).length > 0) &&
+        (!f.np || !feed.countryCode)
       );
+    });
     status.textContent = found.length ? t('root.feeds', { n: found.length }) : t('root.no_feeds');
     draw();
   };

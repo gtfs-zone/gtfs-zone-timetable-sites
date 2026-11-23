@@ -446,7 +446,7 @@ def test_build_root():
         "style.css",
         "logo.svg",
         "root.js",
-        "sites.json",
+        "search.json",
         "world.json",
         "sitemap.xml",
         "sitemaps/root.xml",
@@ -805,7 +805,7 @@ def test_root_groups_by_region_and_writes_maps():
         f["properties"]["key"]: f["properties"]["count"] for f in world["features"]
     }
     assert counts["us"] == 4 and counts["fr"] == 0
-    assert json.loads(files["sites.json"]) == {}
+    assert json.loads(files["search.json"]) == {"feeds": []}
 
 
 def test_block_continuations_stop_codes_and_platforms():
@@ -1149,8 +1149,7 @@ def test_root_and_country_pages_per_ui_language():
     root_fr = files["lang/fr/index.html"]
     assert '<html lang="fr">' in root_fr
     assert 'src="../../root.js"' in root_fr
-    assert 'data-langs="../../sites.json"' in root_fr
-    assert 'data-slugs="../../slugs.json"' in root_fr
+    assert 'data-src="../../search.json"' in root_fr
     assert 'href="../../countries/ca/fr/" data-key="ca"' in root_fr
     assert 'href="../../countries/fr/" data-key="fr"' in root_fr
     assert 'href="../../countries/jp/" data-key="jp"' in root_fr
@@ -1159,8 +1158,6 @@ def test_root_and_country_pages_per_ui_language():
     assert 'href="./" lang="en"' not in root_fr
     assert 'href="../../" lang="en" hreflang="en"' in root_fr
     assert 'href="lang/fr/" lang="fr" hreflang="fr"' in files["index.html"]
-
-    assert json.loads(files["sites.json"]) == {"b": ["fr"], "c": ["en"]}
 
     root_map = files["sitemaps/root.xml"]
     assert (
@@ -1259,3 +1256,60 @@ def test_date_filter_builds_the_same_files(monkeypatch):
     whole = build_site(body, site, today=MONDAY)
     assert whole != filtered
     assert without_center(whole) == without_center(filtered)
+
+
+def test_root_search_index():
+    catalog = {
+        "feeds": [
+            {
+                "i": "f-1",
+                "n": "Charlie",
+                "a": ["C Transit"],
+                "p": ["Halifax", "Canada"],
+                "pt": ["Dartmouth"],
+                "cc": "CA",
+                "ll": [44.6, -63.6],
+                "st": "partial",
+                "rs": {"scheduled": "up", "vehicles": "down"},
+                "u": {
+                    "scheduled": ["https://a.example/gtfs.zip", "http://a.example/x"],
+                    "vehicles": ["https://user:key@rt.example:8443/vp?key=1"],
+                },
+                "b": 1234,
+                "m": "2026-10-01",
+                "ov": [["f-2", "shares"]],
+            },
+            {"i": "f-2", "n": "No page", "st": "down", "rs": {}, "u": {}},
+        ]
+    }
+    summaries = [
+        {
+            "slug": "c",
+            "title": "Charlie",
+            "routes": 1,
+            "valid_through": "2026-12-01",
+            "languages": ["fr", "en"],
+        }
+    ]
+    files = build_root(summaries, MONDAY, catalog=catalog, slugs={"f-1": "c"})
+    assert json.loads(files["search.json"]) == {
+        "feeds": [
+            {
+                "i": "c",
+                "n": "Charlie",
+                "a": ["C Transit"],
+                "p": ["Halifax", "Canada"],
+                "pt": ["Dartmouth"],
+                "cc": "CA",
+                "st": "partial",
+                "m": "2026-10-01",
+                "rs": {"vehicles": "down"},
+                "u": {
+                    "scheduled": ["https://a.example"],
+                    "vehicles": ["https://rt.example"],
+                },
+                "lg": ["en"],
+            },
+            {"i": "", "n": "No page", "st": "down", "rs": {}, "u": {}},
+        ]
+    }
