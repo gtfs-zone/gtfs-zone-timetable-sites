@@ -35,7 +35,13 @@ from gtfs_zone_timetable_sites.fares import (
     route_fares,
     site_fares,
 )
-from gtfs_zone_timetable_sites.feedpage import dataset, feed_view, place_line
+from gtfs_zone_timetable_sites.feedpage import (
+    RT_ROLES,
+    STATES,
+    dataset,
+    feed_view,
+    place_line,
+)
 from gtfs_zone_timetable_sites.gtfs.reader import (
     Agency,
     FaresError,
@@ -765,9 +771,19 @@ def map_text(locale: Locale) -> Markup:
 
 
 # Plural text root.js shows, by i18n key: forms by CLDR category.
-ROOT_PLURALS = ("root.agencies", "root.found_first")
+ROOT_PLURALS = ("root.agencies", "root.feeds")
 # Text root.js shows, by i18n key.
-ROOT_TEXT = ("root.map_count", "root.none_found")
+ROOT_TEXT = (
+    "root.map_count",
+    "root.none_found",
+    "root.no_feeds",
+    "root.loading",
+    "root.load_error",
+    "root.modified",
+    *(f"state.{state}" for state in STATES),
+    *(f"role.{role}" for role in RT_ROLES),
+    *(f"role.chip_{state}" for state in STATES),
+)
 
 
 def root_text(locale: Locale) -> Markup:
@@ -1168,24 +1184,51 @@ def with_counts(doc: dict, key: str, counts: dict[str, int]) -> bytes:
     ).encode()
 
 
-def search_index(countries: list[dict]) -> bytes:
-    """sites.json for root.js's search: [slug, title, source, where, status] per
-    site, where being its region and country, plus its other page sets'
-    languages when it has any. The title is in the feed's own language."""
-    rows = [
-        [
-            site["slug"],
-            site.get("feed_title", site["title"]),
-            site.get("source") or "",
-            ", ".join(n for n in (group["name"], place["name"]) if n),
-            site["status"],
-            *([codes[1:]] if len(codes := site.get("languages") or []) > 1 else []),
-        ]
+# search.json fields root.js reads.
+SEARCH_FIELDS = ("n", "s", "a", "p", "pt", "cc", "st", "m")
+
+
+def search_index(
+    catalog: dict | None, slugs: dict[str, str], countries: list[dict]
+) -> bytes:
+    """search.json for root.js: data.gtfs.zone's search.json entries with `i`
+    the feed's slug ("" with none), each URL cut to its host, `rs` without
+    the schedule, the fields root.js does not read dropped, and `lg` the
+    other page-set languages of a site with several."""
+    langs = {
+        site["slug"]: codes[1:]
         for place in countries
         for group in place["subdivisions"]
         for site in group["sites"]
-    ]
-    return json.dumps(rows, separators=(",", ":"), ensure_ascii=False).encode()
+        if len(codes := site.get("languages") or []) > 1
+    }
+    feeds = []
+    for entry in (catalog or {}).get("feeds", []):
+        slug = slugs.get(entry["i"], "")
+        feed = {"i": slug} | {k: entry[k] for k in SEARCH_FIELDS if entry.get(k)}
+        feed["rs"] = {
+            role: state
+            for role, state in entry.get("rs", {}).items()
+            if role != "scheduled"
+        }
+        feed["u"] = {
+            role: sorted({f"https://{host}" for url in urls if (host := url_host(url))})
+            for role, urls in entry.get("u", {}).items()
+        }
+        if slug in langs:
+            feed["lg"] = langs[slug]
+        feeds.append(feed)
+    return json.dumps(
+        {"feeds": feeds}, separators=(",", ":"), ensure_ascii=False
+    ).encode()
+
+
+def url_host(url: str) -> str:
+    """A URL's host, without credentials or port; "" when it has none."""
+    try:
+        return urlsplit(url).hostname or ""
+    except ValueError:
+        return ""
 
 
 # The root's languages, the default first: every UI catalog.
@@ -1267,6 +1310,8 @@ def build_root(
     pages: dict[str, dict[str, str]] | None = None,
     indexnow_key: str | None = None,
     outcomes: dict[str, dict] | None = None,
+    catalog: dict | None = None,
+    slugs: dict[str, str] | None = None,
 ) -> dict[str, bytes]:
     """The bucket root: an index of countries in each UI language (English at
     `/`, others at `/lang/<lang>/`), a page per country listing its sites in
@@ -1275,7 +1320,9 @@ def build_root(
     robots.txt and the error page. `summaries` are the sites' site.json
     contents (a site never built has only its slug, title, source and place),
     `pages` each site's page paths with the date they last changed and
-    `outcomes` each site's last download and build outcome and detail. A
+    `outcomes` each site's last download and build outcome and detail,
+    `catalog` data.gtfs.zone's search.json and `slugs` each feed id's slug,
+    for the root search. A
     summary's `noindex` paths stay out of the sitemap, and a feed page's
     summary (`feed_only`) is not listed. No I/O."""
     outcomes = outcomes or {}
@@ -1316,7 +1363,7 @@ def build_root(
         "style.css": asset("style.css"),
         "logo.svg": asset("logo.svg"),
         "root.js": asset("root.js"),
-        "sites.json": search_index(countries),
+        "search.json": search_index(catalog, slugs or {}, countries),
         "world.json": with_counts(
             world(), "key", {c["key"]: len(c["sites"]) for c in countries}
         ),

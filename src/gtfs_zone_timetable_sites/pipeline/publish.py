@@ -577,11 +577,14 @@ def publish_root(
     contents: dict[str, dict] | None = None,
     sites: list[Site] | None = None,
     redirects: dict[str, str] | None = None,
+    catalog: dict | None = None,
+    slugs: dict[str, str] | None = None,
 ) -> list[str]:
     """Rewrite the root pages from the shard entries of the `live` sites, plus
     a row for each of `sites` that is live but has no entry, with each site's
     status from its content report entry, and the pages of each old slug in
-    `redirects` ({old slug: current slug}), and delete everything else, unless
+    `redirects` ({old slug: current slug}), the root search from `catalog`
+    (data.gtfs.zone's search.json) and `slugs`, and delete everything else, unless
     `live` shrank below PRUNE_RATIO of the sites listed so far. Returns the
     live slugs not built today."""
     listed = {slug: entry for slug, entry in entries.items() if slug in live}
@@ -600,6 +603,8 @@ def publish_root(
             for slug, c in (contents or {}).items()
             if c and "outcome" in c
         },
+        catalog,
+        slugs,
     )
     keys = store.list_keys()
     old_pages: dict[str, set[str]] = {old: set() for old in redirects or {}}

@@ -813,7 +813,7 @@ msgstr[0] "{n} azienda"
 msgstr[1] "{n} aziende"
 
 msgid "root.search"
-msgstr "Cerca aziende, luoghi"
+msgstr "Cerca feed, luoghi, host"
 
 msgid "root.map"
 msgstr "Mappa dei paesi con orari"
@@ -821,13 +821,37 @@ msgstr "Mappa dei paesi con orari"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} azienda, mostrate le prime {max}"
-msgstr[1] "{n} aziende, mostrate le prime {max}"
-
 msgid "root.none_found"
 msgstr "Nessuna azienda trovata"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} feed"
+msgstr[1] "{n} feed"
+
+msgid "root.no_feeds"
+msgstr "Nessun feed corrisponde"
+
+msgid "root.loading"
+msgstr "Caricamento dell'elenco dei feed..."
+
+msgid "root.load_error"
+msgstr "Impossibile caricare l'elenco dei feed."
+
+msgid "root.modified"
+msgstr "aggiornato il {date}"
+
+msgid "root.filters"
+msgstr "Filtra i feed"
+
+msgid "root.no_country"
+msgstr "Senza paese"
+
+msgid "root.only_realtime"
+msgstr "Solo con tempo reale"
+
+msgid "root.show_more"
+msgstr "Mostra altri"
 
 msgid "root.generated"
 msgstr ""

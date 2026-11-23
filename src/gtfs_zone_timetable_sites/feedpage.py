@@ -24,6 +24,8 @@ MOBILITYDATABASE_FEED_BASE = "https://mobilitydatabase.org/feeds/"
 
 STATIC_ROLES = ("scheduled",)
 RT_ROLES = ("vehicles", "trip_updates", "alerts", "realtime")
+# A feed's or a role's states, each with `state.<state>` and `role.chip_<state>` text.
+STATES = ("up", "partial", "down", "unknown")
 ROLE_SHORT = {
     "scheduled": "GTFS",
     "vehicles": "VP",

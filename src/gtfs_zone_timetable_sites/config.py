@@ -16,6 +16,8 @@ FEEDS_URL = f"{DATA_URL}/feeds.json"
 # Every catalog row, and each row's last endpoint check.
 SOURCES_URL = f"{DATA_URL}/sources.json"
 STATUS_URL = f"{DATA_URL}/status.json"
+# Every feed in the short form pickers search, read by the root search.
+SEARCH_URL = f"{DATA_URL}/search.json"
 USER_AGENT = "gtfs-zone-timetable-sites (+https://sites.gtfs.zone)"
 
 # Parallel puts per site. Each put is a round trip to the object store, so a

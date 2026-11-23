@@ -814,7 +814,7 @@ msgstr[0] "{n} agency"
 msgstr[1] "{n} agencies"
 
 msgid "root.search"
-msgstr "Search agencies, places"
+msgstr "Search feeds, places, hosts"
 
 msgid "root.map"
 msgstr "Map of countries with timetables"
@@ -822,13 +822,37 @@ msgstr "Map of countries with timetables"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} agency, the first {max} shown"
-msgstr[1] "{n} agencies, the first {max} shown"
-
 msgid "root.none_found"
 msgstr "No agencies found"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} feed"
+msgstr[1] "{n} feeds"
+
+msgid "root.no_feeds"
+msgstr "No feeds match"
+
+msgid "root.loading"
+msgstr "Loading the feed list..."
+
+msgid "root.load_error"
+msgstr "The feed list could not be loaded."
+
+msgid "root.modified"
+msgstr "updated {date}"
+
+msgid "root.filters"
+msgstr "Filter feeds"
+
+msgid "root.no_country"
+msgstr "No country"
+
+msgid "root.only_realtime"
+msgstr "Only with realtime"
+
+msgid "root.show_more"
+msgstr "Show more"
 
 msgid "root.generated"
 msgstr ""

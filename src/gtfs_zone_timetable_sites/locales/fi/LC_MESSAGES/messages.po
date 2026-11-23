@@ -810,7 +810,7 @@ msgstr[0] "{n} liikennöitsijä"
 msgstr[1] "{n} liikennöitsijää"
 
 msgid "root.search"
-msgstr "Hae liikennöitsijöitä, paikkoja"
+msgstr "Hae syötteitä, paikkoja, palvelimia"
 
 msgid "root.map"
 msgstr "Kartta maista, joilla on aikatauluja"
@@ -818,13 +818,37 @@ msgstr "Kartta maista, joilla on aikatauluja"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} liikennöitsijä, näytetään ensimmäiset {max}"
-msgstr[1] "{n} liikennöitsijää, näytetään ensimmäiset {max}"
-
 msgid "root.none_found"
 msgstr "Liikennöitsijöitä ei löytynyt"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} syöte"
+msgstr[1] "{n} syötettä"
+
+msgid "root.no_feeds"
+msgstr "Ei vastaavia syötteitä"
+
+msgid "root.loading"
+msgstr "Ladataan syöteluetteloa..."
+
+msgid "root.load_error"
+msgstr "Syöteluetteloa ei voitu ladata."
+
+msgid "root.modified"
+msgstr "päivitetty {date}"
+
+msgid "root.filters"
+msgstr "Suodata syötteitä"
+
+msgid "root.no_country"
+msgstr "Ei maata"
+
+msgid "root.only_realtime"
+msgstr "Vain reaaliaikaiset"
+
+msgid "root.show_more"
+msgstr "Näytä lisää"
 
 msgid "root.generated"
 msgstr ""
