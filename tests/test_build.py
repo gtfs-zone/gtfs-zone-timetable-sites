@@ -26,6 +26,7 @@ from gtfs_zone_timetable_sites.catalog import shard_of
 from gtfs_zone_timetable_sites.config import CatalogFeed, Site
 from gtfs_zone_timetable_sites.gtfs.reader import read_feed
 from gtfs_zone_timetable_sites.pages import date_range
+from gtfs_zone_timetable_sites.sources import sources_page
 
 MONDAY = date(2026, 10, 5)
 # The root page in each UI language.
@@ -229,6 +230,9 @@ def test_root_pages_carry_root_js_text():
         text = json.loads(re.search(r'id="root-text">(.*?)</script>', page)[1])
         assert text["root.agencies"] == {"one": "{n} agency", "other": "{n} agencies"}
         assert text["root.none_found"] == "No agencies found"
+        assert text["root.feeds"] == {"one": "{n} feed", "other": "{n} feeds"}
+        assert text["state.unknown"] == "Inaccessible"
+        assert text["role.chip_down"] == "{role}: did not answer the last daily check"
     assert "1 agency<" in files["index.html"].decode()
 
 
@@ -443,7 +447,7 @@ def test_build_root():
         "style.css",
         "logo.svg",
         "root.js",
-        "sites.json",
+        "search.json",
         "world.json",
         "sitemap.xml",
         "sitemaps/root.xml",
@@ -802,9 +806,7 @@ def test_root_groups_by_region_and_writes_maps():
         f["properties"]["key"]: f["properties"]["count"] for f in world["features"]
     }
     assert counts["us"] == 4 and counts["fr"] == 0
-    rows = json.loads(files["sites.json"])
-    assert ["a", "Alpha", "", "Massachusetts, United States", "unavailable"] in rows
-    assert ["d", "Delta", "", "Atlantis, United States", "unavailable"] in rows
+    assert json.loads(files["search.json"]) == {"feeds": []}
 
 
 def test_block_continuations_stop_codes_and_platforms():
@@ -1147,7 +1149,8 @@ def test_root_and_country_pages_per_ui_language():
 
     root_fr = files["lang/fr/index.html"]
     assert '<html lang="fr">' in root_fr
-    assert 'src="../../root.js"' in root_fr and 'data-src="../../sites.json"' in root_fr
+    assert 'src="../../root.js"' in root_fr
+    assert 'data-src="../../search.json"' in root_fr
     assert 'href="../../countries/ca/fr/" data-key="ca"' in root_fr
     assert 'href="../../countries/fr/" data-key="fr"' in root_fr
     assert 'href="../../countries/jp/" data-key="jp"' in root_fr
@@ -1156,10 +1159,6 @@ def test_root_and_country_pages_per_ui_language():
     assert 'href="./" lang="en"' not in root_fr
     assert 'href="../../" lang="en" hreflang="en"' in root_fr
     assert 'href="lang/fr/" lang="fr" hreflang="fr"' in files["index.html"]
-
-    rows = {row[0]: row for row in json.loads(files["sites.json"])}
-    assert rows["c"][1] == "Charlie" and rows["c"][5] == ["en"]
-    assert len(rows["a"]) == 5
 
     root_map = files["sitemaps/root.xml"]
     assert (
@@ -1258,3 +1257,142 @@ def test_date_filter_builds_the_same_files(monkeypatch):
     whole = build_site(body, site, today=MONDAY)
     assert whole != filtered
     assert without_center(whole) == without_center(filtered)
+
+
+def test_root_search_index():
+    catalog = {
+        "feeds": [
+            {
+                "i": "f-1",
+                "n": "Charlie",
+                "a": ["C Transit"],
+                "p": ["Halifax", "Canada"],
+                "pt": ["Dartmouth"],
+                "cc": "CA",
+                "ll": [44.6, -63.6],
+                "st": "partial",
+                "rs": {"scheduled": "up", "vehicles": "down"},
+                "u": {
+                    "scheduled": ["https://a.example/gtfs.zip", "http://a.example/x"],
+                    "vehicles": ["https://user:key@rt.example:8443/vp?key=1"],
+                },
+                "b": 1234,
+                "m": "2026-10-01",
+                "ov": [["f-2", "shares"]],
+            },
+            {"i": "f-2", "n": "No page", "st": "down", "rs": {}, "u": {}},
+        ]
+    }
+    summaries = [
+        {
+            "slug": "c",
+            "title": "Charlie",
+            "routes": 1,
+            "valid_through": "2026-12-01",
+            "languages": ["fr", "en"],
+        }
+    ]
+    files = build_root(summaries, MONDAY, catalog=catalog, slugs={"f-1": "c"})
+    assert json.loads(files["search.json"]) == {
+        "feeds": [
+            {
+                "i": "c",
+                "n": "Charlie",
+                "a": ["C Transit"],
+                "p": ["Halifax", "Canada"],
+                "pt": ["Dartmouth"],
+                "cc": "CA",
+                "st": "partial",
+                "m": "2026-10-01",
+                "rs": {"vehicles": "down"},
+                "u": {
+                    "scheduled": ["https://a.example"],
+                    "vehicles": ["https://rt.example"],
+                },
+                "lg": ["en"],
+            },
+            {"i": "", "n": "No page", "st": "down", "rs": {}, "u": {}},
+        ]
+    }
+
+
+SOURCE_STATS = {
+    "generated_at": "2026-11-23T13:10:29+00:00",
+    "catalogs": {
+        "ntd": {
+            "entries": 3,
+            "feeds": 2,
+            "scheduleFeeds": 2,
+            "onlyHere": 1,
+            "fetch": {"ok": 2},
+            "facts": {"ok": 1, "not_zip": 1},
+            "bytes": 2_500_000_000,
+            "distinctBytes": 2_000_000_000,
+            "countries": 1,
+        },
+        "mobilitydatabase": {
+            "entries": 5,
+            "feeds": 4,
+            "scheduleFeeds": 4,
+            "onlyHere": 3,
+            "fetch": {"ok": 1, "http_error": 2, "new_outcome": 1},
+            "facts": {"ok": 1},
+            "bytes": 29_435_589,
+            "distinctBytes": 29_435_589,
+            "countries": 2,
+        },
+    },
+    "combinations": [
+        {"catalogs": ["mobilitydatabase"], "feeds": 3},
+        {"catalogs": ["mobilitydatabase", "ntd"], "feeds": 1},
+    ],
+    "pairs": [
+        {
+            "catalogs": ["mobilitydatabase", "ntd"],
+            "feeds": 1,
+            "scheduleUrls": 1,
+            "bodies": 0,
+        }
+    ],
+    "duplication": {
+        "feeds": 5,
+        "multiEntry": 1,
+        "byEvidence": {"url": 1, "sha256": 2},
+        "entriesPerFeed": {"10": 1, "2": 1, "1": 3},
+    },
+}
+
+
+def test_sources_page_content():
+    stats = sources_page(SOURCE_STATS)
+    assert stats["generated"] == date(2026, 11, 23)
+    assert [c["name"]["name"] for c in stats["catalogs"]] == [
+        "Mobility Database",
+        "National Transit Database",
+    ]
+    assert stats["catalogs"][0]["only_share"] == 0.75
+    assert [(r["key"], r["counts"], r["known"]) for r in stats["fetch"]] == [
+        ("ok", [1, 2], True),
+        ("http_error", [2, 0], True),
+        ("new_outcome", [1, 0], False),
+    ]
+    assert [r["key"] for r in stats["evidence"]] == ["sha256", "url"]
+    assert stats["entries_per_feed"] == [(1, 3), (2, 1), (10, 1)]
+    assert sources_page({})["catalogs"] == []
+
+
+def test_sources_pages_in_every_root_language():
+    files = build_root([], MONDAY, sources=SOURCE_STATS)
+    en = files["sources/index.html"].decode()
+    assert '<meta name="robots" content="noindex">' in en
+    for text in ("Mobility Database", "2.5 GB", "29 MB", "75%"):
+        assert text in en
+    assert "<code>new_outcome</code>" in en
+    assert "Mobility Database + National Transit Database" in en
+    fr = files["lang/fr/sources/index.html"].decode()
+    assert "Sources des flux" in fr and "2,5\u202fGo" in fr
+    assert 'href="sources/"' in files["index.html"].decode()
+    assert 'href="../../../sources/"' in fr
+    sitemap = files["sitemaps/root.xml"].decode()
+    assert "sources" not in sitemap
+    assert "sources/index.html" not in build_root([], MONDAY)

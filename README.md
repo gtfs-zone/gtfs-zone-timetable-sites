@@ -96,7 +96,9 @@ The root is in every UI language: English at `/`, the others at `/lang/<lang>/`
 offer, the one most of them offer at `/countries/<cc>/` and the others at
 `/countries/<cc>/<lang>/`, English when none has a catalog. Their country names
 come from CLDR; site titles and links use the site's page set in the page's
-language when it has one, else its default.
+language when it has one, else its default. The sources page (`/sources/`,
+`/lang/<lang>/sources/`, noindex) shows data.gtfs.zone's `source-stats.json`:
+feeds per catalog, download and contents outcomes, overlap and joined entries.
 
 Each listed site needs exactly one of `feed` or `url`, a `slug` when it has a
 `url` (optional for a `feed`), and may override any default. A listed `feed` is

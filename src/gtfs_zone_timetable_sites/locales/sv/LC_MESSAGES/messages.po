@@ -814,7 +814,7 @@ msgstr[0] "{n} trafikföretag"
 msgstr[1] "{n} trafikföretag"
 
 msgid "root.search"
-msgstr "Sök trafikföretag, platser"
+msgstr "Sök flöden, platser, värdar"
 
 msgid "root.map"
 msgstr "Karta över länder med tidtabeller"
@@ -822,13 +822,37 @@ msgstr "Karta över länder med tidtabeller"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} trafikföretag, de första {max} visas"
-msgstr[1] "{n} trafikföretag, de första {max} visas"
-
 msgid "root.none_found"
 msgstr "Inga trafikföretag hittades"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} flöde"
+msgstr[1] "{n} flöden"
+
+msgid "root.no_feeds"
+msgstr "Inga matchande flöden"
+
+msgid "root.loading"
+msgstr "Läser in flödeslistan..."
+
+msgid "root.load_error"
+msgstr "Flödeslistan kunde inte läsas in."
+
+msgid "root.modified"
+msgstr "uppdaterad {date}"
+
+msgid "root.filters"
+msgstr "Filtrera flöden"
+
+msgid "root.no_country"
+msgstr "Utan land"
+
+msgid "root.only_realtime"
+msgstr "Endast med realtid"
+
+msgid "root.show_more"
+msgstr "Visa fler"
 
 msgid "root.generated"
 msgstr ""
@@ -945,3 +969,162 @@ msgstr ""
 msgid "error.find"
 msgstr "Hitta ditt trafikföretags tidtabeller"
 
+msgid "root.sources"
+msgstr "Var flödena kommer ifrån"
+
+msgid "sources.title"
+msgstr "Flödenas källor"
+
+msgid "sources.description"
+msgstr "Hur många flöden varje katalog listar, hur katalogerna överlappar och hur många flöden som slår ihop flera katalogposter."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} flöde, samlat från katalogerna nedan."
+msgstr[1] "{count} flöden, samlade från katalogerna nedan."
+
+msgid "sources.as_of"
+msgstr "Siffror per {date}."
+
+msgid "sources.catalogs"
+msgstr "Kataloger"
+
+msgid "sources.catalog"
+msgstr "Katalog"
+
+msgid "sources.entries"
+msgstr "Poster"
+
+msgid "sources.feeds"
+msgstr "Flöden"
+
+msgid "sources.schedule_feeds"
+msgstr "Med tidtabell"
+
+msgid "sources.only_here"
+msgstr "Bara här"
+
+msgid "sources.countries"
+msgstr "Länder"
+
+msgid "sources.bytes"
+msgstr "Storlek"
+
+msgid "sources.distinct_bytes"
+msgstr "Unik storlek"
+
+msgid "sources.catalogs_note"
+msgstr "Poster är katalogens egna uppgifter; flöden är vad de slås ihop till här. Bara här räknar flöden med tidtabell som ingen annan katalog listar. Storleken summerar den senaste zip-filen för varje tidtabell; unik storlek räknar identiska zip-filer en gång."
+
+msgid "sources.outcome"
+msgstr "Resultat"
+
+msgid "sources.fetch_title"
+msgstr "Senaste nedladdning"
+
+msgid "sources.fetch_note"
+msgstr "Tidtabells-URL:er efter resultatet av deras senaste nedladdning."
+
+msgid "sources.fetch.ok"
+msgstr "Nedladdad"
+
+msgid "sources.fetch.not_modified"
+msgstr "Inte ändrad"
+
+msgid "sources.fetch.http_error"
+msgstr "HTTP-fel"
+
+msgid "sources.fetch.error"
+msgstr "Misslyckades"
+
+msgid "sources.fetch.too_large"
+msgstr "För stor"
+
+msgid "sources.facts_title"
+msgstr "Innehåll"
+
+msgid "sources.facts_note"
+msgstr "Tidtabells-URL:er efter om deras senaste zip-fil gick att läsa."
+
+msgid "sources.facts.ok"
+msgstr "Läst"
+
+msgid "sources.facts.empty"
+msgstr "Inga planerade turer"
+
+msgid "sources.facts.http_error"
+msgstr "Nedladdningen misslyckades"
+
+msgid "sources.facts.missing_files"
+msgstr "Obligatoriska filer saknas"
+
+msgid "sources.facts.not_zip"
+msgstr "Inte en zip-fil"
+
+msgid "sources.facts.parse_error"
+msgstr "Gick inte att läsa"
+
+msgid "sources.facts.timeout"
+msgstr "Tidsgränsen överskreds"
+
+msgid "sources.facts.memory"
+msgstr "För stor att läsa"
+
+msgid "sources.facts.error"
+msgstr "Misslyckades"
+
+msgid "sources.overlap"
+msgstr "Överlapp"
+
+msgid "sources.combinations_note"
+msgstr "Flöden med tidtabell efter katalogerna som listar dem."
+
+msgid "sources.listed_by"
+msgstr "Listat av"
+
+msgid "sources.pairs_note"
+msgstr "Flöden som två kataloger båda listar, och hur många av dem som har samma tidtabells-URL eller samma zip-fil i båda."
+
+msgid "sources.pair"
+msgstr "Kataloger"
+
+msgid "sources.same_url"
+msgstr "Samma URL"
+
+msgid "sources.same_body"
+msgstr "Samma zip"
+
+msgid "sources.duplication"
+msgstr "Flöden från flera poster"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi} av {count} flöde slår ihop mer än en katalogpost."
+msgstr[1] "{multi} av {count} flöden slår ihop mer än en katalogpost."
+
+msgid "sources.evidence_note"
+msgstr "Flöden efter vad som slog ihop två av deras poster. Ett flöde räknas en gång per slag, så slagen överlappar."
+
+msgid "sources.joined_by"
+msgstr "Ihopslaget genom"
+
+msgid "sources.evidence.url"
+msgstr "Samma tidtabells-URL"
+
+msgid "sources.evidence.sha256"
+msgstr "Identisk zip-fil"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Identiska tabeller"
+
+msgid "sources.evidence.reference"
+msgstr "Korshänvisning mellan kataloger"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Realtidsflöde för samma nät"
+
+msgid "sources.entries_per_feed"
+msgstr "Poster per flöde"
+
+msgid "sources.data"
+msgstr "Siffror från katalogens fil {link}."

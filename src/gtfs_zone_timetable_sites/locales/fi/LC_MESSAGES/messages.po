@@ -810,7 +810,7 @@ msgstr[0] "{n} liikennöitsijä"
 msgstr[1] "{n} liikennöitsijää"
 
 msgid "root.search"
-msgstr "Hae liikennöitsijöitä, paikkoja"
+msgstr "Hae syötteitä, paikkoja, palvelimia"
 
 msgid "root.map"
 msgstr "Kartta maista, joilla on aikatauluja"
@@ -818,13 +818,37 @@ msgstr "Kartta maista, joilla on aikatauluja"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} liikennöitsijä, näytetään ensimmäiset {max}"
-msgstr[1] "{n} liikennöitsijää, näytetään ensimmäiset {max}"
-
 msgid "root.none_found"
 msgstr "Liikennöitsijöitä ei löytynyt"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} syöte"
+msgstr[1] "{n} syötettä"
+
+msgid "root.no_feeds"
+msgstr "Ei vastaavia syötteitä"
+
+msgid "root.loading"
+msgstr "Ladataan syöteluetteloa..."
+
+msgid "root.load_error"
+msgstr "Syöteluetteloa ei voitu ladata."
+
+msgid "root.modified"
+msgstr "päivitetty {date}"
+
+msgid "root.filters"
+msgstr "Suodata syötteitä"
+
+msgid "root.no_country"
+msgstr "Ei maata"
+
+msgid "root.only_realtime"
+msgstr "Vain reaaliaikaiset"
+
+msgid "root.show_more"
+msgstr "Näytä lisää"
 
 msgid "root.generated"
 msgstr ""
@@ -941,3 +965,162 @@ msgstr ""
 msgid "error.find"
 msgstr "Etsi liikennöitsijäsi aikataulut"
 
+msgid "root.sources"
+msgstr "Mistä syötteet tulevat"
+
+msgid "sources.title"
+msgstr "Syötteiden lähteet"
+
+msgid "sources.description"
+msgstr "Montako syötettä kukin luettelo sisältää, miten luettelot menevät päällekkäin ja montako syötettä yhdistää useita luettelomerkintöjä."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} syöte, koottu alla olevista luetteloista."
+msgstr[1] "{count} syötettä, koottu alla olevista luetteloista."
+
+msgid "sources.as_of"
+msgstr "Luvut {date}."
+
+msgid "sources.catalogs"
+msgstr "Luettelot"
+
+msgid "sources.catalog"
+msgstr "Luettelo"
+
+msgid "sources.entries"
+msgstr "Merkinnät"
+
+msgid "sources.feeds"
+msgstr "Syötteet"
+
+msgid "sources.schedule_feeds"
+msgstr "Aikataulullisia"
+
+msgid "sources.only_here"
+msgstr "Vain täällä"
+
+msgid "sources.countries"
+msgstr "Maat"
+
+msgid "sources.bytes"
+msgstr "Koko"
+
+msgid "sources.distinct_bytes"
+msgstr "Erillinen koko"
+
+msgid "sources.catalogs_note"
+msgstr "Merkinnät ovat luettelon omia tietueita; syötteet ovat se, miksi ne täällä yhdistyvät. Vain täällä laskee aikataulun sisältävät syötteet, joita mikään muu luettelo ei sisällä. Koko laskee yhteen kunkin aikataulun uusimman zip-tiedoston; erillinen koko laskee samat zip-tiedostot kerran."
+
+msgid "sources.outcome"
+msgstr "Tulos"
+
+msgid "sources.fetch_title"
+msgstr "Viimeisin lataus"
+
+msgid "sources.fetch_note"
+msgstr "Aikataulujen URL-osoitteet viimeisimmän latauksen tuloksen mukaan."
+
+msgid "sources.fetch.ok"
+msgstr "Ladattu"
+
+msgid "sources.fetch.not_modified"
+msgstr "Ei muuttunut"
+
+msgid "sources.fetch.http_error"
+msgstr "HTTP-virhe"
+
+msgid "sources.fetch.error"
+msgstr "Epäonnistui"
+
+msgid "sources.fetch.too_large"
+msgstr "Liian suuri"
+
+msgid "sources.facts_title"
+msgstr "Sisältö"
+
+msgid "sources.facts_note"
+msgstr "Aikataulujen URL-osoitteet sen mukaan, voitiinko uusin zip-tiedosto lukea."
+
+msgid "sources.facts.ok"
+msgstr "Luettu"
+
+msgid "sources.facts.empty"
+msgstr "Ei aikataulun mukaisia vuoroja"
+
+msgid "sources.facts.http_error"
+msgstr "Lataus epäonnistui"
+
+msgid "sources.facts.missing_files"
+msgstr "Pakollisia tiedostoja puuttuu"
+
+msgid "sources.facts.not_zip"
+msgstr "Ei zip-tiedosto"
+
+msgid "sources.facts.parse_error"
+msgstr "Ei voitu lukea"
+
+msgid "sources.facts.timeout"
+msgstr "Aikakatkaisu"
+
+msgid "sources.facts.memory"
+msgstr "Liian suuri luettavaksi"
+
+msgid "sources.facts.error"
+msgstr "Epäonnistui"
+
+msgid "sources.overlap"
+msgstr "Päällekkäisyys"
+
+msgid "sources.combinations_note"
+msgstr "Aikataulun sisältävät syötteet niitä sisältävien luetteloiden mukaan."
+
+msgid "sources.listed_by"
+msgstr "Luetteloissa"
+
+msgid "sources.pairs_note"
+msgstr "Syötteet, jotka kaksi luetteloa molemmat sisältävät, ja monellako niistä on molemmissa sama aikataulun URL tai sama zip-tiedosto."
+
+msgid "sources.pair"
+msgstr "Luettelot"
+
+msgid "sources.same_url"
+msgstr "Sama URL"
+
+msgid "sources.same_body"
+msgstr "Sama zip"
+
+msgid "sources.duplication"
+msgstr "Useasta merkinnästä yhdistetyt syötteet"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi}/{count} syöte yhdistää useamman kuin yhden luettelomerkinnän."
+msgstr[1] "{multi}/{count} syötettä yhdistää useamman kuin yhden luettelomerkinnän."
+
+msgid "sources.evidence_note"
+msgstr "Syötteet sen mukaan, mikä yhdisti kaksi niiden merkintää. Syöte lasketaan kerran kutakin lajia kohden, joten lajit menevät päällekkäin."
+
+msgid "sources.joined_by"
+msgstr "Yhdistäjä"
+
+msgid "sources.evidence.url"
+msgstr "Sama aikataulun URL"
+
+msgid "sources.evidence.sha256"
+msgstr "Sama zip-tiedosto"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Samat taulut"
+
+msgid "sources.evidence.reference"
+msgstr "Luetteloiden välinen viittaus"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Saman verkon reaaliaikasyöte"
+
+msgid "sources.entries_per_feed"
+msgstr "Merkintöjä syötettä kohden"
+
+msgid "sources.data"
+msgstr "Luvut luettelon tiedostosta {link}."

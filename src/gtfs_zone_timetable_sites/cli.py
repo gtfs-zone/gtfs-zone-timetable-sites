@@ -33,6 +33,8 @@ from gtfs_zone_timetable_sites.build import (
 from gtfs_zone_timetable_sites.catalog import feed_sites, resolve_sites
 from gtfs_zone_timetable_sites.config import (
     FEEDS_URL,
+    SEARCH_URL,
+    SOURCE_STATS_URL,
     SOURCES_URL,
     STATUS_URL,
     USER_AGENT,
@@ -57,6 +59,8 @@ def fetch(url: str) -> bytes:
 CATALOG = "_catalog.json"
 SOURCES = "_sources.json"
 STATUS = "_status.json"
+SEARCH = "_search.json"
+SOURCE_STATS = "_source-stats.json"
 SLUG_MAP = "_slugs.json"
 ALIAS_MAP = "_aliases.json"
 
@@ -167,9 +171,13 @@ def clear(path: Path) -> None:
         path.unlink()
 
 
-def write_root(out: Path) -> None:
+def write_root(
+    out: Path, catalog: dict, slugs: dict[str, str], sources: dict | None = None
+) -> None:
     """The bucket root pages from every built site's site.json under `out`,
-    with each site's pages dated by its build."""
+    with each site's pages dated by its build, the root search from
+    `catalog` (search.json) and `slugs` ({feed id: slug}) and the sources page
+    from `sources` (source-stats.json)."""
     summaries = [json.loads(p.read_text()) for p in sorted(out.glob("*/site.json"))]
     pages = {
         summary["slug"]: {
@@ -178,7 +186,17 @@ def write_root(out: Path) -> None:
         }
         for summary in summaries
     }
-    write_files(build_root(summaries, date.today(), pages), out)
+    write_files(
+        build_root(
+            summaries,
+            date.today(),
+            pages,
+            catalog=catalog,
+            slugs=slugs,
+            sources=sources,
+        ),
+        out,
+    )
 
 
 def build_one(
@@ -213,6 +231,7 @@ def build(args: argparse.Namespace) -> None:
     if args.zip and not args.site:
         raise SystemExit("--zip needs --site")
     sites, pages = load_catalog(args.config, args.cache, not args.listed)
+    slugs = {site.feed: site.slug for site in sites + pages if site.feed}
     if args.dev:
         dev_feeds = load_config(args.config.read_text()).dev
         sites = [site for site in sites if site.feed in dev_feeds]
@@ -249,7 +268,12 @@ def build(args: argparse.Namespace) -> None:
             failed.append(site.slug)
         else:
             log.info("wrote %d files to %s", result, args.out / site.slug)
-    write_root(args.out)
+    write_root(
+        args.out,
+        cached_json(SEARCH_URL, args.cache, SEARCH),
+        slugs,
+        cached_json(SOURCE_STATS_URL, args.cache, SOURCE_STATS),
+    )
     if failed:
         raise SystemExit(f"{len(failed)} of {len(sites)} sites failed")
 

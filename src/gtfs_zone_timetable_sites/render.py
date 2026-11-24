@@ -24,6 +24,21 @@ def long_date(context: Context, day: date) -> str:
     return i18n.long_date(day, context["locale"])
 
 
+@pass_context
+def number(context: Context, value: int) -> str:
+    return i18n.number(value, context["locale"])
+
+
+@pass_context
+def percent(context: Context, value: float) -> str:
+    return i18n.percent(value, context["locale"])
+
+
+@pass_context
+def size(context: Context, value: int) -> str:
+    return i18n.size(value, context["locale"])
+
+
 def compact_json(value: object) -> Markup:
     """JSON without spaces, safe inside a <script> element."""
     text = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
@@ -42,6 +57,9 @@ def environment() -> Environment:
     )
     env.globals["t"] = translate
     env.filters["long_date"] = long_date
+    env.filters["number"] = number
+    env.filters["percent"] = percent
+    env.filters["size"] = size
     return env
 
 

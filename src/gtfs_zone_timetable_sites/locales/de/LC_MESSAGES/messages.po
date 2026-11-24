@@ -821,7 +821,7 @@ msgstr[0] "{n} Verkehrsunternehmen"
 msgstr[1] "{n} Verkehrsunternehmen"
 
 msgid "root.search"
-msgstr "Verkehrsunternehmen, Orte suchen"
+msgstr "Feeds, Orte, Hosts suchen"
 
 msgid "root.map"
 msgstr "Karte der Länder mit Fahrplänen"
@@ -829,13 +829,37 @@ msgstr "Karte der Länder mit Fahrplänen"
 msgid "root.map_count"
 msgstr "{name}: {agencies}"
 
-msgid "root.found_first"
-msgid_plural "root.found_first"
-msgstr[0] "{n} Verkehrsunternehmen, die ersten {max} werden gezeigt"
-msgstr[1] "{n} Verkehrsunternehmen, die ersten {max} werden gezeigt"
-
 msgid "root.none_found"
 msgstr "Keine Verkehrsunternehmen gefunden"
+
+msgid "root.feeds"
+msgid_plural "root.feeds"
+msgstr[0] "{n} Feed"
+msgstr[1] "{n} Feeds"
+
+msgid "root.no_feeds"
+msgstr "Keine passenden Feeds"
+
+msgid "root.loading"
+msgstr "Feedliste wird geladen..."
+
+msgid "root.load_error"
+msgstr "Die Feedliste konnte nicht geladen werden."
+
+msgid "root.modified"
+msgstr "aktualisiert am {date}"
+
+msgid "root.filters"
+msgstr "Feeds filtern"
+
+msgid "root.no_country"
+msgstr "Ohne Land"
+
+msgid "root.only_realtime"
+msgstr "Nur mit Echtzeit"
+
+msgid "root.show_more"
+msgstr "Mehr anzeigen"
 
 msgid "root.generated"
 msgstr ""
@@ -954,3 +978,162 @@ msgstr ""
 msgid "error.find"
 msgstr "Fahrpläne Ihres Verkehrsunternehmens finden"
 
+msgid "root.sources"
+msgstr "Woher die Feeds kommen"
+
+msgid "sources.title"
+msgstr "Feed-Quellen"
+
+msgid "sources.description"
+msgstr "Wie viele Feeds jeder Katalog führt, wie sich die Kataloge überschneiden und wie viele Feeds mehrere Katalogeinträge zusammenführen."
+
+msgid "sources.intro"
+msgid_plural "sources.intro"
+msgstr[0] "{count} Feed, zusammengetragen aus den Katalogen unten."
+msgstr[1] "{count} Feeds, zusammengetragen aus den Katalogen unten."
+
+msgid "sources.as_of"
+msgstr "Stand: {date}."
+
+msgid "sources.catalogs"
+msgstr "Kataloge"
+
+msgid "sources.catalog"
+msgstr "Katalog"
+
+msgid "sources.entries"
+msgstr "Einträge"
+
+msgid "sources.feeds"
+msgstr "Feeds"
+
+msgid "sources.schedule_feeds"
+msgstr "Mit Fahrplan"
+
+msgid "sources.only_here"
+msgstr "Nur hier"
+
+msgid "sources.countries"
+msgstr "Länder"
+
+msgid "sources.bytes"
+msgstr "Größe"
+
+msgid "sources.distinct_bytes"
+msgstr "Eindeutige Größe"
+
+msgid "sources.catalogs_note"
+msgstr "Einträge sind die eigenen Datensätze des Katalogs; Feeds sind das, wozu sie hier zusammengeführt werden. Nur hier zählt die Feeds mit Fahrplan, die kein anderer Katalog führt. Die Größe summiert das neueste Zip jedes Fahrplans; die eindeutige Größe zählt identische Zips einmal."
+
+msgid "sources.outcome"
+msgstr "Ergebnis"
+
+msgid "sources.fetch_title"
+msgstr "Letzter Download"
+
+msgid "sources.fetch_note"
+msgstr "Fahrplan-URLs nach dem Ergebnis ihres letzten Downloads."
+
+msgid "sources.fetch.ok"
+msgstr "Heruntergeladen"
+
+msgid "sources.fetch.not_modified"
+msgstr "Nicht geändert"
+
+msgid "sources.fetch.http_error"
+msgstr "HTTP-Fehler"
+
+msgid "sources.fetch.error"
+msgstr "Fehlgeschlagen"
+
+msgid "sources.fetch.too_large"
+msgstr "Zu groß"
+
+msgid "sources.facts_title"
+msgstr "Inhalt"
+
+msgid "sources.facts_note"
+msgstr "Fahrplan-URLs danach, ob ihr neuestes Zip gelesen werden konnte."
+
+msgid "sources.facts.ok"
+msgstr "Gelesen"
+
+msgid "sources.facts.empty"
+msgstr "Keine geplanten Fahrten"
+
+msgid "sources.facts.http_error"
+msgstr "Download fehlgeschlagen"
+
+msgid "sources.facts.missing_files"
+msgstr "Pflichtdateien fehlen"
+
+msgid "sources.facts.not_zip"
+msgstr "Kein Zip"
+
+msgid "sources.facts.parse_error"
+msgstr "Nicht lesbar"
+
+msgid "sources.facts.timeout"
+msgstr "Zeitüberschreitung"
+
+msgid "sources.facts.memory"
+msgstr "Zu groß zum Lesen"
+
+msgid "sources.facts.error"
+msgstr "Fehlgeschlagen"
+
+msgid "sources.overlap"
+msgstr "Überschneidungen"
+
+msgid "sources.combinations_note"
+msgstr "Feeds mit Fahrplan nach den Katalogen, die sie führen."
+
+msgid "sources.listed_by"
+msgstr "Geführt von"
+
+msgid "sources.pairs_note"
+msgstr "Feeds, die zwei Kataloge beide führen, und wie viele davon in beiden dieselbe Fahrplan-URL oder dasselbe Zip haben."
+
+msgid "sources.pair"
+msgstr "Kataloge"
+
+msgid "sources.same_url"
+msgstr "Gleiche URL"
+
+msgid "sources.same_body"
+msgstr "Gleiches Zip"
+
+msgid "sources.duplication"
+msgstr "Feeds aus mehreren Einträgen"
+
+msgid "sources.multi_entry"
+msgid_plural "sources.multi_entry"
+msgstr[0] "{multi} von {count} Feed führen mehr als einen Katalogeintrag zusammen."
+msgstr[1] "{multi} von {count} Feeds führen mehr als einen Katalogeintrag zusammen."
+
+msgid "sources.evidence_note"
+msgstr "Feeds danach, was zwei ihrer Einträge zusammengeführt hat. Ein Feed zählt einmal je Art, die Arten überschneiden sich also."
+
+msgid "sources.joined_by"
+msgstr "Zusammengeführt durch"
+
+msgid "sources.evidence.url"
+msgstr "Gleiche Fahrplan-URL"
+
+msgid "sources.evidence.sha256"
+msgstr "Identisches Zip"
+
+msgid "sources.evidence.cleanedHash"
+msgstr "Identische Tabellen"
+
+msgid "sources.evidence.reference"
+msgstr "Querverweis zwischen Katalogen"
+
+msgid "sources.evidence.realtimeSibling"
+msgstr "Echtzeit-Feed desselben Netzes"
+
+msgid "sources.entries_per_feed"
+msgstr "Einträge je Feed"
+
+msgid "sources.data"
+msgstr "Zahlen aus der Datei {link} des Katalogs."

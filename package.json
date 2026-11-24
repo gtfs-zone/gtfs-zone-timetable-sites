@@ -5,12 +5,18 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -i src/gtfs_zone_timetable_sites/templates/input.css -o src/gtfs_zone_timetable_sites/templates/style.css --minify && sed -i 's|/\\*! 🌼 daisyUI|/*! daisyUI|' src/gtfs_zone_timetable_sites/templates/style.css",
+    "build:js": "esbuild src/js/root.ts --bundle --format=esm --minify --target=es2022 --legal-comments=none --tsconfig=tsconfig.json --outfile=src/gtfs_zone_timetable_sites/templates/root.js",
     "build:mo": "uv run pybabel compile -d src/gtfs_zone_timetable_sites/locales",
+    "check:js": "tsc --noEmit",
     "vuln": "sh scripts/vuln-gate.sh"
   },
   "devDependencies": {
+    "@leeoniya/ufuzzy": "1.0.19",
     "@tailwindcss/cli": "4.3.3",
     "daisyui": "5.7.46",
-    "tailwindcss": "4.3.3"
+    "esbuild": "0.25.12",
+    "gtfs-zone-web-common": "github:gtfs-zone/gtfs-zone-web-common#v7.9.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
   }
 }

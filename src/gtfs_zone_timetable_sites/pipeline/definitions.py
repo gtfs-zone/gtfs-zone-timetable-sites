@@ -46,6 +46,8 @@ from gtfs_zone_timetable_sites.catalog import (
 )
 from gtfs_zone_timetable_sites.config import (
     FEEDS_URL,
+    SEARCH_URL,
+    SOURCE_STATS_URL,
     SOURCES_URL,
     STATUS_URL,
     USER_AGENT,
@@ -167,6 +169,9 @@ def site_pages(context: AssetExecutionContext) -> MaterializeResult:
             contents,
             sites,
             redirects(slugs, aliases, live),
+            http.get(SEARCH_URL).raise_for_status().json(),
+            slugs,
+            http.get(SOURCE_STATS_URL).raise_for_status().json(),
         )
         indexnow.ping(
             http,

@@ -1,10 +1,10 @@
 @import "tailwindcss" source(none);
 @source "./*.html";
 @source "./map.js";
-@source "./root.js";
+@source "../../js/*.ts";
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
-  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap, input, dropdown;
+  include: properties, rootcolor, rootscrolllock, scrollbar, svg, button, badge, card, navbar, list, link, swap, input, dropdown, toggle, table;
   logs: false;
 }
 
@@ -12,6 +12,11 @@
   html { overflow-x: clip; }
   p, li, h1, h2, h3, summary { overflow-wrap: anywhere; }
 }
+
+/* Sources page counts */
+.stats-table { font-variant-numeric: tabular-nums; }
+.stats-table td, .stats-table thead th:not(:first-child) { text-align: right; white-space: nowrap; }
+.stats-table th[scope=row] { font-weight: 600; }
 
 /* Timetables */
 /* Isolated so the rail's z-index stays inside the table. Sized to its
