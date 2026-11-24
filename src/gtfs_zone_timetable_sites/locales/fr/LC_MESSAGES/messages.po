@@ -948,38 +948,38 @@ msgid "error.find"
 msgstr "Trouver les horaires de votre organisme"
 
 msgid "overlap.part_of"
-msgstr "Également publié au sein de : {feeds}."
+msgstr "Tous les organismes cités ici figurent aussi dans : {feeds}."
 
 msgid "overlap.holds"
-msgstr "Comprend aussi tous les organismes de : {feeds}."
+msgstr "Cite aussi tous les organismes de : {feeds}."
 
 msgid "overlap.shares"
 msgid_plural "overlap.shares"
-msgstr[0] "Partage des organismes avec {n} autre flux"
-msgstr[1] "Partage des organismes avec {n} autres flux"
+msgstr[0] "Cite des organismes cités aussi dans {n} autre flux"
+msgstr[1] "Cite des organismes cités aussi dans {n} autres flux"
 
 msgid "overlap.heading"
-msgstr "Flux avec les mêmes organismes"
+msgstr "Flux qui citent les mêmes organismes"
 
 msgid "overlap.intro"
-msgstr "Autres flux du catalogue gtfs.zone qui nomment les mêmes organismes là où leurs arrêts recoupent ceux de ce flux."
+msgstr "Autres flux du catalogue gtfs.zone qui citent un organisme du même nom là où leurs arrêts recoupent ceux de ce flux. Seuls les noms des organismes sont comparés : leurs lignes et leurs courses peuvent différer."
 
 msgid "overlap.kind_contains"
-msgstr "tous ses organismes sont dans ce flux"
+msgstr "chaque organisme qu'il cite figure aussi ici"
 
 msgid "overlap.kind_contained_in"
-msgstr "contient tous les organismes de ce flux"
+msgstr "cite tous les organismes cités ici"
 
 msgid "overlap.kind_shares"
-msgstr "partage certains organismes"
+msgstr "cite certains des mêmes organismes"
 
 msgid "overlap.agencies"
 msgid_plural "overlap.agencies"
-msgstr[0] "Organisme commun : {agencies}"
-msgstr[1] "Organismes communs : {agencies}"
+msgstr[0] "Organisme cité dans les deux : {agencies}"
+msgstr[1] "Organismes cités dans les deux : {agencies}"
 
 msgid "overlap.route"
-msgstr "{agency} est aussi publié dans : {feeds}."
+msgstr "{agency} figure aussi comme organisme dans : {feeds}."
 
 msgid "field.sha256"
 msgstr "SHA-256 du zip"

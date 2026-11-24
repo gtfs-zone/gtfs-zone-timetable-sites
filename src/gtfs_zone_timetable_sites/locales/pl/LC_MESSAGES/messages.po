@@ -959,40 +959,40 @@ msgid "error.find"
 msgstr "Znajdź rozkłady swojego przewoźnika"
 
 msgid "overlap.part_of"
-msgstr "Publikowany także jako część: {feeds}."
+msgstr "Wszyscy podani tu przewoźnicy są podani także w: {feeds}."
 
 msgid "overlap.holds"
-msgstr "Obejmuje też wszystkich przewoźników z: {feeds}."
+msgstr "Podaje też wszystkich przewoźników z: {feeds}."
 
 msgid "overlap.shares"
 msgid_plural "overlap.shares"
-msgstr[0] "Ma wspólnych przewoźników z {n} innym feedem"
-msgstr[1] "Ma wspólnych przewoźników z {n} innymi feedami"
-msgstr[2] "Ma wspólnych przewoźników z {n} innymi feedami"
+msgstr[0] "Podaje przewoźników podanych także w {n} innym feedzie"
+msgstr[1] "Podaje przewoźników podanych także w {n} innych feedach"
+msgstr[2] "Podaje przewoźników podanych także w {n} innych feedach"
 
 msgid "overlap.heading"
-msgstr "Feedy z tymi samymi przewoźnikami"
+msgstr "Feedy podające tych samych przewoźników"
 
 msgid "overlap.intro"
-msgstr "Inne feedy w katalogu gtfs.zone, które podają tych samych przewoźników tam, gdzie ich przystanki pokrywają się z przystankami tego feedu."
+msgstr "Inne feedy w katalogu gtfs.zone, które podają przewoźnika o tej samej nazwie tam, gdzie ich przystanki pokrywają się z przystankami tego feedu. Porównywane są tylko nazwy przewoźników: linie i kursy mogą się różnić."
 
 msgid "overlap.kind_contains"
-msgstr "wszyscy jego przewoźnicy są w tym feedzie"
+msgstr "każdy podany w nim przewoźnik jest podany także tutaj"
 
 msgid "overlap.kind_contained_in"
-msgstr "ma wszystkich przewoźników tego feedu"
+msgstr "podaje wszystkich przewoźników podanych tutaj"
 
 msgid "overlap.kind_shares"
-msgstr "ma niektórych przewoźników wspólnych"
+msgstr "podaje niektórych z tych samych przewoźników"
 
 msgid "overlap.agencies"
 msgid_plural "overlap.agencies"
-msgstr[0] "Wspólny przewoźnik: {agencies}"
-msgstr[1] "Wspólni przewoźnicy: {agencies}"
-msgstr[2] "Wspólni przewoźnicy: {agencies}"
+msgstr[0] "Przewoźnik podany w obu: {agencies}"
+msgstr[1] "Przewoźnicy podani w obu: {agencies}"
+msgstr[2] "Przewoźnicy podani w obu: {agencies}"
 
 msgid "overlap.route"
-msgstr "{agency} jest publikowany także w: {feeds}."
+msgstr "{agency} jest podany jako przewoźnik także w: {feeds}."
 
 msgid "field.sha256"
 msgstr "SHA-256 pliku zip"

@@ -1276,19 +1276,23 @@ def test_overlaps_on_the_index_and_the_routes_of_their_agency():
     )
     files = build_site(fixture_zip("branching"), site, MONDAY)
     home = files["index.html"].decode()
-    assert 'Also published as part of: <a class="link" href="../all/">All</a>.' in home
     assert (
-        '<a class="link" href="#overlaps">Shares agencies with 1 other feed</a>' in home
+        'Every agency here is also listed in: <a class="link" href="../all/">All</a>.'
+        in home
     )
-    assert "Agency in both: Other" in home
+    assert (
+        '<a class="link" href="#overlaps">'
+        "Lists agencies also listed in 1 other feed</a>" in home
+    )
+    assert "Agency listed in both: Other" in home
     route = next(
         body.decode()
         for path, body in files.items()
         if path.endswith("/index.html") and path.count("/") == 1
     )
     assert (
-        'Test Transit is also published in: <a class="link" href="../../all/">All</a>.'
-        in route
+        "Test Transit is also listed as an agency in: "
+        '<a class="link" href="../../all/">All</a>.' in route
     )
     assert "Near" not in route
 

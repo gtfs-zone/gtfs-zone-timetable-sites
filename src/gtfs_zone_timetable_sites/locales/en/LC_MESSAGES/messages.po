@@ -944,38 +944,38 @@ msgid "error.find"
 msgstr "Find your agency's timetables"
 
 msgid "overlap.part_of"
-msgstr "Also published as part of: {feeds}."
+msgstr "Every agency here is also listed in: {feeds}."
 
 msgid "overlap.holds"
-msgstr "Also includes every agency of: {feeds}."
+msgstr "Also lists every agency of: {feeds}."
 
 msgid "overlap.shares"
 msgid_plural "overlap.shares"
-msgstr[0] "Shares agencies with {n} other feed"
-msgstr[1] "Shares agencies with {n} other feeds"
+msgstr[0] "Lists agencies also listed in {n} other feed"
+msgstr[1] "Lists agencies also listed in {n} other feeds"
 
 msgid "overlap.heading"
-msgstr "Feeds with the same agencies"
+msgstr "Feeds that list the same agencies"
 
 msgid "overlap.intro"
-msgstr "Other feeds in the gtfs.zone catalog that name the same agencies where their stops overlap this feed's."
+msgstr "Other feeds in the gtfs.zone catalog that list an agency of the same name where their stops overlap this feed's. Only the agency names are compared: their routes and trips can differ."
 
 msgid "overlap.kind_contains"
-msgstr "all of its agencies are in this feed"
+msgstr "every agency it lists is also listed here"
 
 msgid "overlap.kind_contained_in"
-msgstr "has all of this feed's agencies"
+msgstr "lists every agency listed here"
 
 msgid "overlap.kind_shares"
-msgstr "shares some agencies"
+msgstr "lists some of the same agencies"
 
 msgid "overlap.agencies"
 msgid_plural "overlap.agencies"
-msgstr[0] "Agency in both: {agencies}"
-msgstr[1] "Agencies in both: {agencies}"
+msgstr[0] "Agency listed in both: {agencies}"
+msgstr[1] "Agencies listed in both: {agencies}"
 
 msgid "overlap.route"
-msgstr "{agency} is also published in: {feeds}."
+msgstr "{agency} is also listed as an agency in: {feeds}."
 
 msgid "field.sha256"
 msgstr "Zip SHA-256"

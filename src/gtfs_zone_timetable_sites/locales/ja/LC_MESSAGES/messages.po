@@ -915,36 +915,36 @@ msgid "error.find"
 msgstr "事業者の時刻表を探す"
 
 msgid "overlap.part_of"
-msgstr "次のフィードの一部としても公開：{feeds}。"
+msgstr "このフィードの事業者はすべて次のフィードにも記載：{feeds}。"
 
 msgid "overlap.holds"
-msgstr "次のフィードの事業者もすべて含みます：{feeds}。"
+msgstr "次のフィードの事業者もすべて記載：{feeds}。"
 
 msgid "overlap.shares"
 msgid_plural "overlap.shares"
-msgstr[0] "ほか{n}件のフィードと事業者が共通"
+msgstr[0] "ほか{n}件のフィードにも記載の事業者あり"
 
 msgid "overlap.heading"
-msgstr "同じ事業者のフィード"
+msgstr "同じ事業者を記載するフィード"
 
 msgid "overlap.intro"
-msgstr "gtfs.zoneカタログのうち、停留所がこのフィードと重なる範囲で同じ事業者を挙げているほかのフィード。"
+msgstr "gtfs.zoneカタログのうち、停留所がこのフィードと重なる範囲で同じ名前の事業者を記載しているほかのフィード。比べているのは事業者名だけで、路線や便は異なる場合があります。"
 
 msgid "overlap.kind_contains"
-msgstr "その事業者はすべてこのフィードにあります"
+msgstr "記載の事業者はすべてこのフィードにも記載"
 
 msgid "overlap.kind_contained_in"
-msgstr "このフィードの事業者をすべて含みます"
+msgstr "このフィードの事業者をすべて記載"
 
 msgid "overlap.kind_shares"
-msgstr "一部の事業者が共通"
+msgstr "一部の事業者を共通して記載"
 
 msgid "overlap.agencies"
 msgid_plural "overlap.agencies"
-msgstr[0] "両方にある事業者：{agencies}"
+msgstr[0] "両方に記載の事業者：{agencies}"
 
 msgid "overlap.route"
-msgstr "{agency}は次のフィードでも公開：{feeds}。"
+msgstr "{agency}は次のフィードにも事業者として記載：{feeds}。"
 
 msgid "field.sha256"
 msgstr "zipのSHA-256"

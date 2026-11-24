@@ -946,38 +946,38 @@ msgid "error.find"
 msgstr "Hitta ditt trafikföretags tidtabeller"
 
 msgid "overlap.part_of"
-msgstr "Publiceras också som en del av: {feeds}."
+msgstr "Alla trafikföretag här anges också i: {feeds}."
 
 msgid "overlap.holds"
-msgstr "Innehåller också alla trafikföretag i: {feeds}."
+msgstr "Anger också alla trafikföretag i: {feeds}."
 
 msgid "overlap.shares"
 msgid_plural "overlap.shares"
-msgstr[0] "Delar trafikföretag med {n} annat flöde"
-msgstr[1] "Delar trafikföretag med {n} andra flöden"
+msgstr[0] "Anger trafikföretag som också anges i {n} annat flöde"
+msgstr[1] "Anger trafikföretag som också anges i {n} andra flöden"
 
 msgid "overlap.heading"
-msgstr "Flöden med samma trafikföretag"
+msgstr "Flöden som anger samma trafikföretag"
 
 msgid "overlap.intro"
-msgstr "Andra flöden i gtfs.zones katalog som anger samma trafikföretag där deras hållplatser överlappar detta flödes."
+msgstr "Andra flöden i gtfs.zones katalog som anger ett trafikföretag med samma namn där deras hållplatser överlappar detta flödes. Bara trafikföretagens namn jämförs: linjer och turer kan skilja sig."
 
 msgid "overlap.kind_contains"
-msgstr "alla dess trafikföretag finns i detta flöde"
+msgstr "alla trafikföretag det anger anges också här"
 
 msgid "overlap.kind_contained_in"
-msgstr "har alla trafikföretag i detta flöde"
+msgstr "anger alla trafikföretag som anges här"
 
 msgid "overlap.kind_shares"
-msgstr "delar några trafikföretag"
+msgstr "anger några av samma trafikföretag"
 
 msgid "overlap.agencies"
 msgid_plural "overlap.agencies"
-msgstr[0] "Trafikföretag i båda: {agencies}"
-msgstr[1] "Trafikföretag i båda: {agencies}"
+msgstr[0] "Trafikföretag som anges i båda: {agencies}"
+msgstr[1] "Trafikföretag som anges i båda: {agencies}"
 
 msgid "overlap.route"
-msgstr "{agency} publiceras också i: {feeds}."
+msgstr "{agency} anges också som trafikföretag i: {feeds}."
 
 msgid "field.sha256"
 msgstr "Zipfilens SHA-256"

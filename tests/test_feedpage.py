@@ -178,15 +178,15 @@ def test_overlaps_view_groups_kinds_and_sorts_by_name():
     )
     assert [o.name for o in view.part_of] == ["Z"]
     assert [o.name for o in view.holds] == ["b"]
-    assert view.shares_text == "Shares agencies with 2 other feeds"
+    assert view.shares_text == "Lists agencies also listed in 2 other feeds"
     assert [(r.link.name, r.kind_text) for r in view.rows] == [
-        ("a", "shares some agencies"),
-        ("b", "all of its agencies are in this feed"),
-        ("c", "shares some agencies"),
+        ("a", "lists some of the same agencies"),
+        ("b", "every agency it lists is also listed here"),
+        ("c", "lists some of the same agencies"),
         ("d", ""),
-        ("Z", "has all of this feed's agencies"),
+        ("Z", "lists every agency listed here"),
     ]
-    assert view.rows[0].agencies_text == "Agencies in both: A and B"
+    assert view.rows[0].agencies_text == "Agencies listed in both: A and B"
     assert overlaps_view((), "en") is None
 
 
@@ -205,7 +205,7 @@ def test_feed_page_shows_overlaps():
     )
     page = build_feed_page(site, TODAY)["index.html"].decode()
     assert (
-        'Also published as part of: <a class="link" href="../region/">Region</a>.'
-        in page
+        "Every agency here is also listed in: "
+        '<a class="link" href="../region/">Region</a>.' in page
     )
     assert 'id="overlaps"' in page

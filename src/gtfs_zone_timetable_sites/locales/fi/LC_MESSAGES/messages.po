@@ -942,38 +942,38 @@ msgid "error.find"
 msgstr "Etsi liikennöitsijäsi aikataulut"
 
 msgid "overlap.part_of"
-msgstr "Julkaistu myös osana syötettä: {feeds}."
+msgstr "Kaikki tämän syötteen liikennöitsijät mainitaan myös syötteessä: {feeds}."
 
 msgid "overlap.holds"
-msgstr "Sisältää myös kaikki liikennöitsijät syötteestä: {feeds}."
+msgstr "Mainitsee myös kaikki liikennöitsijät syötteestä: {feeds}."
 
 msgid "overlap.shares"
 msgid_plural "overlap.shares"
-msgstr[0] "Yhteisiä liikennöitsijöitä {n} muun syötteen kanssa"
-msgstr[1] "Yhteisiä liikennöitsijöitä {n} muun syötteen kanssa"
+msgstr[0] "Samoja liikennöitsijöitä mainitaan myös {n} muussa syötteessä"
+msgstr[1] "Samoja liikennöitsijöitä mainitaan myös {n} muussa syötteessä"
 
 msgid "overlap.heading"
-msgstr "Syötteet, joissa on samat liikennöitsijät"
+msgstr "Syötteet, jotka mainitsevat samat liikennöitsijät"
 
 msgid "overlap.intro"
-msgstr "Muut gtfs.zone-luettelon syötteet, jotka nimeävät samat liikennöitsijät alueella, jossa niiden pysäkit ovat päällekkäin tämän syötteen pysäkkien kanssa."
+msgstr "Muut gtfs.zone-luettelon syötteet, jotka mainitsevat samannimisen liikennöitsijän alueella, jossa niiden pysäkit ovat päällekkäin tämän syötteen pysäkkien kanssa. Vain liikennöitsijöiden nimiä verrataan: linjat ja vuorot voivat erota."
 
 msgid "overlap.kind_contains"
-msgstr "kaikki sen liikennöitsijät ovat tässä syötteessä"
+msgstr "kaikki sen mainitsemat liikennöitsijät mainitaan myös tässä"
 
 msgid "overlap.kind_contained_in"
-msgstr "sisältää kaikki tämän syötteen liikennöitsijät"
+msgstr "mainitsee kaikki tämän syötteen liikennöitsijät"
 
 msgid "overlap.kind_shares"
-msgstr "jakaa osan liikennöitsijöistä"
+msgstr "mainitsee osan samoista liikennöitsijöistä"
 
 msgid "overlap.agencies"
 msgid_plural "overlap.agencies"
-msgstr[0] "Yhteinen liikennöitsijä: {agencies}"
-msgstr[1] "Yhteiset liikennöitsijät: {agencies}"
+msgstr[0] "Molemmissa mainittu liikennöitsijä: {agencies}"
+msgstr[1] "Molemmissa mainitut liikennöitsijät: {agencies}"
 
 msgid "overlap.route"
-msgstr "{agency} julkaistaan myös syötteessä: {feeds}."
+msgstr "{agency} mainitaan liikennöitsijänä myös syötteessä: {feeds}."
 
 msgid "field.sha256"
 msgstr "Zip-tiedoston SHA-256"

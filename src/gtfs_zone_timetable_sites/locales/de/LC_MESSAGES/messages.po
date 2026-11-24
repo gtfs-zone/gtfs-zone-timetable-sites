@@ -955,38 +955,38 @@ msgid "error.find"
 msgstr "Fahrpläne Ihres Verkehrsunternehmens finden"
 
 msgid "overlap.part_of"
-msgstr "Auch veröffentlicht als Teil von: {feeds}."
+msgstr "Alle hier genannten Verkehrsunternehmen stehen auch in: {feeds}."
 
 msgid "overlap.holds"
-msgstr "Enthält auch alle Verkehrsunternehmen von: {feeds}."
+msgstr "Nennt auch alle Verkehrsunternehmen von: {feeds}."
 
 msgid "overlap.shares"
 msgid_plural "overlap.shares"
-msgstr[0] "Teilt Verkehrsunternehmen mit {n} weiteren Feed"
-msgstr[1] "Teilt Verkehrsunternehmen mit {n} weiteren Feeds"
+msgstr[0] "Nennt Verkehrsunternehmen, die auch in {n} weiteren Feed stehen"
+msgstr[1] "Nennt Verkehrsunternehmen, die auch in {n} weiteren Feeds stehen"
 
 msgid "overlap.heading"
-msgstr "Feeds mit denselben Verkehrsunternehmen"
+msgstr "Feeds, die dieselben Verkehrsunternehmen nennen"
 
 msgid "overlap.intro"
-msgstr "Andere Feeds im Katalog von gtfs.zone, die dieselben Verkehrsunternehmen nennen, wo sich ihre Haltestellen mit denen dieses Feeds überschneiden."
+msgstr "Andere Feeds im Katalog von gtfs.zone, die ein Verkehrsunternehmen gleichen Namens nennen, wo sich ihre Haltestellen mit denen dieses Feeds überschneiden. Verglichen werden nur die Namen der Verkehrsunternehmen: Linien und Fahrten können sich unterscheiden."
 
 msgid "overlap.kind_contains"
-msgstr "alle seine Verkehrsunternehmen sind in diesem Feed"
+msgstr "jedes dort genannte Verkehrsunternehmen steht auch hier"
 
 msgid "overlap.kind_contained_in"
-msgstr "enthält alle Verkehrsunternehmen dieses Feeds"
+msgstr "nennt alle hier genannten Verkehrsunternehmen"
 
 msgid "overlap.kind_shares"
-msgstr "teilt einige Verkehrsunternehmen"
+msgstr "nennt einige derselben Verkehrsunternehmen"
 
 msgid "overlap.agencies"
 msgid_plural "overlap.agencies"
-msgstr[0] "Verkehrsunternehmen in beiden: {agencies}"
-msgstr[1] "Verkehrsunternehmen in beiden: {agencies}"
+msgstr[0] "In beiden genannt: {agencies}"
+msgstr[1] "In beiden genannt: {agencies}"
 
 msgid "overlap.route"
-msgstr "{agency} wird auch veröffentlicht in: {feeds}."
+msgstr "{agency} steht auch als Verkehrsunternehmen in: {feeds}."
 
 msgid "field.sha256"
 msgstr "SHA-256 der ZIP-Datei"

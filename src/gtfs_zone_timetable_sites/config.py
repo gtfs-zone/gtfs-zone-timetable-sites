@@ -122,7 +122,7 @@ class CatalogRow(BaseModel):
 
 
 class Overlap(BaseModel):
-    """Another feed sharing agencies with this one, as feeds.json `overlaps`
+    """Another feed listing agencies of the same names, as feeds.json `overlaps`
     has it: `contains` when this feed has all of the other's agencies,
     `containedIn` when the other has all of this one's, else `shares`."""
 

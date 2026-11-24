@@ -959,38 +959,38 @@ msgid "error.find"
 msgstr "Buscar los horarios de su operador"
 
 msgid "overlap.part_of"
-msgstr "También publicado como parte de: {feeds}."
+msgstr "Todos los operadores de aquí también figuran en: {feeds}."
 
 msgid "overlap.holds"
-msgstr "También incluye todos los operadores de: {feeds}."
+msgstr "También nombra todos los operadores de: {feeds}."
 
 msgid "overlap.shares"
 msgid_plural "overlap.shares"
-msgstr[0] "Comparte operadores con {n} feed más"
-msgstr[1] "Comparte operadores con {n} feeds más"
+msgstr[0] "Nombra operadores que también figuran en {n} feed más"
+msgstr[1] "Nombra operadores que también figuran en {n} feeds más"
 
 msgid "overlap.heading"
-msgstr "Feeds con los mismos operadores"
+msgstr "Feeds que nombran los mismos operadores"
 
 msgid "overlap.intro"
-msgstr "Otros feeds del catálogo de gtfs.zone que nombran los mismos operadores donde sus paradas se solapan con las de este feed."
+msgstr "Otros feeds del catálogo de gtfs.zone que nombran un operador con el mismo nombre donde sus paradas se solapan con las de este feed. Solo se comparan los nombres de los operadores: sus líneas y viajes pueden ser distintos."
 
 msgid "overlap.kind_contains"
-msgstr "todos sus operadores están en este feed"
+msgstr "todos los operadores que nombra también figuran aquí"
 
 msgid "overlap.kind_contained_in"
-msgstr "tiene todos los operadores de este feed"
+msgstr "nombra todos los operadores de aquí"
 
 msgid "overlap.kind_shares"
-msgstr "comparte algunos operadores"
+msgstr "nombra algunos de los mismos operadores"
 
 msgid "overlap.agencies"
 msgid_plural "overlap.agencies"
-msgstr[0] "Operador en ambos: {agencies}"
-msgstr[1] "Operadores en ambos: {agencies}"
+msgstr[0] "Operador nombrado en ambos: {agencies}"
+msgstr[1] "Operadores nombrados en ambos: {agencies}"
 
 msgid "overlap.route"
-msgstr "{agency} también se publica en: {feeds}."
+msgstr "{agency} también figura como operador en: {feeds}."
 
 msgid "field.sha256"
 msgstr "SHA-256 del zip"
