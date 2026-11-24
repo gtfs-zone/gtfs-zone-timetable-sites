@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "area_1",
+      "properties": {"stop_name": "North zone", "stop_desc": "North of the river"},
+      "geometry": {"type": "Polygon", "coordinates": [[[-93.0, 42.0], [-93.1, 42.0], [-93.1, 42.1], [-93.0, 42.0]]]}
+    },
+    {
+      "type": "Feature",
+      "id": "area_2",
+      "properties": {},
+      "geometry": {"type": "MultiPolygon", "coordinates": [[[[-93.2, 42.2], [-93.3, 42.2], [-93.3, 42.3], [-93.2, 42.2]]], [[[-93.4, 42.4], [-93.5, 42.4], [-93.5, 42.5], [-93.4, 42.4]]]]}
+    }
+  ]
+}

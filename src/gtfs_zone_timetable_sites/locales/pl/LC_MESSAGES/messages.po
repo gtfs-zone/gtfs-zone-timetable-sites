@@ -1143,3 +1143,102 @@ msgstr "Wpisy na feed"
 
 msgid "sources.data"
 msgstr "Dane z pliku {link} katalogu."
+
+msgid "legend.window"
+msgstr "Dwie godziny: wsiadanie lub wysiadanie w dowolnej chwili pomiędzy nimi."
+
+msgid "legend.unnamed"
+msgstr "Kursywą: obszar bez nazwy w danych; pokazano jego location_id."
+
+msgid "legend.booking"
+msgstr "{mark}: wymaga rezerwacji, zob. Rezerwacja."
+
+msgid "booking.heading"
+msgstr "Rezerwacja"
+
+msgid "booking.no_type"
+msgstr "Dane nie podają rodzaju rezerwacji."
+
+msgid "booking.type_0"
+msgstr "Rezerwacja na bieżąco."
+
+msgid "booking.type_1"
+msgstr "Rezerwacja z wyprzedzeniem w dniu podróży."
+
+msgid "booking.type_2"
+msgstr "Rezerwacja we wcześniejszym dniu."
+
+msgid "booking.type"
+msgstr "booking_type {value}."
+
+msgid "booking.service"
+msgstr "Dni liczy się według dni kursowania usługi {service}."
+
+msgid "booking.pickup"
+msgstr "Wsiadanie: {message}"
+
+msgid "booking.drop_off"
+msgstr "Wysiadanie: {message}"
+
+msgid "booking.phone"
+msgstr "Zadzwoń: {phone}"
+
+msgid "booking.book"
+msgstr "Zarezerwuj online"
+
+msgid "booking.info"
+msgstr "Więcej informacji"
+
+msgid "booking.missing"
+msgstr "Dane wskazują regułę rezerwacji {id}, której nie ma w booking_rules.txt."
+
+msgid "flex.unreadable"
+msgstr "Nie udało się odczytać danych GTFS-Flex: {error}"
+
+msgid "flex.misnamed"
+msgstr "Dane zawierają {given}, co GTFS nazywa {spec}; nic z tego nie jest odczytywane."
+
+msgid "booking.min"
+msgid_plural "booking.min"
+msgstr[0] "Co najmniej {n} minutę wcześniej."
+msgstr[1] "Co najmniej {n} minuty wcześniej."
+msgstr[2] "Co najmniej {n} minut wcześniej."
+
+msgid "booking.max"
+msgid_plural "booking.max"
+msgstr[0] "Najwyżej {n} minutę wcześniej."
+msgstr[1] "Najwyżej {n} minuty wcześniej."
+msgstr[2] "Najwyżej {n} minut wcześniej."
+
+msgid "booking.start"
+msgid_plural "booking.start"
+msgstr[0] "Rezerwacja od {n} dnia przed podróżą."
+msgstr[1] "Rezerwacja od {n} dni przed podróżą."
+msgstr[2] "Rezerwacja od {n} dni przed podróżą."
+
+msgid "booking.start_time"
+msgid_plural "booking.start_time"
+msgstr[0] "Rezerwacja od {n} dnia przed podróżą, od {time}."
+msgstr[1] "Rezerwacja od {n} dni przed podróżą, od {time}."
+msgstr[2] "Rezerwacja od {n} dni przed podróżą, od {time}."
+
+msgid "booking.last"
+msgid_plural "booking.last"
+msgstr[0] "Zarezerwuj co najmniej {n} dzień przed podróżą."
+msgstr[1] "Zarezerwuj co najmniej {n} dni przed podróżą."
+msgstr[2] "Zarezerwuj co najmniej {n} dni przed podróżą."
+
+msgid "booking.last_time"
+msgid_plural "booking.last_time"
+msgstr[0] "Zarezerwuj do {time}, {n} dzień przed podróżą."
+msgstr[1] "Zarezerwuj do {time}, {n} dni przed podróżą."
+msgstr[2] "Zarezerwuj do {time}, {n} dni przed podróżą."
+
+msgid "route.group_stops"
+msgid_plural "route.group_stops"
+msgstr[0] "{n} możliwy przystanek"
+msgstr[1] "Dowolny z {n} przystanków"
+msgstr[2] "Dowolny z {n} przystanków"
+
+msgid "flex.in_stop_id"
+msgstr "Dane podają obszary GTFS-Flex w stop_times.stop_id, które GTFS rezerwuje dla stops.txt; są pokazane jako obszary."

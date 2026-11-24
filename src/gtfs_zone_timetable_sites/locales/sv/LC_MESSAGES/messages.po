@@ -1128,3 +1128,95 @@ msgstr "Poster per flöde"
 
 msgid "sources.data"
 msgstr "Siffror från katalogens fil {link}."
+
+msgid "legend.window"
+msgstr "Två tider: påstigning eller avstigning när som helst mellan dem."
+
+msgid "legend.unnamed"
+msgstr "Kursivt: ett område utan namn i flödet; dess location_id visas."
+
+msgid "legend.booking"
+msgstr "{mark}: måste bokas, se Bokning."
+
+msgid "booking.heading"
+msgstr "Bokning"
+
+msgid "booking.no_type"
+msgstr "Flödet anger ingen bokningstyp."
+
+msgid "booking.type_0"
+msgstr "Bokning i realtid."
+
+msgid "booking.type_1"
+msgstr "Bokning i förväg samma dag som resan."
+
+msgid "booking.type_2"
+msgstr "Bokning en tidigare dag."
+
+msgid "booking.type"
+msgstr "booking_type {value}."
+
+msgid "booking.service"
+msgstr "Dagar räknas de dagar tjänsten {service} går."
+
+msgid "booking.pickup"
+msgstr "Påstigning: {message}"
+
+msgid "booking.drop_off"
+msgstr "Avstigning: {message}"
+
+msgid "booking.phone"
+msgstr "Ring {phone}"
+
+msgid "booking.book"
+msgstr "Boka på nätet"
+
+msgid "booking.info"
+msgstr "Mer information"
+
+msgid "booking.missing"
+msgstr "Flödet anger bokningsregeln {id}, som booking_rules.txt saknar."
+
+msgid "flex.unreadable"
+msgstr "Flödets GTFS-Flex-data kunde inte läsas: {error}"
+
+msgid "flex.misnamed"
+msgstr "Flödet har {given}, som GTFS kallar {spec}; inget läses från det."
+
+msgid "booking.min"
+msgid_plural "booking.min"
+msgstr[0] "Minst {n} minut i förväg."
+msgstr[1] "Minst {n} minuter i förväg."
+
+msgid "booking.max"
+msgid_plural "booking.max"
+msgstr[0] "Högst {n} minut i förväg."
+msgstr[1] "Högst {n} minuter i förväg."
+
+msgid "booking.start"
+msgid_plural "booking.start"
+msgstr[0] "Bokning öppnar {n} dag före resan."
+msgstr[1] "Bokning öppnar {n} dagar före resan."
+
+msgid "booking.start_time"
+msgid_plural "booking.start_time"
+msgstr[0] "Bokning öppnar {n} dag före resan, kl. {time}."
+msgstr[1] "Bokning öppnar {n} dagar före resan, kl. {time}."
+
+msgid "booking.last"
+msgid_plural "booking.last"
+msgstr[0] "Boka senast {n} dag före resan."
+msgstr[1] "Boka senast {n} dagar före resan."
+
+msgid "booking.last_time"
+msgid_plural "booking.last_time"
+msgstr[0] "Boka senast kl. {time}, {n} dag före resan."
+msgstr[1] "Boka senast kl. {time}, {n} dagar före resan."
+
+msgid "route.group_stops"
+msgid_plural "route.group_stops"
+msgstr[0] "{n} möjlig hållplats"
+msgstr[1] "Någon av {n} hållplatser"
+
+msgid "flex.in_stop_id"
+msgstr "Flödet anger GTFS-Flex-områden i stop_times.stop_id, som GTFS håller för stops.txt; de visas som områden."

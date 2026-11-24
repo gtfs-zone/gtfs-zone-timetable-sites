@@ -1,0 +1,3 @@
+route_id,agency_id,route_short_name,route_long_name,route_type
+Z,a,,Dial-a-Ride,3
+D,a,5,Deviated,3

@@ -10,7 +10,7 @@
 {% macro stop_name(row, gutter) %}<span class="rail{% if row.rail %} {{ row.rail }}{% endif %}" aria-hidden="true">
 {%- if row.paths %}<svg viewBox="0 0 {{ gutter }} 100" preserveAspectRatio="none">
 {%- for d in row.paths %}<path class="case" d="{{ d }}"/><path d="{{ d }}"/>{% endfor %}</svg>{% endif %}<span class="dot{% if row.solid %} solid{% endif %}" style="left:{{ row.dot_x }}px">{% if row.num %}{{ row.num }}{% endif %}</span></span>
-{%- if row.google %}<a class="link link-hover" href="{{ row.google }}" target="_blank" rel="noopener">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}
+{%- if row.google %}<a class="link link-hover" href="{{ row.google }}" target="_blank" rel="noopener">{{ row.name }}</a>{% elif row.unnamed %}<i>{{ row.name }}</i>{% else %}{{ row.name }}{% endif %}
 {%- if row.code %} <small class="code">{{ row.code }}</small>{% endif %}
 {%- if row.platform %} <small class="code">{{ t("route.platform", platform=row.platform) }}</small>{% endif %}
 {%- if row.fare_zone %} <small class="code fare-zone">{{ row.fare_zone }}</small>{% endif %}
@@ -82,6 +82,25 @@
 </details>
 </section>
 {% endif %}
+{% if booking %}
+<section class="card bg-base-100 shadow-sm">
+<div class="card-body p-4">
+<h2 class="text-lg font-semibold">{{ t("booking.heading") }}</h2>
+{% for rule in booking %}
+<div class="space-y-1">
+{% for line in rule.lines %}<p>{% if loop.first %}<sup>{{ rule.mark }}</sup> {% endif %}{{ line }}</p>
+{% endfor %}
+{%- if rule.phone or rule.info_url or rule.booking_url %}
+<p class="flex flex-wrap gap-x-4">
+{%- if rule.phone %}<a class="link" href="tel:{{ rule.phone | replace(" ", "") }}">{{ t("booking.phone", phone=rule.phone) }}</a>{% endif %}
+{%- if rule.booking_url %} <a class="link" href="{{ rule.booking_url }}" target="_blank" rel="noopener">{{ t("booking.book") }}</a>{% endif %}
+{%- if rule.info_url %} <a class="link" href="{{ rule.info_url }}" target="_blank" rel="noopener">{{ t("booking.info") }}</a>{% endif %}</p>
+{% endif %}
+</div>
+{% endfor %}
+</div>
+</section>
+{% endif %}
 {% if map %}
 <section class="card bg-base-100 shadow-sm">
 <div class="card-body p-4">
@@ -129,7 +148,8 @@
 <tr{% if row.approx %} class="approx"{% endif %}><th scope="row"{% if row.num %} data-num="{{ row.num }}"{% endif %}><span class="stop">{{ stop_name(row, table.gutter) }}
 {%- if row.wheelchair %} {{ icon("wheelchair", t("amenity.wheelchair")) }}{% endif %}
 {%- if row.zone %} <small>{{ t("route.zone_time", zone=row.zone) }}</small>{% endif %}
-{%- if row.reading %} <small class="reading text-base-content/70" lang="{{ row.reading_lang }}">{{ row.reading }}</small>{% endif %}</span></th>
+{%- if row.reading %} <small class="reading text-base-content/70" lang="{{ row.reading_lang }}">{{ row.reading }}</small>{% endif %}
+{%- if row.members %}<details class="members text-sm font-normal"><summary class="cursor-pointer">{{ t("route.group_stops", n=row.members | length) }}</summary>{{ row.members | join(", ") }}</details>{% endif %}</span></th>
 {% for cell in row.cells %}
 {{ time_cell(table.heads[loop.index0], cell) }}
 {% endfor %}

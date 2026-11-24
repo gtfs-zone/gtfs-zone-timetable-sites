@@ -71,6 +71,10 @@ class Cell:
     drop_off: bool = True
     # Stops only on request: a flag stop.
     request: bool = False
+    # GTFS-Flex pickup / drop-off window, in place of times.
+    window: tuple[int, int] | None = None
+    # Booking rule ids for the pickup and the drop-off here.
+    booking: tuple[str, ...] = ()
 
     @property
     def time(self) -> int | None:
@@ -104,9 +108,21 @@ class Column:
     def first_time(self) -> int | None:
         return next((c.time for c in self.cells if c and c.time is not None), None)
 
+    def first_start(self) -> int | None:
+        """The first time, else the first window's start."""
+        return next(
+            (
+                c.time if c.time is not None else c.window[0]
+                for c in self.cells
+                if c and (c.time is not None or c.window)
+            ),
+            None,
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class Row:
+    # A stop_id, or a GTFS-Flex location_id or location_group_id (`kind`).
     stop_id: str
     name: str
     # The feed calls the times here exact (timepoint=1, or no timepoint values).
@@ -123,6 +139,8 @@ class Row:
     # code (`ja-Hrkt`), else "".
     reading: str = ""
     reading_lang: str = ""
+    # "location" or "group" for a GTFS-Flex row, else "".
+    kind: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,7 +247,7 @@ def compare_columns(a: Column, b: Column) -> int:
     for ca, cb in zip(a.cells, b.cells, strict=True):
         if ca and cb and ca.time is not None and cb.time is not None:
             return (ca.time > cb.time) - (ca.time < cb.time)
-    ta, tb = a.first_time() or 0, b.first_time() or 0
+    ta, tb = a.first_start() or 0, b.first_start() or 0
     return (ta > tb) - (ta < tb)
 
 
@@ -238,7 +256,32 @@ def shifted(cell: Cell, seconds: int) -> Cell:
         cell,
         arrival=None if cell.arrival is None else cell.arrival + seconds,
         departure=None if cell.departure is None else cell.departure + seconds,
+        window=None
+        if cell.window is None
+        else (cell.window[0] + seconds, cell.window[1] + seconds),
     )
+
+
+def flex_fields(st: StopTime) -> tuple[tuple[int, int] | None, tuple[str, ...]]:
+    """The cell's window and booking rule ids from the stop_time's Flex fields."""
+    flex = st.flex
+    if flex is None:
+        return None, ()
+    window = None
+    if flex.start_window is not None and flex.end_window is not None:
+        window = (flex.start_window, flex.end_window)
+    rules = (flex.pickup_booking_rule_id, flex.drop_off_booking_rule_id)
+    return window, tuple(dict.fromkeys(rule for rule in rules if rule))
+
+
+def place_kind(feed: Feed, place_id: str) -> str:
+    if place_id in feed.stops:
+        return ""
+    if place_id in feed.flex.locations:
+        return "location"
+    if place_id in feed.flex.groups:
+        return "group"
+    return ""
 
 
 def trip_columns(feed: Feed, trip: Trip) -> list[tuple[Headway | None, int]]:
@@ -267,16 +310,15 @@ def trip_columns(feed: Feed, trip: Trip) -> list[tuple[Headway | None, int]]:
 def headsign(feed: Feed, trip: Trip) -> str:
     if trip.headsign:
         return trip.headsign
-    last = feed.stop_times[trip.trip_id][-1].stop_id
-    stop = feed.stops.get(last)
-    return stop.name if stop else last
+    last = feed.stop_times[trip.trip_id][-1].place_id
+    return feed.place_name(last) or last
 
 
 def branch_key(feed: Feed, trip: Trip) -> str:
     """The trip's headsign, or its station pattern when the feed gives none."""
     if trip.headsign:
         return trip.headsign
-    return "\0".join(feed.station(st.stop_id) for st in feed.stop_times[trip.trip_id])
+    return "\0".join(feed.station(st.place_id) for st in feed.stop_times[trip.trip_id])
 
 
 def branches(feed: Feed, trips: Sequence[Trip]) -> list[list[Trip]]:
@@ -284,7 +326,7 @@ def branches(feed: Feed, trips: Sequence[Trip]) -> list[list[Trip]]:
     whose stop sets overlap enough."""
     stops_by_headsign: dict[str, set[str]] = {}
     for trip in trips:
-        stops = {feed.station(st.stop_id) for st in feed.stop_times[trip.trip_id]}
+        stops = {feed.station(st.place_id) for st in feed.stop_times[trip.trip_id]}
         stops_by_headsign.setdefault(branch_key(feed, trip), set()).update(stops)
 
     names = list(stops_by_headsign)
@@ -375,7 +417,8 @@ def build_timetable(
         trip.trip_id: feed.stop_times[trip.trip_id] for trip in trips
     }
     sequences = [
-        tuple(feed.station(st.stop_id) for st in times) for times in stop_times.values()
+        tuple(feed.station(st.place_id) for st in times)
+        for times in stop_times.values()
     ]
     counts = Counter(sequences)
     patterns = sorted(counts, key=lambda s: (-counts[s], -len(s)))
@@ -400,14 +443,14 @@ def build_timetable(
     served: list[set[str]] = [set() for _ in merged]
     for trip in trips:
         times = stop_times[trip.trip_id]
-        rows = positions[tuple(feed.station(st.stop_id) for st in times)]
+        rows = positions[tuple(feed.station(st.place_id) for st in times)]
         for row, st in zip(rows, times, strict=True):
             if st.timepoint is not None:
                 any_flag = True
             if st.timepoint == 1:
                 flagged.add(row)
-            boarding[row].add(feed.wheelchair_boarding(st.stop_id))
-            served[row].add(st.stop_id)
+            boarding[row].add(feed.wheelchair_boarding(st.place_id))
+            served[row].add(st.place_id)
         # Trips starting before local midnight run on the previous local day.
         day_shift = -start_day_offset(feed, trip.trip_id, day_type.start) * DAY_SECONDS
         next_trip = (
@@ -418,12 +461,15 @@ def build_timetable(
         for headway, offset in trip_columns(feed, trip):
             cells: list[Cell | None] = [None] * len(merged)
             for row, st in zip(rows, times, strict=True):
+                window, booking = flex_fields(st)
                 cell = Cell(
                     arrival=st.arrival,
                     departure=st.departure,
                     pickup=st.pickup_type != 1,
                     drop_off=st.drop_off_type != 1,
                     request=3 in (st.pickup_type, st.drop_off_type),
+                    window=window,
+                    booking=booking,
                 )
                 cells[row] = shifted(cell, offset + shifts[row] + day_shift)
             columns.append(
@@ -450,7 +496,7 @@ def build_timetable(
         rows=tuple(
             Row(
                 stop_id=stop_id,
-                name=feed.stops[stop_id].name if stop_id in feed.stops else stop_id,
+                name=feed.place_name(stop_id) or stop_id,
                 exact=row in flagged or not any_flag,
                 timezone=zones[row],
                 shift=shifts[row],
@@ -459,6 +505,7 @@ def build_timetable(
                 platform=shared(
                     {feed.stops[s].platform for s in served[row] if s in feed.stops}
                 ),
+                kind=place_kind(feed, stop_id),
             )
             for row, stop_id in enumerate(merged)
         ),

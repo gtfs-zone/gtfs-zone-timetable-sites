@@ -108,9 +108,14 @@ def stop_zone(feed: Feed) -> ZoneOf:
 
 
 def trip_stops(feed: Feed, trip: Trip) -> list[str]:
-    """The trip's stop_ids in order; GTFS-Flex stop_times with a location and
-    no stop_id are in no zone and left out."""
-    return [st.stop_id for st in feed.stop_times.get(trip.trip_id, ()) if st.stop_id]
+    """The trip's stop_ids in order; GTFS-Flex stop_times at a location or
+    location group, named in location_id, location_group_id or stop_id, are
+    in no zone and left out."""
+    return [
+        st.stop_id
+        for st in feed.stop_times.get(trip.trip_id, ())
+        if st.stop_id and not feed.flex_place(st.stop_id)
+    ]
 
 
 def zone_order(feed: Feed, trips: Sequence[Trip], zone_of: ZoneOf) -> list[str]:

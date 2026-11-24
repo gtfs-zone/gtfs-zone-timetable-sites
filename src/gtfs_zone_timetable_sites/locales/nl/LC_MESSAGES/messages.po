@@ -1130,3 +1130,95 @@ msgstr "Vermeldingen per feed"
 
 msgid "sources.data"
 msgstr "Cijfers uit het bestand {link} van de catalogus."
+
+msgid "legend.window"
+msgstr "Twee tijden: in- of uitstappen op elk moment daartussen."
+
+msgid "legend.unnamed"
+msgstr "Cursief: een gebied zonder naam in de feed; de location_id wordt getoond."
+
+msgid "legend.booking"
+msgstr "{mark}: reserveren verplicht, zie Reserveren."
+
+msgid "booking.heading"
+msgstr "Reserveren"
+
+msgid "booking.no_type"
+msgstr "De feed geeft geen soort reservering."
+
+msgid "booking.type_0"
+msgstr "Reserveren op het moment zelf."
+
+msgid "booking.type_1"
+msgstr "Vooraf reserveren op de dag van de reis."
+
+msgid "booking.type_2"
+msgstr "Reserveren op een eerdere dag."
+
+msgid "booking.type"
+msgstr "booking_type {value}."
+
+msgid "booking.service"
+msgstr "Dagen tellen op de dagen dat dienst {service} rijdt."
+
+msgid "booking.pickup"
+msgstr "Instappen: {message}"
+
+msgid "booking.drop_off"
+msgstr "Uitstappen: {message}"
+
+msgid "booking.phone"
+msgstr "Bel {phone}"
+
+msgid "booking.book"
+msgstr "Online reserveren"
+
+msgid "booking.info"
+msgstr "Meer informatie"
+
+msgid "booking.missing"
+msgstr "De feed noemt reserveringsregel {id}, die booking_rules.txt niet heeft."
+
+msgid "flex.unreadable"
+msgstr "De GTFS-Flex-gegevens in de feed konden niet worden gelezen: {error}"
+
+msgid "flex.misnamed"
+msgstr "De feed heeft {given}, wat GTFS {spec} noemt; daaruit wordt niets gelezen."
+
+msgid "booking.min"
+msgid_plural "booking.min"
+msgstr[0] "Minstens {n} minuut van tevoren."
+msgstr[1] "Minstens {n} minuten van tevoren."
+
+msgid "booking.max"
+msgid_plural "booking.max"
+msgstr[0] "Hooguit {n} minuut van tevoren."
+msgstr[1] "Hooguit {n} minuten van tevoren."
+
+msgid "booking.start"
+msgid_plural "booking.start"
+msgstr[0] "Reserveren kan vanaf {n} dag voor de reis."
+msgstr[1] "Reserveren kan vanaf {n} dagen voor de reis."
+
+msgid "booking.start_time"
+msgid_plural "booking.start_time"
+msgstr[0] "Reserveren kan vanaf {n} dag voor de reis, om {time}."
+msgstr[1] "Reserveren kan vanaf {n} dagen voor de reis, om {time}."
+
+msgid "booking.last"
+msgid_plural "booking.last"
+msgstr[0] "Reserveer uiterlijk {n} dag voor de reis."
+msgstr[1] "Reserveer uiterlijk {n} dagen voor de reis."
+
+msgid "booking.last_time"
+msgid_plural "booking.last_time"
+msgstr[0] "Reserveer voor {time}, {n} dag voor de reis."
+msgstr[1] "Reserveer voor {time}, {n} dagen voor de reis."
+
+msgid "route.group_stops"
+msgid_plural "route.group_stops"
+msgstr[0] "{n} mogelijke halte"
+msgstr[1] "Een van {n} haltes"
+
+msgid "flex.in_stop_id"
+msgstr "De feed geeft GTFS-Flex-gebieden in stop_times.stop_id, dat GTFS voor stops.txt houdt; ze worden als gebieden getoond."

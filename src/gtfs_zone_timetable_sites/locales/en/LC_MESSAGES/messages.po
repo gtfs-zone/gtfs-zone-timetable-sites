@@ -1126,3 +1126,95 @@ msgstr "Entries per feed"
 
 msgid "sources.data"
 msgstr "Counts from the catalog's {link}."
+
+msgid "legend.window"
+msgstr "Two times: pick up or drop off at any time between them."
+
+msgid "legend.unnamed"
+msgstr "In italics: an area the feed gives no name; its location_id is shown."
+
+msgid "legend.booking"
+msgstr "{mark}: must be booked, see Booking."
+
+msgid "booking.heading"
+msgstr "Booking"
+
+msgid "booking.no_type"
+msgstr "The feed gives no booking type."
+
+msgid "booking.type_0"
+msgstr "Book in real time."
+
+msgid "booking.type_1"
+msgstr "Book ahead on the day of travel."
+
+msgid "booking.type_2"
+msgstr "Book on an earlier day."
+
+msgid "booking.type"
+msgstr "booking_type {value}."
+
+msgid "booking.service"
+msgstr "Days are counted on the days service {service} runs."
+
+msgid "booking.pickup"
+msgstr "Pick up: {message}"
+
+msgid "booking.drop_off"
+msgstr "Drop off: {message}"
+
+msgid "booking.phone"
+msgstr "Call {phone}"
+
+msgid "booking.book"
+msgstr "Book online"
+
+msgid "booking.info"
+msgstr "More information"
+
+msgid "booking.missing"
+msgstr "The feed names booking rule {id}, which booking_rules.txt does not have."
+
+msgid "flex.unreadable"
+msgstr "The feed's GTFS-Flex data could not be read: {error}"
+
+msgid "flex.misnamed"
+msgstr "The feed has {given}, which GTFS names {spec}; nothing is read from it."
+
+msgid "booking.min"
+msgid_plural "booking.min"
+msgstr[0] "At least {n} minute ahead."
+msgstr[1] "At least {n} minutes ahead."
+
+msgid "booking.max"
+msgid_plural "booking.max"
+msgstr[0] "At most {n} minute ahead."
+msgstr[1] "At most {n} minutes ahead."
+
+msgid "booking.start"
+msgid_plural "booking.start"
+msgstr[0] "Booking opens {n} day before travel."
+msgstr[1] "Booking opens {n} days before travel."
+
+msgid "booking.start_time"
+msgid_plural "booking.start_time"
+msgstr[0] "Booking opens {n} day before travel, at {time}."
+msgstr[1] "Booking opens {n} days before travel, at {time}."
+
+msgid "booking.last"
+msgid_plural "booking.last"
+msgstr[0] "Book at least {n} day before travel."
+msgstr[1] "Book at least {n} days before travel."
+
+msgid "booking.last_time"
+msgid_plural "booking.last_time"
+msgstr[0] "Book by {time}, {n} day before travel."
+msgstr[1] "Book by {time}, {n} days before travel."
+
+msgid "route.group_stops"
+msgid_plural "route.group_stops"
+msgstr[0] "Any of {n} stop"
+msgstr[1] "Any of {n} stops"
+
+msgid "flex.in_stop_id"
+msgstr "The feed gives GTFS-Flex areas in stop_times.stop_id, which GTFS keeps for stops.txt; they are shown as areas."

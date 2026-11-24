@@ -1,0 +1,5 @@
+route_id,service_id,trip_id,direction_id
+Z,WEEK,z1,0
+Z,WEEK,g1,0
+D,WEEK,d1,0
+D,WEEK,w1,0

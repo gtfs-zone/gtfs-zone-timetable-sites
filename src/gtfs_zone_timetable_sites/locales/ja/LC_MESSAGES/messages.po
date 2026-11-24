@@ -1095,3 +1095,88 @@ msgstr "フィードあたりの項目数"
 
 msgid "sources.data"
 msgstr "カタログの{link}による数値。"
+
+msgid "legend.window"
+msgstr "2つの時刻：その間のいつでも乗車・降車できます。"
+
+msgid "legend.unnamed"
+msgstr "斜体：フィードに名前のない区域。location_id を表示しています。"
+
+msgid "legend.booking"
+msgstr "{mark}：予約が必要です。「予約」をご覧ください。"
+
+msgid "booking.heading"
+msgstr "予約"
+
+msgid "booking.no_type"
+msgstr "フィードに予約の種類がありません。"
+
+msgid "booking.type_0"
+msgstr "リアルタイムで予約。"
+
+msgid "booking.type_1"
+msgstr "乗車当日に事前予約。"
+
+msgid "booking.type_2"
+msgstr "前日以前に予約。"
+
+msgid "booking.type"
+msgstr "booking_type {value}。"
+
+msgid "booking.service"
+msgstr "日数はサービス {service} の運行日で数えます。"
+
+msgid "booking.pickup"
+msgstr "乗車：{message}"
+
+msgid "booking.drop_off"
+msgstr "降車：{message}"
+
+msgid "booking.phone"
+msgstr "電話 {phone}"
+
+msgid "booking.book"
+msgstr "オンライン予約"
+
+msgid "booking.info"
+msgstr "詳細"
+
+msgid "booking.missing"
+msgstr "フィードは予約ルール {id} を参照していますが、booking_rules.txt にありません。"
+
+msgid "flex.unreadable"
+msgstr "フィードの GTFS-Flex データを読み込めませんでした: {error}"
+
+msgid "flex.misnamed"
+msgstr "フィードには {given} がありますが、GTFS での名前は {spec} です。読み込んでいません。"
+
+msgid "booking.min"
+msgid_plural "booking.min"
+msgstr[0] "{n}分前までに。"
+
+msgid "booking.max"
+msgid_plural "booking.max"
+msgstr[0] "{n}分前から。"
+
+msgid "booking.start"
+msgid_plural "booking.start"
+msgstr[0] "予約受付は乗車の{n}日前から。"
+
+msgid "booking.start_time"
+msgid_plural "booking.start_time"
+msgstr[0] "予約受付は乗車の{n}日前の{time}から。"
+
+msgid "booking.last"
+msgid_plural "booking.last"
+msgstr[0] "乗車の{n}日前までに予約。"
+
+msgid "booking.last_time"
+msgid_plural "booking.last_time"
+msgstr[0] "乗車の{n}日前の{time}までに予約。"
+
+msgid "route.group_stops"
+msgid_plural "route.group_stops"
+msgstr[0] "{n}か所の停留所のいずれか"
+
+msgid "flex.in_stop_id"
+msgstr "フィードは GTFS-Flex の区域を stop_times.stop_id に記載しています（GTFS では stops.txt 用）。区域として表示しています。"
