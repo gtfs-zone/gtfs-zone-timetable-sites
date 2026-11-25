@@ -1,3 +1,18 @@
+## v0.28.0 (2026-11-25)
+
+### Feat
+
+- **pages**: overlap hatnotes from feeds.json overlaps on index, feed and route pages, zip sha256 on the feed card
+- **flex**: GTFS-Flex areas, location groups, windows and booking rules on route pages
+- **root**: sources page from source-stats.json, per catalog counts, outcomes, overlap and joins, in every UI language
+- **root**: slim search.json built with the root
+- **root**: search every catalog feed with state, realtime and no-country filters
+
+### Fix
+
+- **pages**: overlap notes say agencies are listed in other feeds, not that their service is
+- **root**: include daisyUI table on the sources page, numeric headers right-aligned
+
 ## v0.27.0 (2026-11-24)
 
 ### Feat
