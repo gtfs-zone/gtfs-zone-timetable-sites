@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 from anyascii import anyascii
 from babel import Locale as BabelLocale
 from babel.core import UnknownLocaleError
+from gtfs_zone_feed_fetch.facts import zip_digest
 from gtfs_zone_feed_fetch.localities import Localities
 from gtfs_zone_feed_fetch.places import feed_place, place_label
 from markupsafe import Markup
@@ -40,7 +41,9 @@ from gtfs_zone_timetable_sites.feedpage import (
     STATES,
     dataset,
     feed_view,
+    overlaps_view,
     place_line,
+    route_overlaps,
 )
 from gtfs_zone_timetable_sites.gtfs.reader import (
     Agency,
@@ -210,6 +213,17 @@ def window_services(feed: Feed, today: date, days: int) -> set[str]:
         for offset in range(days + max_day_shift(feed, first)):
             running |= services.active(first + timedelta(days=offset))
     return running
+
+
+def route_agencies(feed: Feed, route: Route) -> tuple[str, ...]:
+    """The names of the route's agency, or of the feed's only agency when the
+    route names none it has."""
+    agency = feed.agencies.get(route.agency_id)
+    if agency is not None:
+        return (agency.name,)
+    if len(feed.agencies) == 1:
+        return tuple(a.name for a in feed.agencies.values())
+    return ()
 
 
 def agencies_by_routes(feed: Feed) -> list[Agency]:
@@ -391,6 +405,7 @@ def build_site(
         bad = archive.testzip()
     if bad is not None:
         raise ValueError(f"corrupt member in GTFS zip: {bad}")
+    digest = zip_digest(source)
     today = today or date.today()
     read = site_feed(source, site, today)
     feed = merge_routes(read)
@@ -543,7 +558,10 @@ def build_site(
             valid=date_range(start, end, locale, "valid"),
             feed_info_valid=feed_info_range(feed, locale),
             unknown_languages=languages.unknown,
-            feed=feed_view(site.catalog, locale, built=True) if site.catalog else None,
+            feed=feed_view(site.catalog, locale, built=True, sha256=digest[1])
+            if site.catalog
+            else None,
+            overlaps=overlaps_view(site.overlaps, locale),
             fares_page=fares_page,
             jsonld=[
                 breadcrumbs(common["trail"]),
@@ -654,6 +672,7 @@ def build_site(
                     fares, locale, read.fares.timeframes, site.time_format
                 ),
                 fare_charts=fare_charts(fares, locale),
+                overlaps=route_overlaps(site.overlaps, route_agencies(feed, rt.route)),
                 fares_page=fares_page,
                 fares_error=fares_error,
                 booking=booking_views(text, bookings, site.time_format, locale),
@@ -731,7 +750,7 @@ def build_site(
         noindex=sorted(noindex),
     )
     files["content.json"] = summary_json(
-        **feed_facts(source, read, site.routes != RouteFilter(), stations),
+        **feed_facts(source, read, site.routes != RouteFilter(), stations, digest),
         # Why the feed's fares could not be read, when they could not.
         **({"faresError": fares_error} if fares_error else {}),
     )
@@ -944,6 +963,7 @@ def build_feed_page(
         source=None,
         feed_only=True,
         feed=view,
+        overlaps=overlaps_view(site.overlaps, locale),
         jsonld=[breadcrumbs(trail), dataset(feed, base_url, description)],
         root="",
         noindex=not indexed,

@@ -1,12 +1,14 @@
 from datetime import date
 
 from gtfs_zone_timetable_sites.build import build_feed_page, feed_indexable
-from gtfs_zone_timetable_sites.config import CatalogFeed, Site
+from gtfs_zone_timetable_sites.config import CatalogFeed, OverlapLink, Site
 from gtfs_zone_timetable_sites.feedpage import (
     check_text,
     dataset,
     editor_url,
     feed_view,
+    overlaps_view,
+    route_overlaps,
     viewer_url,
 )
 
@@ -157,3 +159,53 @@ def test_site_index_has_the_feed_card():
     page = build_site(fixture_zip("overnight"), site, date(2026, 10, 5))["index.html"]
     assert b'id="feed"' in page and b"https://x/vp.pb" in page
     assert b"list.gtfs.zone" not in page
+
+
+def link(name, kind="shares", agencies=("A",), slug=None):
+    return OverlapLink(kind=kind, agencies=agencies, name=name, slug=slug)
+
+
+def test_overlaps_view_groups_kinds_and_sorts_by_name():
+    view = overlaps_view(
+        (
+            link("b", "contains", slug="b"),
+            link("Z", "containedIn"),
+            link("a", "shares", ("A", "B")),
+            link("c", "shares"),
+            link("d", "later"),
+        ),
+        "en",
+    )
+    assert [o.name for o in view.part_of] == ["Z"]
+    assert [o.name for o in view.holds] == ["b"]
+    assert view.shares_text == "Lists agencies also listed in 2 other feeds"
+    assert [(r.link.name, r.kind_text) for r in view.rows] == [
+        ("a", "lists some of the same agencies"),
+        ("b", "every agency it lists is also listed here"),
+        ("c", "lists some of the same agencies"),
+        ("d", ""),
+        ("Z", "lists every agency listed here"),
+    ]
+    assert view.rows[0].agencies_text == "Agencies listed in both: A and B"
+    assert overlaps_view((), "en") is None
+
+
+def test_route_overlaps_match_the_routes_agency():
+    links = (link("x", agencies=("DB  AG", "SBB")), link("y", agencies=("SBB",)))
+    assert route_overlaps(links, ("DB AG",)) == (("DB AG", (links[0],)),)
+    assert route_overlaps(links, ("Other",)) == ()
+
+
+def test_feed_page_shows_overlaps():
+    site = Site(
+        slug="metro",
+        feed="f-0000000001",
+        catalog=metro(),
+        overlaps=(link("Region", "containedIn", slug="region"),),
+    )
+    page = build_feed_page(site, TODAY)["index.html"].decode()
+    assert (
+        "Every agency here is also listed in: "
+        '<a class="link" href="../region/">Region</a>.' in page
+    )
+    assert 'id="overlaps"' in page

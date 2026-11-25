@@ -462,3 +462,53 @@ def test_repo_config_takes_whole_feeds_from_the_catalog():
 def test_repo_config_dev_feeds_are_valid():
     config = load_config(REPO_CONFIG.read_text())
     assert config.dev and len(set(config.dev)) == len(config.dev)
+
+
+def test_resolve_sites_links_overlaps_to_the_other_feeds_slugs():
+    config = load_config("catalog: {}")
+    doc = {
+        "feeds": [
+            feed(
+                "f-0000000001",
+                "Metro",
+                overlaps=[
+                    {"feedId": "f-0000000002", "kind": "contains", "agencies": ["A"]},
+                    {"feedId": "f-0000000003", "kind": "shares", "agencies": ["B"]},
+                ],
+            ),
+            feed("f-0000000002", "Town Bus", subtitle="Weekdays", municipality="X"),
+            feed(
+                "f-0000000003",
+                "Region",
+                roleState={"scheduled": "down"},
+                overlaps=[{"feedId": "f-0000000001", "agencies": ["B"]}],
+            ),
+        ]
+    }
+    sites, slugs, _ = resolve_sites(config, doc, {})
+    metro = next(site for site in sites if site.slug == "metro")
+    assert [(o.kind, o.agencies, o.name, o.place, o.slug) for o in metro.overlaps] == [
+        ("contains", ("A",), "Town Bus", "Weekdays, X", "town-bus"),
+        ("shares", ("B",), "Region", "", "region"),
+    ]
+    assert next(s for s in sites if s.slug == "town-bus").overlaps == ()
+    region = feed_sites(config, doc, slugs, sites)
+    assert region[0].slug == "region"
+    assert [(o.name, o.slug) for o in region[0].overlaps] == [("Metro", "metro")]
+
+
+def test_overlaps_without_a_slug_stay_unlinked():
+    config = load_config("sites: [{slug: metro, feed: f-0000000001}]")
+    doc = {
+        "feeds": [
+            feed(
+                "f-0000000001",
+                overlaps=[{"feedId": "f-0000000002", "agencies": ["A"]}],
+            ),
+            feed("f-0000000002", "Other"),
+        ]
+    }
+    (site,), _, _ = resolve_sites(config, doc, {})
+    assert [(o.kind, o.name, o.slug) for o in site.overlaps] == [
+        ("shares", "Other", None)
+    ]

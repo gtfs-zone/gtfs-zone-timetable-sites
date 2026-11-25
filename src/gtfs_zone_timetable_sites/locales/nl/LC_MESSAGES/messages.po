@@ -1222,3 +1222,40 @@ msgstr[1] "Een van {n} haltes"
 
 msgid "flex.in_stop_id"
 msgstr "De feed geeft GTFS-Flex-gebieden in stop_times.stop_id, dat GTFS voor stops.txt houdt; ze worden als gebieden getoond."
+
+msgid "overlap.part_of"
+msgstr "Alle vervoerders hier staan ook in: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Noemt ook alle vervoerders van: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Noemt vervoerders die ook in {n} andere feed staan"
+msgstr[1] "Noemt vervoerders die ook in {n} andere feeds staan"
+
+msgid "overlap.heading"
+msgstr "Feeds die dezelfde vervoerders noemen"
+
+msgid "overlap.intro"
+msgstr "Andere feeds in de catalogus van gtfs.zone die een vervoerder met dezelfde naam noemen waar hun haltes die van deze feed overlappen. Alleen de namen van de vervoerders worden vergeleken: lijnen en ritten kunnen verschillen."
+
+msgid "overlap.kind_contains"
+msgstr "elke vervoerder die het noemt staat ook hier"
+
+msgid "overlap.kind_contained_in"
+msgstr "noemt alle vervoerders van hier"
+
+msgid "overlap.kind_shares"
+msgstr "noemt enkele van dezelfde vervoerders"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Vervoerder in beide genoemd: {agencies}"
+msgstr[1] "Vervoerders in beide genoemd: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} staat ook als vervoerder in: {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 van de zip"

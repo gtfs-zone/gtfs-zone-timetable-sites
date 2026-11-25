@@ -1218,3 +1218,40 @@ msgstr[1] "Any of {n} stops"
 
 msgid "flex.in_stop_id"
 msgstr "The feed gives GTFS-Flex areas in stop_times.stop_id, which GTFS keeps for stops.txt; they are shown as areas."
+
+msgid "overlap.part_of"
+msgstr "Every agency here is also listed in: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Also lists every agency of: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Lists agencies also listed in {n} other feed"
+msgstr[1] "Lists agencies also listed in {n} other feeds"
+
+msgid "overlap.heading"
+msgstr "Feeds that list the same agencies"
+
+msgid "overlap.intro"
+msgstr "Other feeds in the gtfs.zone catalog that list an agency of the same name where their stops overlap this feed's. Only the agency names are compared: their routes and trips can differ."
+
+msgid "overlap.kind_contains"
+msgstr "every agency it lists is also listed here"
+
+msgid "overlap.kind_contained_in"
+msgstr "lists every agency listed here"
+
+msgid "overlap.kind_shares"
+msgstr "lists some of the same agencies"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Agency listed in both: {agencies}"
+msgstr[1] "Agencies listed in both: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} is also listed as an agency in: {feeds}."
+
+msgid "field.sha256"
+msgstr "Zip SHA-256"

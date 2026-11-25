@@ -1216,3 +1216,40 @@ msgstr[1] "Mikä tahansa {n} pysäkistä"
 
 msgid "flex.in_stop_id"
 msgstr "Syöte antaa GTFS-Flex-alueita kentässä stop_times.stop_id, jonka GTFS varaa stops.txt:lle; ne näytetään alueina."
+
+msgid "overlap.part_of"
+msgstr "Kaikki tämän syötteen liikennöitsijät mainitaan myös syötteessä: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Mainitsee myös kaikki liikennöitsijät syötteestä: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Samoja liikennöitsijöitä mainitaan myös {n} muussa syötteessä"
+msgstr[1] "Samoja liikennöitsijöitä mainitaan myös {n} muussa syötteessä"
+
+msgid "overlap.heading"
+msgstr "Syötteet, jotka mainitsevat samat liikennöitsijät"
+
+msgid "overlap.intro"
+msgstr "Muut gtfs.zone-luettelon syötteet, jotka mainitsevat samannimisen liikennöitsijän alueella, jossa niiden pysäkit ovat päällekkäin tämän syötteen pysäkkien kanssa. Vain liikennöitsijöiden nimiä verrataan: linjat ja vuorot voivat erota."
+
+msgid "overlap.kind_contains"
+msgstr "kaikki sen mainitsemat liikennöitsijät mainitaan myös tässä"
+
+msgid "overlap.kind_contained_in"
+msgstr "mainitsee kaikki tämän syötteen liikennöitsijät"
+
+msgid "overlap.kind_shares"
+msgstr "mainitsee osan samoista liikennöitsijöistä"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Molemmissa mainittu liikennöitsijä: {agencies}"
+msgstr[1] "Molemmissa mainitut liikennöitsijät: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} mainitaan liikennöitsijänä myös syötteessä: {feeds}."
+
+msgid "field.sha256"
+msgstr "Zip-tiedoston SHA-256"

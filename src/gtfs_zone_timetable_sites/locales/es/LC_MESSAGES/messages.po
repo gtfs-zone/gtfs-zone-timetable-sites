@@ -1233,3 +1233,40 @@ msgstr[1] "Cualquiera de {n} paradas"
 
 msgid "flex.in_stop_id"
 msgstr "El feed da áreas GTFS-Flex en stop_times.stop_id, que GTFS reserva para stops.txt; se muestran como áreas."
+
+msgid "overlap.part_of"
+msgstr "Todos los operadores de aquí también figuran en: {feeds}."
+
+msgid "overlap.holds"
+msgstr "También nombra todos los operadores de: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Nombra operadores que también figuran en {n} feed más"
+msgstr[1] "Nombra operadores que también figuran en {n} feeds más"
+
+msgid "overlap.heading"
+msgstr "Feeds que nombran los mismos operadores"
+
+msgid "overlap.intro"
+msgstr "Otros feeds del catálogo de gtfs.zone que nombran un operador con el mismo nombre donde sus paradas se solapan con las de este feed. Solo se comparan los nombres de los operadores: sus líneas y viajes pueden ser distintos."
+
+msgid "overlap.kind_contains"
+msgstr "todos los operadores que nombra también figuran aquí"
+
+msgid "overlap.kind_contained_in"
+msgstr "nombra todos los operadores de aquí"
+
+msgid "overlap.kind_shares"
+msgstr "nombra algunos de los mismos operadores"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Operador nombrado en ambos: {agencies}"
+msgstr[1] "Operadores nombrados en ambos: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} también figura como operador en: {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 del zip"

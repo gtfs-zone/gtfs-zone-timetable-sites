@@ -13,7 +13,14 @@ from typing import Any
 from anyascii import anyascii
 from pykakasi import kakasi
 
-from gtfs_zone_timetable_sites.config import CatalogFeed, Config, Site, parse_feeds
+from gtfs_zone_timetable_sites.config import (
+    CatalogFeed,
+    Config,
+    OverlapLink,
+    Site,
+    parse_feeds,
+)
+from gtfs_zone_timetable_sites.feedpage import place_line
 
 SHARDS = 16
 # Root paths a site slug may not take.
@@ -153,6 +160,39 @@ def country_options(feed: CatalogFeed) -> dict[str, str]:
     return {"time_format": "12h" if twelve else "24h"}
 
 
+def overlap_links(
+    feed: CatalogFeed, feeds: dict[str, CatalogFeed], slugs: dict[str, str]
+) -> tuple[OverlapLink, ...]:
+    """The feed's overlaps with each other feed's name, subtitle and place,
+    and its slug when it has one."""
+    links = []
+    for overlap in feed.overlaps:
+        other = feeds.get(overlap.feed_id)
+        parts = (other.subtitle, place_line(other)) if other else ()
+        links.append(
+            OverlapLink(
+                kind=overlap.kind,
+                agencies=overlap.agencies,
+                name=" ".join(other.name.split()) if other else overlap.feed_id,
+                place=", ".join(part for part in parts if part),
+                slug=slugs.get(overlap.feed_id),
+            )
+        )
+    return tuple(links)
+
+
+def with_overlaps(
+    sites: list[Site], feeds: dict[str, CatalogFeed], slugs: dict[str, str]
+) -> list[Site]:
+    """The sites with their catalog feeds' overlaps resolved."""
+    return [
+        site.model_copy(update={"overlaps": overlap_links(site.catalog, feeds, slugs)})
+        if site.catalog and site.catalog.overlaps
+        else site
+        for site in sites
+    ]
+
+
 def resolve_sites(
     config: Config,
     feeds_doc: dict[str, Any],
@@ -233,7 +273,7 @@ def resolve_sites(
     clash = sorted(slug for slug, n in counts.items() if n > 1)
     if clash:
         raise ValueError(f"slugs taken twice: {', '.join(clash)}")
-    return sites, slugs, aliases
+    return with_overlaps(sites, feeds, slugs), slugs, aliases
 
 
 def feed_sites(
@@ -256,7 +296,7 @@ def feed_sites(
         if index_countries and feed.country_code not in index_countries:
             options["index"] = False
         pages.append(Site(**options, slug=slug, feed=feed_id, catalog=feed))
-    return pages
+    return with_overlaps(pages, feeds, slugs)
 
 
 def redirects(

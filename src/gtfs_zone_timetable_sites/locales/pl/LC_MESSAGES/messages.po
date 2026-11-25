@@ -1242,3 +1242,42 @@ msgstr[2] "Dowolny z {n} przystanków"
 
 msgid "flex.in_stop_id"
 msgstr "Dane podają obszary GTFS-Flex w stop_times.stop_id, które GTFS rezerwuje dla stops.txt; są pokazane jako obszary."
+
+msgid "overlap.part_of"
+msgstr "Wszyscy podani tu przewoźnicy są podani także w: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Podaje też wszystkich przewoźników z: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Podaje przewoźników podanych także w {n} innym feedzie"
+msgstr[1] "Podaje przewoźników podanych także w {n} innych feedach"
+msgstr[2] "Podaje przewoźników podanych także w {n} innych feedach"
+
+msgid "overlap.heading"
+msgstr "Feedy podające tych samych przewoźników"
+
+msgid "overlap.intro"
+msgstr "Inne feedy w katalogu gtfs.zone, które podają przewoźnika o tej samej nazwie tam, gdzie ich przystanki pokrywają się z przystankami tego feedu. Porównywane są tylko nazwy przewoźników: linie i kursy mogą się różnić."
+
+msgid "overlap.kind_contains"
+msgstr "każdy podany w nim przewoźnik jest podany także tutaj"
+
+msgid "overlap.kind_contained_in"
+msgstr "podaje wszystkich przewoźników podanych tutaj"
+
+msgid "overlap.kind_shares"
+msgstr "podaje niektórych z tych samych przewoźników"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Przewoźnik podany w obu: {agencies}"
+msgstr[1] "Przewoźnicy podani w obu: {agencies}"
+msgstr[2] "Przewoźnicy podani w obu: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} jest podany jako przewoźnik także w: {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 pliku zip"

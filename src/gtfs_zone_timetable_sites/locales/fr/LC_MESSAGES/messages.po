@@ -1222,3 +1222,40 @@ msgstr[1] "{n} arrêts possibles"
 
 msgid "flex.in_stop_id"
 msgstr "Le flux donne des zones GTFS-Flex dans stop_times.stop_id, que GTFS réserve à stops.txt ; elles sont affichées comme zones."
+
+msgid "overlap.part_of"
+msgstr "Tous les organismes cités ici figurent aussi dans : {feeds}."
+
+msgid "overlap.holds"
+msgstr "Cite aussi tous les organismes de : {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Cite des organismes cités aussi dans {n} autre flux"
+msgstr[1] "Cite des organismes cités aussi dans {n} autres flux"
+
+msgid "overlap.heading"
+msgstr "Flux qui citent les mêmes organismes"
+
+msgid "overlap.intro"
+msgstr "Autres flux du catalogue gtfs.zone qui citent un organisme du même nom là où leurs arrêts recoupent ceux de ce flux. Seuls les noms des organismes sont comparés : leurs lignes et leurs courses peuvent différer."
+
+msgid "overlap.kind_contains"
+msgstr "chaque organisme qu'il cite figure aussi ici"
+
+msgid "overlap.kind_contained_in"
+msgstr "cite tous les organismes cités ici"
+
+msgid "overlap.kind_shares"
+msgstr "cite certains des mêmes organismes"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Organisme cité dans les deux : {agencies}"
+msgstr[1] "Organismes cités dans les deux : {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} figure aussi comme organisme dans : {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 du zip"

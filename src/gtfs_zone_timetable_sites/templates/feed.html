@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 {% from "feed_card.html" import feed_details with context %}
+{% from "overlaps.html" import overlap_hatnote, overlap_section with context %}
 {% block title %}{{ t("feed.title", name=feed.name, kinds=feed.kinds) }}{% endblock %}
 {% block description %}{{ t("feed.description", name=site_place, kinds=feed.kinds, state=feed.state_text) }}{% endblock %}
 {% block main %}
 <h1 class="text-3xl font-bold">{{ feed.name }}</h1>
 {% if feed.subtitle or place %}<p class="text-base-content/80">{{ feed.subtitle }}{% if feed.subtitle and place %}, {% endif %}{{ place }}</p>{% endif %}
+{% if overlaps %}{{ overlap_hatnote(overlaps) }}{% endif %}
 <p>{{ feed.reason }}</p>
 <section class="card bg-base-100 shadow-sm">
 <div class="card-body space-y-3 p-4">
 {{ feed_details(feed) }}
 </div>
 </section>
+{% if overlaps %}{{ overlap_section(overlaps) }}{% endif %}
 {% endblock %}

@@ -1221,3 +1221,40 @@ msgstr[1] "Una di {n} fermate"
 
 msgid "flex.in_stop_id"
 msgstr "Il feed indica aree GTFS-Flex in stop_times.stop_id, che GTFS riserva a stops.txt; sono mostrate come aree."
+
+msgid "overlap.part_of"
+msgstr "Tutte le aziende indicate qui figurano anche in: {feeds}."
+
+msgid "overlap.holds"
+msgstr "Indica anche tutte le aziende di: {feeds}."
+
+msgid "overlap.shares"
+msgid_plural "overlap.shares"
+msgstr[0] "Indica aziende che figurano anche in {n} altro feed"
+msgstr[1] "Indica aziende che figurano anche in altri {n} feed"
+
+msgid "overlap.heading"
+msgstr "Feed che indicano le stesse aziende"
+
+msgid "overlap.intro"
+msgstr "Altri feed del catalogo di gtfs.zone che indicano un'azienda con lo stesso nome dove le loro fermate si sovrappongono a quelle di questo feed. Si confrontano solo i nomi delle aziende: linee e corse possono essere diverse."
+
+msgid "overlap.kind_contains"
+msgstr "ogni azienda che indica figura anche qui"
+
+msgid "overlap.kind_contained_in"
+msgstr "indica tutte le aziende indicate qui"
+
+msgid "overlap.kind_shares"
+msgstr "indica alcune delle stesse aziende"
+
+msgid "overlap.agencies"
+msgid_plural "overlap.agencies"
+msgstr[0] "Azienda indicata in entrambi: {agencies}"
+msgstr[1] "Aziende indicate in entrambi: {agencies}"
+
+msgid "overlap.route"
+msgstr "{agency} figura anche come azienda in: {feeds}."
+
+msgid "field.sha256"
+msgstr "SHA-256 dello zip"
