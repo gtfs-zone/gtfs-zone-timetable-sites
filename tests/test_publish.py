@@ -74,6 +74,34 @@ def test_publish_uploads_only_changed_and_deletes_stale():
     assert manifest["source"] == {"url": "u"}
 
 
+class CountingStore(FakeStore):
+    def __init__(self, objects=None):
+        super().__init__(objects)
+        self.listed = []
+
+    def list_keys(self, prefix=""):
+        self.listed.append(prefix)
+        return super().list_keys(prefix)
+
+
+def test_publish_finds_stale_files_in_the_previous_manifest():
+    store = CountingStore({"s/stray.html": b"x"})
+    files = {"index.html": b"home", "old/index.html": b"x"}
+    publish_site(store, "s", files, {}, TODAY, "1.0.0")
+    # No manifest yet: the slug is listed, and a stray key goes.
+    assert store.listed == ["s/"]
+    assert "s/stray.html" not in store.objects
+
+    store.listed.clear()
+    store.objects["s/unlisted.html"] = b"x"
+    counts, _, _ = publish_site(store, "s", {"index.html": b"home"}, {}, TODAY, "1.0.0")
+    assert store.listed == []
+    assert counts["deleted"] == 1
+    assert "s/old/index.html" not in store.objects
+    # A key the manifest never named is left alone.
+    assert "s/unlisted.html" in store.objects
+
+
 def page(day):
     return f'<p><time class="generated" datetime="{day}">{day}</time></p>'.encode()
 
