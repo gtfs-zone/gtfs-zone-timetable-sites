@@ -1,3 +1,13 @@
+## v0.29.0 (2026-11-26)
+
+### Feat
+
+- **service**: horizon starts on the Monday of the build's week
+
+### Perf
+
+- **publish**: stale files from the previous manifest instead of listing the slug
+
 ## v0.28.0 (2026-11-25)
 
 ### Feat
