@@ -602,7 +602,7 @@ wheels = [
 [[package]]
 name = "gtfs-zone-feed-fetch"
 version = "0.7.0"
-source = { git = "https://github.com/gtfs-zone/gtfs-zone-feed-fetch.git?tag=v0.7.0#ffe8d9d7d98c6bfc1bb96e1d97f4b5c6ec4ac80b" }
+source = { git = "https://github.com/gtfs-zone/gtfs-zone-feed-fetch.git?tag=v0.7.0#23c310bb8c41f4faa3b5505bf7aa6c30aa488f5a" }
 dependencies = [
     { name = "babel" },
     { name = "httpx" },
@@ -677,7 +677,7 @@ dev = [
 [[package]]
 name = "gtfs-zone-vocab"
 version = "0.1.0"
-source = { git = "https://github.com/gtfs-zone/gtfs-zone-vocab.git?tag=v0.1.0#52bc8ee4eb2f7059e1b5050ee73dbb55858e3599" }
+source = { git = "https://github.com/gtfs-zone/gtfs-zone-vocab.git?tag=v0.1.0#21f57b8259d7023b40ee498120f76a48172249fd" }
 
 [[package]]
 name = "h11"
