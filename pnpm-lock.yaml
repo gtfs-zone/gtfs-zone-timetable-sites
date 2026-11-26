@@ -22,7 +22,7 @@ importers:
         version: 0.25.12
       gtfs-zone-web-common:
         specifier: github:gtfs-zone/gtfs-zone-web-common#v7.9.0
-        version: https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/70c7a91a4a00f6e5060e0f774b53141e1e6ff000(@leeoniya/ufuzzy@1.0.19)
+        version: https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/a345a6a4acb1cff111da76e20edc87b31df723bc(@leeoniya/ufuzzy@1.0.19)
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3
@@ -420,8 +420,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  gtfs-zone-web-common@https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/70c7a91a4a00f6e5060e0f774b53141e1e6ff000:
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/70c7a91a4a00f6e5060e0f774b53141e1e6ff000}
+  gtfs-zone-web-common@https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/a345a6a4acb1cff111da76e20edc87b31df723bc:
+    resolution: {gitHosted: true, integrity: sha512-Rja3/e2B9s21yz+NL2Pa29gwrEx5R+Ewkb/cJ9GCxrknxelpslGJiSfg8yuO7g03Q6pcVLZFWrO8th4QSxiX4w==, tarball: https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/a345a6a4acb1cff111da76e20edc87b31df723bc}
     version: 7.9.0
     peerDependencies:
       '@leeoniya/ufuzzy': '*'
@@ -850,7 +850,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  gtfs-zone-web-common@https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/70c7a91a4a00f6e5060e0f774b53141e1e6ff000(@leeoniya/ufuzzy@1.0.19):
+  gtfs-zone-web-common@https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/a345a6a4acb1cff111da76e20edc87b31df723bc(@leeoniya/ufuzzy@1.0.19):
     dependencies:
       '@leeoniya/ufuzzy': 1.0.19
 
