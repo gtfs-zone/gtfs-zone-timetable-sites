@@ -65,6 +65,17 @@ This project uses [Commitizen](https://commitizen-tools.github.io/commitizen/) (
 
 ### Creating Releases
 
+Release cadence:
+
+- Merge to `main` whenever a change is ready; `main` does not deploy.
+- Release once a week, on Monday before the daily build (09:00 UTC). The
+  timetable horizon moves on Mondays, so every page is re-uploaded then anyway
+  and a release adds no extra uploads.
+- Release outside that only for a fix that cannot wait; each extra release
+  re-uploads every page whose content it changes.
+- Preview template changes locally first: `timetable-sites dev` or
+  `timetable-sites build --site <slug>` on a few feeds (see [README.md](README.md)).
+
 When you're ready to release, run on `main`:
 
 ```bash
