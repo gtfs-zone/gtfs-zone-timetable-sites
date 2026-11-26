@@ -226,7 +226,8 @@ def publish_site(
     today: date,
     version: str,
 ) -> tuple[dict[str, int], list[str], dict[str, dict]]:
-    """Upload changed files, delete ones no longer built, then the manifest.
+    """Upload changed files, delete the previous manifest's files no longer
+    built (every key under the slug without one), then the manifest.
     Returns counts, the pages whose content changed today and every page's
     digest and date."""
     previous = read_manifest(store, slug) or {}
@@ -252,7 +253,12 @@ def publish_site(
         for group in (assets, html):
             list(pool.map(lambda path: store.put(f"{slug}/{path}", files[path]), group))
     built = {f"{slug}/{path}" for path in files} | {f"{slug}/{MANIFEST}"}
-    stale = store.list_keys(f"{slug}/") - built
+    # The previous manifest names every file the last build uploaded; a site
+    # without one is listed instead.
+    if previous:
+        stale = {f"{slug}/{path}" for path in old} - built
+    else:
+        stale = store.list_keys(f"{slug}/") - built
     store.delete(stale)
     manifest = {
         "built": today.isoformat(),
