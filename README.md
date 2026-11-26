@@ -107,7 +107,7 @@ built whatever the catalog filter says:
 | Option | Values | Default |
 |---|---|---|
 | `map` | `maplibre`, `none` | `maplibre` |
-| `horizon_days` | days used to derive day types | `28` |
+| `horizon_days` | days used to derive day types, from the Monday of the build's week | `28` |
 | `time_format` | `12h`, `24h` | `12h` |
 | `locale` | a language code (`fr`, `nl`): the site's default language, in place of the feed's (the root and country pages stay English) | the feed's |
 | `index` | `true`, `false`: whether search engines may index the site's pages; `false` adds a robots `noindex` to every page and leaves them out of the sitemap, as for expired routes | `true` |

@@ -108,7 +108,22 @@ def test_removed_date_is_missing_from_regular_day_type():
 def test_horizon_starts_at_first_service_date():
     feed = read_feed(fixture_zip("calendar-dates-only"))
     assert horizon_start(feed, date(2026, 1, 1)) == date(2026, 10, 10)
-    assert horizon_start(feed, date(2026, 11, 1)) == date(2026, 11, 1)
+    # Sunday Nov 1 starts on Monday Oct 26.
+    assert horizon_start(feed, date(2026, 11, 1)) == date(2026, 10, 26)
+
+
+def test_horizon_starts_on_monday_all_week():
+    feed = read_feed(fixture_zip("calendar-dates-only"))
+    week = [date(2026, 11, 23) + timedelta(days=i) for i in range(7)]
+    assert {horizon_start(feed, day) for day in week} == {date(2026, 11, 23)}
+    assert horizon_start(feed, date(2026, 11, 30)) == date(2026, 11, 30)
+
+
+def test_horizon_starts_on_first_service_date_mid_week():
+    feed = read_feed(fixture_zip("calendar-dates-only"))
+    # Service starts Saturday Oct 10; Monday Oct 5 is before it.
+    assert horizon_start(feed, date(2026, 10, 7)) == date(2026, 10, 10)
+    assert horizon_start(feed, date(2026, 10, 11)) == date(2026, 10, 10)
 
 
 def weekday_feed() -> bytes:

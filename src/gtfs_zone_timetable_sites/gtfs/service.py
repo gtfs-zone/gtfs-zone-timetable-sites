@@ -205,10 +205,17 @@ def last_service_date(
     return Services(feed).last(service_ids)
 
 
+def week_start(day: date) -> date:
+    """The Monday on or before `day`."""
+    return day - timedelta(days=day.weekday())
+
+
 def horizon_start(feed: Feed, today: date, services: Services | None = None) -> date:
-    """Today, or the feed's first service date when that is later."""
+    """The Monday of today's week, or the feed's first service date when that
+    is later, so a site's pages change at most once a week from the date."""
+    start = week_start(today)
     first = (services or Services(feed)).first()
-    return max(today, first) if first is not None else today
+    return max(start, first) if first is not None else start
 
 
 @dataclass(frozen=True, slots=True)
