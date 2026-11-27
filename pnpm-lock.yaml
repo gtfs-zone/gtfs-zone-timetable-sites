@@ -21,8 +21,8 @@ importers:
         specifier: 0.25.12
         version: 0.25.12
       gtfs-zone-web-common:
-        specifier: github:gtfs-zone/gtfs-zone-web-common#v7.9.0
-        version: https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/a345a6a4acb1cff111da76e20edc87b31df723bc(@leeoniya/ufuzzy@1.0.19)
+        specifier: github:gtfs-zone/gtfs-zone-web-common#v7.20.0
+        version: https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/88413a8e08ef54cb0d4e27ca739fd9db79e46e63(@leeoniya/ufuzzy@1.0.19)
       tailwindcss:
         specifier: 4.3.5
         version: 4.3.5
@@ -400,21 +400,33 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  gtfs-zone-web-common@https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/a345a6a4acb1cff111da76e20edc87b31df723bc:
-    resolution: {gitHosted: true, integrity: sha512-Rja3/e2B9s21yz+NL2Pa29gwrEx5R+Ewkb/cJ9GCxrknxelpslGJiSfg8yuO7g03Q6pcVLZFWrO8th4QSxiX4w==, tarball: https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/a345a6a4acb1cff111da76e20edc87b31df723bc}
-    version: 7.9.0
+  gtfs-zone-web-common@https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/88413a8e08ef54cb0d4e27ca739fd9db79e46e63:
+    resolution: {gitHosted: true, integrity: sha512-Oi5gWkzpBIRXinkA1eqGDAAME2q5JakmHtH6n4M9i95r85owq3XkyBdc3yK93ogYOk9YdGRtpYCS2DRLbPWlTQ==, tarball: https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/88413a8e08ef54cb0d4e27ca739fd9db79e46e63}
+    version: 7.20.0
     peerDependencies:
+      '@argos-ci/playwright': '*'
       '@leeoniya/ufuzzy': '*'
       '@maplibre/geojson-vt': '*'
       '@maplibre/vt-pbf': '*'
+      '@playwright/test': '*'
       fflate: '*'
       gtfs-realtime-bindings: '*'
       gtfs-zone-vocab: '*'
-      maplibre-gl: '>=6.4.1 <7'
+      maplibre-gl: '>=6.11.2 <7'
       papaparse: '*'
+      pmtiles: '*'
+      vitest: '*'
       zod: '*'
     peerDependenciesMeta:
+      '@argos-ci/playwright':
+        optional: true
+      '@playwright/test':
+        optional: true
       gtfs-realtime-bindings:
+        optional: true
+      pmtiles:
+        optional: true
+      vitest:
         optional: true
 
   is-extglob@2.1.1:
@@ -804,7 +816,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  gtfs-zone-web-common@https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/a345a6a4acb1cff111da76e20edc87b31df723bc(@leeoniya/ufuzzy@1.0.19):
+  gtfs-zone-web-common@https://codeload.github.com/gtfs-zone/gtfs-zone-web-common/tar.gz/88413a8e08ef54cb0d4e27ca739fd9db79e46e63(@leeoniya/ufuzzy@1.0.19):
     dependencies:
       '@leeoniya/ufuzzy': 1.0.19
 
