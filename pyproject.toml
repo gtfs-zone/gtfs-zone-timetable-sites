@@ -39,7 +39,7 @@ Source = "https://github.com/gtfs-zone/gtfs-zone-timetable-sites"
 [dependency-groups]
 dev = [
     "commitizen",
-    "dagster-webserver==1.13.24",
+    "dagster-webserver==1.13.31",
     "deptry>=0.25.1",
     "pytest>=8.0",
     "ruff",
